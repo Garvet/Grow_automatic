@@ -1,5 +1,5 @@
-#ifndef __GROW_TIMER__H__
-#define __GROW_TIMER__H__
+#ifndef __GROUP_CONTROL_MODULE__H__
+#define __GROUP_CONTROL_MODULE__H__
 
 #include <Arduino.h>
 #include <vector>
@@ -14,7 +14,6 @@
 #include <Grow_device.h>
 
 // (!) ----- (-) ----- перенести на статическую память
-// (-) ----- переиминовать Grow_timer в Group_control_module
 
 #define SYNC_WORD  0x4A // Кодовое слово (должно совпадать у всех модулей сети)
 #define REIST_BAND 43325E4 // Частота работы при регистрации (-) ----- добавить остальные параметры канала
@@ -22,7 +21,7 @@
 #define MAX_AMT_SENSOR 0x3FF5 // максимальное число датчиков (условно)
 #define MAX_AMT_DEVICE 0x3FF5 // максимальное число устройств (условно)
 
-class Grow_timer {
+class Group_control_module {
 // private: // (-) ----- верни приватность полей и некоторых функций
 public:
     std::vector<char> name_; // Имя модуля (в т.ч. Bluetooth)
@@ -85,9 +84,9 @@ public:
     // save в EEPROM // (-) ----- (2 шт. КФ и настроек, считываний)
     // load из EEPROM // (-) -----
 public:
-    Grow_timer();
-    Grow_timer(uint8_t pin_reset, uint8_t spi_bus, uint8_t spi_nss, uint8_t pin_dio0, uint8_t pin_dio1, uint8_t pin_dio3);
-    ~Grow_timer();
+    Group_control_module();
+    Group_control_module(uint8_t pin_reset, uint8_t spi_bus, uint8_t spi_nss, uint8_t pin_dio0, uint8_t pin_dio1, uint8_t pin_dio3);
+    ~Group_control_module();
     // Инициализация параметров LoRa модуля (частота задаётся конфигурацией)
     bool LoRa_init(uint8_t pin_reset, uint8_t spi_bus=VSPI, uint8_t spi_nss=0, 
                    uint8_t pin_dio0=0, uint8_t pin_dio1=0, uint8_t pin_dio3=0);
@@ -124,11 +123,11 @@ public:
     // [C] Удаление модуля (?) ----- пока только в планах
     bool remove_module(uint16_t adr);
     // Установка режима работы системы
-    bool set_mode(Grow_timer::Mode mode);
+    bool set_mode(Group_control_module::Mode mode);
 
     // --- Байтовая строка обмена ---
     // (-) ----- сделать функции обмена с Денисом, возможно ещё в set_configuration(std::vector<uint8_t> data);
 };
 
 
-#endif // __GROW_TIMER__H__
+#endif // __GROUP_CONTROL_MODULE__H__

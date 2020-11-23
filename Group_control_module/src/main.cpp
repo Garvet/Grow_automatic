@@ -6,7 +6,7 @@
 #include <Arduino.h>
 
 #include <Exchange_packet.h>
-#include <Grow_timer.h>
+#include <Group_control_module.h>
 // #include <Grow_sensor.h>
 
 #define TYPE_DEVICE_ONE
@@ -49,7 +49,7 @@
 
 std::vector<uint8_t> packet = { 01, 00, 00, 01, 01, 01, 04, 11, 12, 00, 3, 1, 1, 2, 3};
 Exchange_packet reg_packet;
-Grow_timer __GT__;
+Group_control_module __GCM__;
 uint8_t data[100] = {0x00, 0x01, 0x00, 0x04, 0x0F, 0x00, 0x02, 0x00, 0x03, 0xD0, 
                      0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 
                      0xB0, 0x20, 0x31, 0x00, 0x00, 0x09, 0xFB, 0xF1, 0x02, 0x04, 
@@ -59,13 +59,13 @@ uint8_t data[100] = {0x00, 0x01, 0x00, 0x04, 0x0F, 0x00, 0x02, 0x00, 0x03, 0xD0,
                      0x07};
 
 void GT_print_NR_S() {
-    if(__GT__.sensors_.size() != 0) {
+    if(__GCM__.sensors_.size() != 0) {
         Serial.println(" ----- ----- sensors ----- -----");
-        for(int i = 0; i < __GT__.sensors_.size(); ++i) {
+        for(int i = 0; i < __GCM__.sensors_.size(); ++i) {
             Serial.print(" = (");
             Serial.print(i);
             Serial.println(") =");
-            __GT__.sensors_[i].print();
+            __GCM__.sensors_[i].print();
         }
         Serial.println(" ----- ----- --- --- ----- -----\n\n");
     }
@@ -74,13 +74,13 @@ void GT_print_NR_S() {
     }
 }
 void GT_print_NR_D() {
-    if(__GT__.devices_.size() != 0) {
+    if(__GCM__.devices_.size() != 0) {
         Serial.println(" ----- ----- devices ----- -----");
-        for(int i = 0; i < __GT__.devices_.size(); ++i) {
+        for(int i = 0; i < __GCM__.devices_.size(); ++i) {
             Serial.print(" = (");
             Serial.print(i);
             Serial.println(") =");
-            __GT__.devices_[i].print();
+            __GCM__.devices_[i].print();
         }
         Serial.println(" ----- ----- --- --- ----- -----\n\n");
     }
@@ -95,13 +95,13 @@ void GT_print_NR() {
     Serial.println();
 }
 void GT_print_R_S() {
-    if(__GT__.reg_sensors_.size() != 0) {
+    if(__GCM__.reg_sensors_.size() != 0) {
         Serial.println(" ----- ----- reg sensors ----- -----");
-        for(int i = 0; i < __GT__.reg_sensors_.size(); ++i) {
+        for(int i = 0; i < __GCM__.reg_sensors_.size(); ++i) {
             Serial.print(" = (");
             Serial.print(i);
             Serial.println(") =");
-            __GT__.reg_sensors_[i].print();
+            __GCM__.reg_sensors_[i].print();
         }
         Serial.println(" ----- ----- --- --- --- ----- -----\n\n");
     }
@@ -110,13 +110,13 @@ void GT_print_R_S() {
     }
 }
 void GT_print_R_D() {
-    if(__GT__.reg_devices_.size() != 0) {
+    if(__GCM__.reg_devices_.size() != 0) {
         Serial.println(" ----- ----- reg devices ----- -----");
-        for(int i = 0; i < __GT__.reg_devices_.size(); ++i) {
+        for(int i = 0; i < __GCM__.reg_devices_.size(); ++i) {
             Serial.print(" = (");
             Serial.print(i);
             Serial.println(") =");
-            __GT__.reg_devices_[i].print();
+            __GCM__.reg_devices_[i].print();
         }
         Serial.println(" ----- ----- --- --- --- ----- -----\n\n");
     }
@@ -135,45 +135,45 @@ void GT_print() {
 }
 void GT_print_f() {
     Serial.println("Filters:");
-    for(int i = 0; i < __GT__.sensors_.size(); ++i) {
+    for(int i = 0; i < __GCM__.sensors_.size(); ++i) {
         Serial.print(" (");
         Serial.print(i);
         Serial.print(") - [");
-        __GT__.filter_sensors(__GT__.sensors_[i]);
-        for(int j = 0; j < __GT__.filter_adr_.size(); ++j) {
+        __GCM__.filter_sensors(__GCM__.sensors_[i]);
+        for(int j = 0; j < __GCM__.filter_adr_.size(); ++j) {
             Serial.print("{");
-            if((__GT__.filter_adr_[j] >> 8) < 16)
+            if((__GCM__.filter_adr_[j] >> 8) < 16)
                 Serial.print("0");
-            Serial.print((__GT__.filter_adr_[j] >> 8), 16);
+            Serial.print((__GCM__.filter_adr_[j] >> 8), 16);
             Serial.print(" ");
-            if((__GT__.filter_adr_[j] & 0xFF) < 16)
+            if((__GCM__.filter_adr_[j] & 0xFF) < 16)
                 Serial.print("0");
-            Serial.print((__GT__.filter_adr_[j] & 0xFF), 16);
+            Serial.print((__GCM__.filter_adr_[j] & 0xFF), 16);
             Serial.print("}");
 
-            if(j < __GT__.filter_adr_.size() - 1)
+            if(j < __GCM__.filter_adr_.size() - 1)
                 Serial.print(", ");
         }
         Serial.println("]");
     }
     Serial.println();
-    for(int i = 0; i < __GT__.devices_.size(); ++i) {
+    for(int i = 0; i < __GCM__.devices_.size(); ++i) {
         Serial.print(" (");
         Serial.print(i);
         Serial.print(") - [");
-        __GT__.filter_devices(__GT__.devices_[i]);
-        for(int j = 0; j < __GT__.filter_adr_.size(); ++j) {
+        __GCM__.filter_devices(__GCM__.devices_[i]);
+        for(int j = 0; j < __GCM__.filter_adr_.size(); ++j) {
             Serial.print("{");
-            if((__GT__.filter_adr_[j] >> 8) < 16)
+            if((__GCM__.filter_adr_[j] >> 8) < 16)
                 Serial.print("0");
-            Serial.print((__GT__.filter_adr_[j] >> 8), 16);
+            Serial.print((__GCM__.filter_adr_[j] >> 8), 16);
             Serial.print(" ");
-            if((__GT__.filter_adr_[j] & 0xFF) < 16)
+            if((__GCM__.filter_adr_[j] & 0xFF) < 16)
                 Serial.print("0");
-            Serial.print((__GT__.filter_adr_[j] & 0xFF), 16);
+            Serial.print((__GCM__.filter_adr_[j] & 0xFF), 16);
             Serial.print("}");
 
-            if(j < __GT__.filter_adr_.size() - 1)
+            if(j < __GCM__.filter_adr_.size() - 1)
                 Serial.print(", ");
         }
         Serial.println("]");
@@ -189,15 +189,15 @@ void setup() {
     Serial.println("Start!");
     Serial.println();
     uint8_t result;
-    __GT__.LoRa_init(PIN_RESET, SPI_BUS, SPI_NSS, PIN_DIO0, PIN_DIO1);
-    result = __GT__.begin(); // 0 - correct, other - num LoRa_error
+    __GCM__.LoRa_init(PIN_RESET, SPI_BUS, SPI_NSS, PIN_DIO0, PIN_DIO1);
+    result = __GCM__.begin(); // 0 - correct, other - num LoRa_error
     if(result != 0) {
         Serial.print("LoRa begin error: ");
         Serial.println(result);
         while (1) delay(10000);        
     }
     // GT_print();
-    __GT__.set_data(data, 100);
+    __GCM__.set_data(data, 100);
     // GT_print();
     // Serial.println();
 
@@ -205,32 +205,32 @@ void setup() {
 #if defined (AUTO_REG)
     packet = { 01, 00, 00, 01, 03, 02, 04, 11, 12, 00, 2, 1, 4, 3};
     reg_packet.set_packet(packet);
-    if(__GT__.add_reg_module(reg_packet))
+    if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
     packet = { 01, 00, 00, 01, 01, 02, 04, 11, 12, 00, 2, 1, 4, 3};
     reg_packet.set_packet(packet);
-    if(__GT__.add_reg_module(reg_packet))
+    if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
     packet = { 01, 00, 00, 01, 02, 01, 04, 11, 12, 00, 2, 1, 6, 6, 3, 3, 3, 1};
     reg_packet.set_packet(packet);
-    if(__GT__.add_reg_module(reg_packet))
+    if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
 
     packet = { 01, 00, 00, 01, 02, 03, 04, 11, 12, 00, 1, 2, 5};
     reg_packet.set_packet(packet);
-    if(__GT__.add_reg_module(reg_packet))
+    if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
     packet = { 01, 00, 00, 01, 02, 07, 04, 11, 12, 00, 1, 2, 5};
     reg_packet.set_packet(packet);
-    if(__GT__.add_reg_module(reg_packet))
+    if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
     packet = { 01, 00, 00, 01, 07, 03, 04, 11, 12, 00, 1, 2, 5};
     reg_packet.set_packet(packet);
-    if(__GT__.add_reg_module(reg_packet))
+    if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
     packet = { 01, 00, 00, 01, 03, 01, 04, 11, 12, 00, 2, 2, 5, 3, 4, 2};
     reg_packet.set_packet(packet);
-    if(__GT__.add_reg_module(reg_packet))
+    if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
 #endif
     GT_print();
@@ -389,34 +389,34 @@ uint16_t use_sen_num() {
     while(1) {
         r = Serial.read();
         r -= '0';
-        if(r < __GT__.sensors_.size()) {
+        if(r < __GCM__.sensors_.size()) {
             Serial.println(r);
-            __GT__.sensors_[r].print();
-            __GT__.filter_sensors(__GT__.sensors_[r]);
+            __GCM__.sensors_[r].print();
+            __GCM__.filter_sensors(__GCM__.sensors_[r]);
 
             Serial.print("F = [");
-            for(int j = 0; j < __GT__.filter_adr_.size(); ++j) {
+            for(int j = 0; j < __GCM__.filter_adr_.size(); ++j) {
                 Serial.print("{");
-                if((__GT__.filter_adr_[j] >> 8) < 16)
+                if((__GCM__.filter_adr_[j] >> 8) < 16)
                     Serial.print("0");
-                Serial.print((__GT__.filter_adr_[j] >> 8), 16);
+                Serial.print((__GCM__.filter_adr_[j] >> 8), 16);
                 Serial.print(" ");
-                if((__GT__.filter_adr_[j] & 0xFF) < 16)
+                if((__GCM__.filter_adr_[j] & 0xFF) < 16)
                     Serial.print("0");
-                Serial.print((__GT__.filter_adr_[j] & 0xFF), 16);
+                Serial.print((__GCM__.filter_adr_[j] & 0xFF), 16);
                 Serial.print("}");
-                if(j < __GT__.filter_adr_.size() - 1)
+                if(j < __GCM__.filter_adr_.size() - 1)
                     Serial.print(", ");
             }
             Serial.println("]");
             break;
         }
     }
-    if(__GT__.filter_adr_.size() == 0) {
+    if(__GCM__.filter_adr_.size() == 0) {
         Serial.println ("Filter empty");
         return 0;
     }
-    return __GT__.sensors_[r].get_address();
+    return __GCM__.sensors_[r].get_address();
 }
 uint16_t use_dev_num() {
     uint8_t r = -1;
@@ -425,33 +425,33 @@ uint16_t use_dev_num() {
     while(1) {
         r = Serial.read();
         r -= '0';
-        if(r < __GT__.devices_.size()) {
+        if(r < __GCM__.devices_.size()) {
             Serial.println(r);
-            __GT__.devices_[r].print();
-            __GT__.filter_devices(__GT__.devices_[r]);
+            __GCM__.devices_[r].print();
+            __GCM__.filter_devices(__GCM__.devices_[r]);
             Serial.print("F = [");
-            for(int j = 0; j < __GT__.filter_adr_.size(); ++j) {
+            for(int j = 0; j < __GCM__.filter_adr_.size(); ++j) {
                 Serial.print("{");
-                if((__GT__.filter_adr_[j] >> 8) < 16)
+                if((__GCM__.filter_adr_[j] >> 8) < 16)
                     Serial.print("0");
-                Serial.print((__GT__.filter_adr_[j] >> 8), 16);
+                Serial.print((__GCM__.filter_adr_[j] >> 8), 16);
                 Serial.print(" ");
-                if((__GT__.filter_adr_[j] & 0xFF) < 16)
+                if((__GCM__.filter_adr_[j] & 0xFF) < 16)
                     Serial.print("0");
-                Serial.print((__GT__.filter_adr_[j] & 0xFF), 16);
+                Serial.print((__GCM__.filter_adr_[j] & 0xFF), 16);
                 Serial.print("}");
-                if(j < __GT__.filter_adr_.size() - 1)
+                if(j < __GCM__.filter_adr_.size() - 1)
                     Serial.print(", ");
             }
             Serial.println("]");
             break;
         }
     }
-    if(__GT__.filter_adr_.size() == 0) {
+    if(__GCM__.filter_adr_.size() == 0) {
         Serial.println ("Filter empty");
         return 0;
     }
-    return __GT__.devices_[r].get_address();
+    return __GCM__.devices_[r].get_address();
 }
 uint16_t use_reg_sen_num() {
     uint8_t r = -1;
@@ -459,12 +459,12 @@ uint16_t use_reg_sen_num() {
     while(1) {
         r = Serial.read();
         r -= '0';
-        if(r < __GT__.filter_adr_.size()) {
+        if(r < __GCM__.filter_adr_.size()) {
             Serial.println(r);
             break;
         }
     }
-    return __GT__.filter_adr_[r];
+    return __GCM__.filter_adr_[r];
 }
 uint16_t use_reg_dev_num() {
     uint8_t r = -1;
@@ -472,12 +472,12 @@ uint16_t use_reg_dev_num() {
     while(1) {
         r = Serial.read();
         r -= '0';
-        if(r < __GT__.filter_adr_.size()) {
+        if(r < __GCM__.filter_adr_.size()) {
             Serial.println(r);
             break;
         }
     }
-    return __GT__.filter_adr_[r];
+    return __GCM__.filter_adr_[r];
 }
 
 void loop() {
@@ -496,7 +496,7 @@ void loop() {
         adr_new = use_reg_sen_num();
         if(adr_new == 0)
             break;
-        if(!__GT__.regist_sensor(adr_new, adr_old))
+        if(!__GCM__.regist_sensor(adr_new, adr_old))
             Serial.println("Correct");
         else
             Serial.println("Error");
@@ -510,7 +510,7 @@ void loop() {
         adr_new = use_reg_dev_num();
         if(adr_new == 0)
             break;
-        if(!__GT__.regist_device(adr_new, adr_old)) {
+        if(!__GCM__.regist_device(adr_new, adr_old)) {
             Serial.println("Correct");
         }
         else
@@ -520,8 +520,8 @@ void loop() {
     default:
         break;
     }
-    // __GT__.filter_sensors(__GT__.sensors_[0]);
-    // __GT__.regist_sensor(__GT__.filter_adr_[0]);
+    // __GCM__.filter_sensors(__GCM__.sensors_[0]);
+    // __GCM__.regist_sensor(__GCM__.filter_adr_[0]);
 }
 
 
@@ -597,7 +597,7 @@ void loop()
 
 #include <Arduino.h>
 #include <LoRa_contact_data.h>
-// #include <Grow_timer.h>
+// #include <Group_control_module.h>
 #include <vector>
 
 #define LoRa_CHANNEL 8

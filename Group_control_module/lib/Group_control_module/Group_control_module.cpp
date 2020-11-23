@@ -1,12 +1,12 @@
-#include "Grow_timer.h"
+#include "Group_control_module.h"
 
 #define NUM_SENSOR 0x01
 #define NUM_DEVICE 0x02
 
 // (!) ----- Переделать в нормальный вид (pin -> тот или иной GT)
-static Grow_timer* grow_timer_interrupt;
+static Group_control_module* group_control_module_interrupt;
 void lora_interrupt() {
-    grow_timer_interrupt->LoRa_interrupt();
+    group_control_module_interrupt->LoRa_interrupt();
 }
 
 //   ----- ----- ----- ---- ----- ----- -----
@@ -20,7 +20,7 @@ void lora_interrupt() {
 static ThreeWire rtc_wire(RTC_DS1302_DAT, RTC_DS1302_CLK, RTC_DS1302_RST);
 // !-! -----
 
-Grow_timer::Grow_timer(/* args */): rtc_(rtc_wire) {
+Group_control_module::Group_control_module(/* args */): rtc_(rtc_wire) {
     // (-) ----- зделать загрузку при включении, потом инициализацию если нет файла
     mode_ = GT_SETTING;
     check_sensor_ = false;
@@ -31,42 +31,42 @@ Grow_timer::Grow_timer(/* args */): rtc_(rtc_wire) {
     permission_regist_interrupt_ = true; 
 }
 
-Grow_timer::Grow_timer(uint8_t pin_reset, uint8_t spi_bus, uint8_t spi_nss, uint8_t pin_dio0, 
+Group_control_module::Group_control_module(uint8_t pin_reset, uint8_t spi_bus, uint8_t spi_nss, uint8_t pin_dio0, 
                        uint8_t pin_dio1, uint8_t pin_dio3): rtc_(rtc_wire) {
     // (-) ----- (обычный конструктор)
     LoRa_init(pin_reset, spi_bus, spi_nss, pin_dio0, pin_dio1, pin_dio3);
 }
 
-Grow_timer::~Grow_timer() {
+Group_control_module::~Group_control_module() {
 
 }
 
 
 // Инициализация параметров LoRa модуля (частота задаётся конфигурацией)
-bool Grow_timer::LoRa_init(uint8_t pin_reset, uint8_t spi_bus, uint8_t spi_nss, 
+bool Group_control_module::LoRa_init(uint8_t pin_reset, uint8_t spi_bus, uint8_t spi_nss, 
                            uint8_t pin_dio0, uint8_t pin_dio1, uint8_t pin_dio3) {
-    grow_timer_interrupt = this;
+    group_control_module_interrupt = this;
     bool result = contact_data_.init_lora_module(pin_reset, spi_bus, spi_nss, pin_dio0, pin_dio1, pin_dio3);
     interrupt_init(pin_dio0, pin_dio1, pin_dio3);
     return result;
 }
 // Запуск 
-void Grow_timer::rtc_begin() {
+void Group_control_module::rtc_begin() {
     rtc_.Begin();
     rtc_begin_ = true;
 }
 
-uint8_t Grow_timer::LoRa_begin() {
+uint8_t Group_control_module::LoRa_begin() {
     if(mode_ != GT_SETTING)
         ; // contact_data_.begin_lora_module([channel]);
     return contact_data_.begin_lora_module(REIST_BAND);
 }
-uint8_t Grow_timer::begin() {
+uint8_t Group_control_module::begin() {
     rtc_begin();
     return LoRa_begin();
 }
 // Работа класса
-uint8_t Grow_timer::work_system() { 
+uint8_t Group_control_module::work_system() { 
     // (проверяет систему, обрабатывает формулы (У|Д|Ф), гинерит пакеты, запускает передачу)
     switch (mode_) {
     case GT_SETTING:
@@ -100,7 +100,7 @@ uint8_t Grow_timer::work_system() {
     }
     return false;
 }
-void Grow_timer::LoRa_interrupt() { 
+void Group_control_module::LoRa_interrupt() { 
     // (контролирует каждый шаг передачи, по завершению запускает work_system, контролирует трансляцию, заносит запросы регистрации)
     // (-) -----
     static bool in_interrupt = false;
@@ -275,12 +275,12 @@ void Grow_timer::LoRa_interrupt() {
 }
 
 // Обработка времени
-void Grow_timer::set_data_time(RtcDateTime data_time) {
+void Group_control_module::set_data_time(RtcDateTime data_time) {
     data_time_ = data_time;
     if (rtc_begin_)
         rtc_.SetDateTime(data_time_);
 }
-RtcDateTime Grow_timer::get_data_time() {
+RtcDateTime Group_control_module::get_data_time() {
     if (rtc_begin_)
         data_time_ = rtc_.GetDateTime();
     return data_time_;
@@ -290,7 +290,7 @@ RtcDateTime Grow_timer::get_data_time() {
 // --- Настройка системы ---
 
 // Установка конфигурации
-// bool Grow_timer::set_configuration(std::vector<uint8_t> data) {
+// bool Group_control_module::set_configuration(std::vector<uint8_t> data) {
 //     if(mode_ != GT_SETTING)
 //         return true;
 //     // (-+-) -----
@@ -298,7 +298,7 @@ RtcDateTime Grow_timer::get_data_time() {
 //     return false;
 // }
 
-size_t Grow_timer::get_size() {
+size_t Group_control_module::get_size() {
     // uint16_t _address; 2
     // uint16_t _channel; 2
     // uint8_t  _len_name; 1
@@ -314,7 +314,7 @@ size_t Grow_timer::get_size() {
         size += devices_[i].get_size();
     return size;
 }
-size_t Grow_timer::get_data(uint8_t *data) {
+size_t Group_control_module::get_data(uint8_t *data) {
     if(data == nullptr)
         return 0;
     size_t size = 0;
@@ -339,7 +339,7 @@ size_t Grow_timer::get_data(uint8_t *data) {
         size += devices_[i].get_data(data+size);
     return size;
 }
-size_t Grow_timer::set_data(uint8_t *data, size_t available_size) {
+size_t Group_control_module::set_data(uint8_t *data, size_t available_size) {
     if(mode_ != GT_SETTING)
         return 0;
     size_t size = 0;
@@ -394,7 +394,7 @@ size_t Grow_timer::set_data(uint8_t *data, size_t available_size) {
 
 
 // Фильтрация регистрируемых модулей 
-bool Grow_timer::filter_devices(Grow_device &devices) {
+bool Group_control_module::filter_devices(Grow_device &devices) {
     if(mode_ != GT_SETTING)
         return true;
     bool result = false;
@@ -409,7 +409,7 @@ bool Grow_timer::filter_devices(Grow_device &devices) {
     enable_regist_interrupt();
     return result;
 }
-bool Grow_timer::filter_sensors(Grow_sensor &sensor) {
+bool Group_control_module::filter_sensors(Grow_sensor &sensor) {
     if(mode_ != GT_SETTING)
         return true;
     bool result = false;
@@ -425,7 +425,7 @@ bool Grow_timer::filter_sensors(Grow_sensor &sensor) {
     return result;
 }
 // [T] Регистрация модуля(ей)
-bool Grow_timer::regist_device(uint16_t old_adr, uint16_t new_adr) {
+bool Group_control_module::regist_device(uint16_t old_adr, uint16_t new_adr) {
     bool err = true;
     if(mode_ != GT_SETTING)
         return err;
@@ -487,7 +487,7 @@ bool Grow_timer::regist_device(uint16_t old_adr, uint16_t new_adr) {
     // save (-) -----
     return err;
 }
-bool Grow_timer::regist_sensor(uint16_t old_adr, uint16_t new_adr) {
+bool Group_control_module::regist_sensor(uint16_t old_adr, uint16_t new_adr) {
     bool err = true;
     if(mode_ != GT_SETTING)
         return err;
@@ -550,14 +550,14 @@ bool Grow_timer::regist_sensor(uint16_t old_adr, uint16_t new_adr) {
     return err;
 }
 // [T] Сигнал модуля (?) ----- 
-bool Grow_timer::module_set_signal(uint16_t adr) {
+bool Group_control_module::module_set_signal(uint16_t adr) {
     if(mode_ != GT_SETTING)
         return true;
     // (-) -----
     return false;
 }
 // [C] Удаление модуля (?) -----
-bool Grow_timer::remove_module(uint16_t adr) {
+bool Group_control_module::remove_module(uint16_t adr) {
     if(mode_ != GT_SETTING)
         return true;
     // удаление (-) -----
@@ -565,7 +565,7 @@ bool Grow_timer::remove_module(uint16_t adr) {
     return false;
 }
 // Установка режима 
-bool Grow_timer::set_mode(Grow_timer::Mode mode) {
+bool Group_control_module::set_mode(Group_control_module::Mode mode) {
     switch (mode)
     {
     case GT_SETTING:
@@ -592,14 +592,14 @@ bool Grow_timer::set_mode(Grow_timer::Mode mode) {
 
 
 // --- Обработка модулей ---
-void Grow_timer::enable_regist_interrupt() {
+void Group_control_module::enable_regist_interrupt() {
     permission_regist_interrupt_ = true;
     // Ф проверить и добавить модули // (-) -----
 }
-void Grow_timer::disable_regist_interrupt() {
+void Group_control_module::disable_regist_interrupt() {
     permission_regist_interrupt_ = false; // прерывания происходят, чтение пакетов идёт, но обработка их - остановлена
 }
-void Grow_timer::interrupt_init(uint8_t pin_dio0, uint8_t pin_dio1, uint8_t pin_dio3) {
+void Group_control_module::interrupt_init(uint8_t pin_dio0, uint8_t pin_dio1, uint8_t pin_dio3) {
     if(pin_dio0 != 0) {
         pinMode(pin_dio0, INPUT);
         attachInterrupt(digitalPinToInterrupt(pin_dio0), lora_interrupt, RISING);
@@ -619,7 +619,7 @@ void Grow_timer::interrupt_init(uint8_t pin_dio0, uint8_t pin_dio1, uint8_t pin_
 #endif // WIFI_LoRa_32_V2
 }
 
-bool Grow_timer::add_reg_module(const Exchange_packet &reg_packet) {
+bool Group_control_module::add_reg_module(const Exchange_packet &reg_packet) {
     uint8_t size = 0;
     if(reg_packet.type_packet != PACKET_SYSTEM)
         return true;
@@ -704,14 +704,14 @@ bool Grow_timer::add_reg_module(const Exchange_packet &reg_packet) {
 }
 
 
-void Grow_timer::clear_regist_data() {
+void Group_control_module::clear_regist_data() {
     reg_devices_.clear();
     reg_sensors_.clear();
     filter_adr_.clear();
 }
 
 // Обработка модулей
-bool Grow_timer::check_device_period() {
+bool Group_control_module::check_device_period() {
     check_device_ = false;
     get_data_time();
     for(int i = 0; i < devices_.size(); ++i) {
@@ -721,7 +721,7 @@ bool Grow_timer::check_device_period() {
     // save_v2 (-) -----
     return check_device_;
 }
-bool Grow_timer::check_sensor_read() {
+bool Group_control_module::check_sensor_read() {
     unsigned long time = millis();
     check_sensor_ = false;
     for(int i = 0; i < sensors_.size(); ++i) {
@@ -734,7 +734,7 @@ bool Grow_timer::check_sensor_read() {
     return check_sensor_;
 }
 
-bool Grow_timer::handler_devices() {
+bool Group_control_module::handler_devices() {
     if(!check_device_period())
         return true;
     // Произвести переключение исполнительных устройств
@@ -789,7 +789,7 @@ bool Grow_timer::handler_devices() {
     }
     return false;
 }
-bool Grow_timer::handler_sensors() {
+bool Group_control_module::handler_sensors() {
     if(!check_sensor_read())
         return true;
     // Произвести чтение с датчиков
