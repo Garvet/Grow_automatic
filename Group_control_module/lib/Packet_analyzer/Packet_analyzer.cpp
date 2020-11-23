@@ -982,6 +982,15 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
         switch (_command)
         {
         case 0x00:
+            // запись ID до длины поля с данными
+            for(int i = 0; i < 4; ++i) {
+                error = field_byte.set_value(data[i], (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
+                ++_receiv_lenght;
+                if (error)
+                    return 4 + i;
+            }
+            data = data + 4;
+
             _len = *len - 1;
             error = field_byte.set_value(_len, (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
             ++_receiv_lenght;
@@ -990,45 +999,45 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
             _len += 1;
             break;
 
-        case 0x02:
-            for(int i = 0; i < 2; ++i) {
-                error = field_byte.set_value(data[i], (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
-                ++_receiv_lenght;
-                if (error)
-                    return 6 + i;
-            }
-            data = data + 2;
+        // case 0x02:
+        //     for(int i = 0; i < 2; ++i) {
+        //         error = field_byte.set_value(data[i], (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
+        //         ++_receiv_lenght;
+        //         if (error)
+        //             return 6 + i;
+        //     }
+        //     data = data + 2;
             
-            if ((*len % 2) != 0)
-                return 8;
-            _len = *len / 2; // делить на 2 или не делить (число номеров по 8 или по 16)
-            error = field_byte.set_value(_len, (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
-            ++_receiv_lenght;
-            if (error)
-                return 9;
-            _len *= 2;
-            break;
+        //     if ((*len % 2) != 0)
+        //         return 7;
+        //     _len = *len / 2; // делить на 2 или не делить (число номеров по 8 или по 16)
+        //     error = field_byte.set_value(_len, (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
+        //     ++_receiv_lenght;
+        //     if (error)
+        //         return 8;
+        //     _len *= 2;
+        //     break;
 
-        case 0x09:
-            for(int i = 0; i < 3; ++i) {
-                error = field_byte.set_value(data[i], (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
-                ++_receiv_lenght;
-                if (error)
-                    return 10 + i;
-            }
-            data = data + 3;
+        // case 0x09:
+        //     for(int i = 0; i < 3; ++i) {
+        //         error = field_byte.set_value(data[i], (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
+        //         ++_receiv_lenght;
+        //         if (error)
+        //             return 9 + i;
+        //     }
+        //     data = data + 3;
             
-            if ((*len % 2) != 0)
-                return 13;
-            _len = *len / 2; // делить на 2 или не делить (число номеров по 8 или по 16)
-            error = field_byte.set_value(_len, (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
-            ++_receiv_lenght;
-            if (error)
-                return 14;
-            _len *= 2;
-            break;
+        //     if ((*len % 2) != 0)
+        //         return 10;
+        //     _len = *len / 2; // делить на 2 или не делить (число номеров по 8 или по 16)
+        //     error = field_byte.set_value(_len, (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
+        //     ++_receiv_lenght;
+        //     if (error)
+        //         return 11;
+        //     _len *= 2;
+        //     break;
         default:
-            return 8;
+            return 12;
         }
     }
 
@@ -1036,7 +1045,7 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
         error = field_byte.set_value(data[i], (_packet + _receiv_lenght), (_lenght - _receiv_lenght));
         ++_receiv_lenght;
         if (error)
-            return 9;
+            return 13;
     }
 
     return 0;
@@ -1067,30 +1076,37 @@ uint8_t Packet_System::get_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
         switch (_command)
         {
         case 0x00:
+            // получение ID до длины поля с данными
+            for (int i = 0; i < 4; ++i) {
+                data[i] = field_byte.get_value((_packet + _receiv_lenght), (_lenght - _receiv_lenght));
+                ++_receiv_lenght;
+            }
+            data = data + 4;
+
             _len = (field_byte.get_value((_packet + _receiv_lenght), _lenght)) + 1;
             ++_receiv_lenght;
             *len = _len;
             break;
-        case 0x02:
-            for (int i = 0; i < 2; ++i) {
-                data[i] = field_byte.get_value((_packet + _receiv_lenght), (_lenght - _receiv_lenght));
-                ++_receiv_lenght;
-            }
-            data = data + 2;
-            _len = (field_byte.get_value((_packet + _receiv_lenght), _lenght)) * 2;
-            ++_receiv_lenght;
-            *len = _len;
-            break;
-        case 0x09:
-            for (int i = 0; i < 3; ++i) {
-                data[i] = field_byte.get_value((_packet + _receiv_lenght), (_lenght - _receiv_lenght));
-                ++_receiv_lenght;
-            }
-            data = data + 3;
-            _len = (field_byte.get_value((_packet + _receiv_lenght), _lenght)) * 2;
-            ++_receiv_lenght;
-            *len = _len;
-            break;
+        // case 0x02:
+        //     for (int i = 0; i < 2; ++i) {
+        //         data[i] = field_byte.get_value((_packet + _receiv_lenght), (_lenght - _receiv_lenght));
+        //         ++_receiv_lenght;
+        //     }
+        //     data = data + 2;
+        //     _len = (field_byte.get_value((_packet + _receiv_lenght), _lenght)) * 2;
+        //     ++_receiv_lenght;
+        //     *len = _len;
+        //     break;
+        // case 0x09:
+        //     for (int i = 0; i < 3; ++i) {
+        //         data[i] = field_byte.get_value((_packet + _receiv_lenght), (_lenght - _receiv_lenght));
+        //         ++_receiv_lenght;
+        //     }
+        //     data = data + 3;
+        //     _len = (field_byte.get_value((_packet + _receiv_lenght), _lenght)) * 2;
+        //     ++_receiv_lenght;
+        //     *len = _len;
+        //     break;
         default:
             return 4;
         }
@@ -1124,29 +1140,31 @@ uint8_t Packet_System::get_size_by_data(uint8_t *size_data, uint8_t *com, uint8_
         switch (_command)
         {
         case 0x00:
+            _send_lenght += 4; // смещение на ID
             ++_send_lenght;
             _len = *len + 1;
+            size_data += 4;
             break;
 
-        case 0x02:
-            if ((*len % 2) != 0)
-                return 3;
-            _send_lenght += 3;
-            _len = *len; // делить на 2 или не делить (число номеров по 8 или по 16)
-            // _len = *len * 2; // делить на 2 или не делить (число номеров по 8 или по 16)
-            break;
-        case 0x09:
-            if ((*len % 2) != 0)
-                return 4;
-            _send_lenght += 4;
-            _len = *len; // делить на 2 или не делить (число номеров по 8 или по 16)
-            // _len = *len * 2; // делить на 2 или не делить (число номеров по 8 или по 16)
-            break;
+        // case 0x02:
+        //     if ((*len % 2) != 0)
+        //         return 3;
+        //     _send_lenght += 3;
+        //     _len = *len; // делить на 2 или не делить (число номеров по 8 или по 16)
+        //     // _len = *len * 2; // делить на 2 или не делить (число номеров по 8 или по 16)
+        //     break;
+        // case 0x09:
+        //     if ((*len % 2) != 0)
+        //         return 4;
+        //     _send_lenght += 4;
+        //     _len = *len; // делить на 2 или не делить (число номеров по 8 или по 16)
+        //     // _len = *len * 2; // делить на 2 или не делить (число номеров по 8 или по 16)
+        //     break;
         default:
             return 5;
         }
     }
-    *size_data = _len;
+    *size_data += _len;
     _send_lenght += _len;
     return 0;
 }
@@ -1169,19 +1187,21 @@ uint8_t Packet_System::get_size_by_packet(uint8_t *size_data) {
         switch (_command)
         {
         case 0x00:
-            *size_data = (field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght))) + 1;
+            _send_lenght += 4; // смещение на ID
+            *size_data = 4; // смещение на ID
+            *size_data += (field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght))) + 1;
             ++_send_lenght;
             break;
-        case 0x02:
-            _send_lenght += 2;
-            *size_data = (field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght))) * 2;
-            ++_send_lenght;
-            break;
-        case 0x09:
-            _send_lenght += 3;
-            *size_data = (field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght))) * 2;
-            ++_send_lenght;
-            break;
+        // case 0x02:
+        //     _send_lenght += 2;
+        //     *size_data = (field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght))) * 2;
+        //     ++_send_lenght;
+        //     break;
+        // case 0x09:
+        //     _send_lenght += 3;
+        //     *size_data = (field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght))) * 2;
+        //     ++_send_lenght;
+        //     break;
         default:
             return 4;
         }

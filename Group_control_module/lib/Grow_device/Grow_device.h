@@ -1,6 +1,8 @@
 #ifndef __GROW_DEVICE_H__
 #define __GROW_DEVICE_H__
 
+#define SERIAL_LOG_OUTPUT
+
 #include <Arduino.h>
 #include <vector>
 #include <Grow_device_component.h>
@@ -13,7 +15,8 @@
 
 class Grow_device {
 private:
-    // (-) ----- ID и период добавь
+    // (-) ----- период добавь
+    uint32_t system_id_;
     uint16_t address_; // адрес устройства
     std::vector<Grow_device_component> component_; // вектор компонентов устройств (не как плата, а как механический модуль)
 
@@ -27,6 +30,11 @@ public:
     Grow_device(uint8_t amt_component, uint8_t* type_sensor);
     Grow_device(std::vector<enum Type_device> type_device);
     ~Grow_device() = default;
+
+    // установка индивидуального номера платы
+    void set_system_id(uint32_t system_id_);
+    // получение индивидуального номера платы
+    uint32_t get_system_id();
 
     // установка состояния активности
     void set_active(uint8_t active);

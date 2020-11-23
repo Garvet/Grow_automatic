@@ -33,6 +33,13 @@ Grow_sensor::Grow_sensor(std::vector<enum Type_sensor> type_sensor) {
         component_.push_back(Grow_sensor_component(type_sensor[i], (id_mas[type_sensor[i]]++)));
 }
 
+void Grow_sensor::set_system_id(uint32_t system_id) {
+    system_id_ = system_id;
+}
+uint32_t Grow_sensor::get_system_id() {
+    return system_id_;
+}
+
 void Grow_sensor::set_active(uint8_t active) {
     if(active < 3)
         active_ = active;
@@ -215,6 +222,16 @@ const char *sensor_component_name[] =
     "Indicator_EC", "Indicator_eCO2", "Indicator_nYVOC"};
 
 void Grow_sensor::print() {
+    Serial.print("System ID: ");
+    for(int i = 0; i < 4; ++i) {
+        uint8_t data = (system_id_ >> ((3 - i) * 8)) & 0xFF;
+        if(data < 16)
+            Serial.print("0");
+        Serial.print(data, 16);
+        if(i < 3)
+            Serial.print(".");
+    }
+    Serial.println();
     Serial.print("Address: ");
     if((address_ >> 8) < 16)
         Serial.print("0");

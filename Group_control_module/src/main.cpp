@@ -1,5 +1,5 @@
 #define SERIAL_LOG_OUTPUT
-// #define TEST_FUN
+#define TEST_FUN
 #if defined ( TEST_FUN )
 
 

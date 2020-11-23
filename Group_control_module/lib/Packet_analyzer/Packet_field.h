@@ -75,7 +75,7 @@ const uint8_t SENSOR_PARAM_DATA = 0x0C + 1;
 uint8_t sensor_param_data[SENSOR_PARAM_DATA] = {0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
 
 // ----- device (пакеты устройств) -----
-const uint8_t DEVICE_OBJECT = 0x07 + 1;
+const uint8_t DEVICE_OBJECT = 0x08 + 1;
 // типы устройств находятся в "Grow_device_component.h"
 enum class Command_code {
     // device_com_data_0 - device_com_data_5
@@ -86,7 +86,12 @@ enum class Command_code {
     REQUEST_DATA,     // запросить дату
     SEND_TIME,        // отправить время
     SEND_DATA,        // отправить дату
-    // device_com_data_7
+    // device_com_data_7 - TimeChannel (2 периода, включено и выключено, по 4 байта, в секундах)
+    // запросить количество каналов
+    // отправить количество каналов
+    // запросить настройки канала
+    // отправить настройки канала
+    // device_com_data_8 - GrowTimer  (1 период, отталкивается от настроек времени, начала, длительности и смещения периода)
     // запросить количество каналов
     // отправить количество каналов
     // запросить настройки канала
@@ -94,7 +99,7 @@ enum class Command_code {
     // запросить состояния сигналов
     // отправить данные о состоянии сигналов
 };
-const uint8_t DEVICE_COMMAND[DEVICE_OBJECT] = {0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x04, 0x06};
+const uint8_t DEVICE_COMMAND[DEVICE_OBJECT] = {0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x04, 0x04, 0x06};
 uint8_t device_com_data_0[0x02] = {0, 2},
         device_com_data_1[0x02] = {0, 1},
         device_com_data_2[0x02] = {0, 2},
@@ -102,15 +107,16 @@ uint8_t device_com_data_0[0x02] = {0, 2},
         device_com_data_4[0x02] = {0, 1},
         device_com_data_5[0x02] = {0, 2},
         device_com_data_6[0x04] = {0, 0, 3, 3},
-        device_com_data_7[0x06] = {0, 1, 1, 3, 0, 0xFF};
+        device_com_data_7[0x04] = {0, 1, 1, 8},
+        device_com_data_8[0x06] = {0, 1, 1, 3, 0, 0xFF};
 
 uint8_t* device_object_data[DEVICE_OBJECT] = {device_com_data_0, device_com_data_1, device_com_data_2,
                                               device_com_data_3, device_com_data_4, device_com_data_5,
                                               device_com_data_6, device_com_data_7};
 
 // ----- system (системные пакеты) -----
-const uint8_t SYSTEM_COMMAND_DATA = 0x05 + 1;
-uint8_t system_com_data[SYSTEM_COMMAND_DATA] = {0xFF, 9, 0, 5, 2, 3};
+const uint8_t SYSTEM_COMMAND_DATA = 0x06 + 1;
+uint8_t system_com_data[SYSTEM_COMMAND_DATA] = {0xFF, 9, 0, 5, 2, 3, 0xFF};
 // const uint8_t SYSTEM_COMMAND_DATA = 0x11;
 // uint8_t system_com_data[SYSTEM_COMMAND_DATA] = {0xFF, 0, 0xFF, 3, 0, 3, 3, 2, 5, 0xFF, 3, 3, 0, 1, 2, 6, 6};
 

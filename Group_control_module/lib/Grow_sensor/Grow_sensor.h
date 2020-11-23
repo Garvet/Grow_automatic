@@ -1,6 +1,8 @@
 #ifndef __GROW_SENSOR_H__
 #define __GROW_SENSOR_H__
 
+#define SERIAL_LOG_OUTPUT
+
 #include <Arduino.h>
 #include <vector>
 #include <Grow_sensor_component.h>
@@ -9,7 +11,7 @@
 
 class Grow_sensor {
 private:
-    // (-) ----- ID добавь
+    uint32_t system_id_;
     uint16_t address_; // адрес датчика
     std::vector<Grow_sensor_component> component_; // вектор компонентов датчиков (не как плата, а как механический модуль)
 
@@ -28,6 +30,11 @@ public:
     Grow_sensor(uint8_t amt_component, uint8_t* type_sensor);
     Grow_sensor(std::vector<enum Type_sensor> type_sensor);
     ~Grow_sensor() = default;
+
+    // установка индивидуального номера платы
+    void set_system_id(uint32_t system_id_);
+    // получение индивидуального номера платы
+    uint32_t get_system_id();
 
     // установка состояния активности
     void set_active(uint8_t active);

@@ -5,6 +5,7 @@ extern const uint16_t LORA_ADDRESS_BRANCH;
 static uint8_t id_mas[COUNT_TYPE_DEVICE];
 
 Grow_device::Grow_device(uint8_t amt_component, enum Type_device* type_device) {
+    address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
     change_value_ = false;
@@ -14,6 +15,7 @@ Grow_device::Grow_device(uint8_t amt_component, enum Type_device* type_device) {
         component_.push_back(Grow_device_component(type_device[i], (id_mas[type_device[i]]++)));
 }
 Grow_device::Grow_device(uint8_t amt_component, uint8_t* type_device) {
+    address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
     change_value_ = false;
@@ -23,6 +25,7 @@ Grow_device::Grow_device(uint8_t amt_component, uint8_t* type_device) {
         component_.push_back(Grow_device_component((enum Type_device)(type_device[i]), (id_mas[type_device[i]]++)));
 }
 Grow_device::Grow_device(std::vector<enum Type_device> type_device) {
+    address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
     change_value_ = false;
@@ -30,6 +33,13 @@ Grow_device::Grow_device(std::vector<enum Type_device> type_device) {
         id_mas[i] = 0;
     for(int i = 0; i < type_device.size(); ++i)
         component_.push_back(Grow_device_component(type_device[i], (id_mas[type_device[i]]++)));
+}
+
+void Grow_device::set_system_id(uint32_t system_id) {
+    system_id_ = system_id;
+}
+uint32_t Grow_device::get_system_id() {
+    return system_id_;
 }
 
 void Grow_device::set_active(uint8_t active) {
@@ -263,6 +273,23 @@ const char *device_component_name[] =
 const char *device_period_type_name[] = {"SEC", "MIN", "HOUR"};
 
 void Grow_device::print() {
+    Serial.print("System ID: ");
+    for(int i = 0; i < 4; ++i) {
+        uint8_t data = (system_id_ >> ((3 - i) * 8)) & 0xFF;
+        if(data < 16)
+            Serial.print("0");
+        Serial.print(data, 16);
+        if(i < 3)
+            Serial.print(".");
+    }
+    Serial.println();
+    if(active_ == 0)
+        Serial.println(" (-)");
+    else if(active_ == 1)
+        Serial.println(" (?)");
+    else
+        Serial.println(" (+)");
+
     Serial.print("Address: ");
     if((address_ >> 8) < 16)
         Serial.print("0");
@@ -271,12 +298,6 @@ void Grow_device::print() {
     if((address_ & 0xFF) < 16)
         Serial.print("0");
     Serial.print((address_ & 0xFF), 16);
-    if(active_ == 0)
-        Serial.println(" (-)");
-    else if(active_ == 1)
-        Serial.println(" (?)");
-    else
-        Serial.println(" (+)");
     
     Serial.println("  Components:");
     enum Type_device type_component;
