@@ -98,6 +98,29 @@ std::vector<uint8_t> Grow_sensor::get_id() {
     return id;
 }
 
+void Grow_sensor::set_period(unsigned long period) {
+    period_ = period;
+}
+unsigned long Grow_sensor::get_period() {
+    return period_;
+}
+bool Grow_sensor::check_time(unsigned long time) {
+    end_time_ = time;
+    if ((end_time_ - read_time_) > period_)
+        readout_signal_ = true;
+    return readout_signal_;
+}
+void Grow_sensor::update() {
+    read_time_ = end_time_; 
+}
+bool Grow_sensor::read_signal(bool clear) {
+    if (!clear)
+        return readout_signal_;
+    clear = readout_signal_;
+    readout_signal_ = false;
+    return clear;
+}
+
 bool Grow_sensor::set_value(uint8_t num, float value) {
     if(get_count_component() <= num)
         return true;
@@ -123,29 +146,6 @@ std::vector<float> Grow_sensor::get_value() {
     for(int i = 0; i < get_count_component(); ++i)
         value.push_back(component_[i].get_value());
     return value;
-}
-
-void Grow_sensor::set_period(unsigned long period) {
-    period_ = period;
-}
-unsigned long Grow_sensor::get_period() {
-    return period_;
-}
-bool Grow_sensor::check_time(unsigned long time) {
-    end_time_ = time;
-    if ((end_time_ - read_time_) > period_)
-        readout_signal_ = true;
-    return readout_signal_;
-}
-void Grow_sensor::update() {
-    read_time_ = end_time_; 
-}
-bool Grow_sensor::signal(bool clear) {
-    if (!clear)
-        return readout_signal_;
-    clear = readout_signal_;
-    readout_signal_ = false;
-    return clear;
 }
 
 

@@ -621,6 +621,7 @@ void Group_control_module::interrupt_init(uint8_t pin_dio0, uint8_t pin_dio1, ui
 
 bool Group_control_module::add_reg_module(const Exchange_packet &reg_packet) {
     uint8_t size = 0;
+    // Обработка пакета
     if(reg_packet.type_packet != PACKET_SYSTEM)
         return true;
     static_cast<Packet_System*>(reg_packet.packet)->get_size_by_packet(&size);
@@ -637,85 +638,18 @@ bool Group_control_module::add_reg_module(const Exchange_packet &reg_packet) {
     }
     bool err = false;
     uint8_t symbol = 0;
+    // Проверка ID
     // (-) ----- превратить в get_id()
     uint32_t module_id = data[symbol++];
     module_id = (module_id << 8) | data[symbol++];
     module_id = (module_id << 8) | data[symbol++];
     module_id = (module_id << 8) | data[symbol++];
-    if(module_id == 0)
+    if(module_id == 0)  
         err = true;
-
-
-
-
-// ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-// ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-
-    std::vector<uint8_t> pack_data = reg_packet.get_packet();
-
-
-    Serial.println();
-    Serial.println();
-
-    Serial.print("REG_PACK: [");
-    for(int i = 0; i < pack_data.size(); ++i) {
-        if(pack_data[i] < 16)
-            Serial.print("0");
-        Serial.print(pack_data[i], 16);
-
-        if(i < pack_data.size() - 1)
-            Serial.print(", ");
-    }
-    Serial.println("]");
-
-    Serial.print("Size = ");
-    Serial.println(size);
-    Serial.print("Com = ");
-    Serial.println(com);
-    Serial.print("Len = ");
-    Serial.println(len);
-    Serial.print("Data = [");
-    
-    for(int i = 0; i < size; ++i) {
-        if(data[i] < 16)
-            Serial.print("0");
-        Serial.print(data[i], 16);
-
-        if(i < size - 1)
-            Serial.print(", ");
-    }
-
-    Serial.println("]");
-    Serial.print("ID = ");
-    Serial.print(module_id);
-    Serial.print(" (");
-    for(int i = 0; i < 4; ++i) {
-        uint8_t data = (module_id >> ((3 - i) * 8)) & 0xFF;
-        if(data < 16)
-            Serial.print("0");
-        Serial.print(data, 16);
-        if(i < 3)
-            Serial.print(".");
-    }
-    Serial.println(")");
-
-    Serial.println();
-    Serial.println();
-
-    // while(1){}
-
-// ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-// ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
+    // Проверка наличия ID в списке запросивших
     if(!err) {
         for(int i = 0; i < reg_devices_.size(); ++i) {
             if(module_id == reg_devices_[i].get_system_id()) {
-                // reg_devices_.erase(reg_devices_.begin() + i); // значит пакет пришёл повторно, ничего страшного, просто игнорируем
-                Serial.println("!1!");
                 err = true;
                 break;
             }
@@ -724,86 +658,40 @@ bool Group_control_module::add_reg_module(const Exchange_packet &reg_packet) {
     if(!err) {
         for(int i = 0; i < reg_sensors_.size(); ++i) {
             if(module_id == reg_sensors_[i].get_system_id()) {
-                // reg_sensors_.erase(reg_sensors_.begin() + i); // значит пакет пришёл повторно, ничего страшного, просто игнорируем
-                Serial.println("!2!");
                 err = true;
                 break;
             }
         }
     }
     if(err) {
+        // Модуль не добавляется (или имеется или ошибка ID)
         if(data != nullptr)
             delete[] data;
-                Serial.println("!3!");
         return true;
     }
 
-
-
-    // uint16_t adr = reg_packet.packet->get_sour_adr_branch();
-    // for(int i = 0; i < reg_devices_.size(); ++i) {
-    //     if(adr == reg_devices_[i].get_address()) {
-    //         reg_devices_.erase(reg_devices_.begin() + i);
-    //         err = true;
-    //         break;
-    //     }
-    // }
-    // if(!err) {
-    //     for(int i = 0; i < reg_sensors_.size(); ++i) {
-    //         if(adr == reg_sensors_[i].get_address()) {
-    //             reg_sensors_.erase(reg_sensors_.begin() + i);
-    //             err = true;
-    //             break;
-    //         }
-    //     }
-    // }
-
-    // if(err) {
-    //     for(int i = 0; i < filter_adr_.size(); ++i) {
-    //         if(filter_adr_[i] == adr) {
-    //             filter_adr_.erase(filter_adr_.begin() + i);
-    //             break;
-    //         }
-    //     }
-    //     if(data != nullptr)
-    //         delete[] data;
-    //     // отправить пакет об ошибке (+) ----- // убрать из-за ID (-) -----
-    //     Exchange_packet packet;
-    //     uint8_t size = 0;
-    //     uint8_t com = 0x01;
-    //     uint8_t len = 0;
-    //     static_cast<Packet_System*>(packet.packet)->get_size_by_data(&size, &com, &len);
-    //     packet.creat_packet(size + 10, PACKET_SYSTEM);
-    //     packet.packet->set_dest_adr({0, adr});
-    //     packet.packet->set_sour_adr(contact_data_.get_my_adr());
-    //     packet.packet->set_packet_type(PACKET_SYSTEM);
-    //     static_cast<Packet_System*>(packet.packet)->set_packet_data(&com, nullptr, &len);
-    //     contact_data_.add_packet(packet);
-    //     contact_data_.broadcast_send(true);
-    //     return true;
-    // }
-
     switch (data[symbol++]) {
     case NUM_SENSOR: {
+        // Добавление датчика
         Grow_sensor new_sensor(len-1, &data[symbol++]);
-        // new_sensor.set_address(adr);
         new_sensor.set_system_id(module_id);
         reg_sensors_.push_back(new_sensor);
         break;
     }
     case NUM_DEVICE: {
+        // Добавление устройства
         Grow_device new_device(len-1, &data[symbol++]);
-        // new_device.set_address(adr);
         new_device.set_system_id(module_id);
         reg_devices_.push_back(new_device);
         break;
     }
     default:
+        // Неизвестный модуль
         if(data != nullptr)
             delete[] data;
         return true;
     }
-    
+    // Успешное добавление модуля
     if(data != nullptr)
         delete[] data;
     return false;

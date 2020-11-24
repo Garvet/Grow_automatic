@@ -20,7 +20,12 @@ private:
     uint16_t address_; // адрес устройства
     std::vector<Grow_device_component> component_; // вектор компонентов устройств (не как плата, а как механический модуль)
 
-    uint8_t active_; // состояние активации 0 - не активен, 1 - в процессе регистрации, 2 - зарегистрирован // (-) ----- обнулить значения при false запретить функции обработки
+    unsigned long read_time_; // время последнего считывания
+    unsigned long end_time_; // время последней проверки для считывания
+    unsigned long period_; // период считывания в мс
+    bool readout_signal_; // флаг готовности считывания
+
+    uint8_t active_;  // состояние активации 0 - не активен, 1 - в процессе регистрации, 2 - зарегистрирован // (-) ----- обнулить значения при false запретить функции обработки
     bool change_value_; // флаг изменённого значения
 
     uint8_t setting_; // настройски (для LoRa-протокола)
@@ -58,21 +63,77 @@ public:
 
     // получение типа компонента (передаётся в result), если ошибка возврат true
     bool get_type(uint8_t num, enum Type_device &result); 
+    // получение вектора типов компонентов
+    std::vector<enum Type_device> get_type();
     // получение id компонента (передаётся в result | не путать с ID платы, этот номер для количества повторений), если ошибка возврат true
     bool get_id(uint8_t num, uint8_t &result); 
+    // получение вектора id компонентов
+    std::vector<uint8_t> get_id();
 
-    // настройка компонента, если ошибка возврат true
-    bool set_period(uint8_t num, Period_adjuster period, enum Period_type period_type); 
-    // получение настройки работы компонента (передаётся в result), если ошибка возврат true
-    bool get_period(uint8_t num, Period_adjuster &result); 
+    // Установить период опроса модуля
+    void set_period(unsigned long period);
+    // Получить период опроса модуля
+    unsigned long get_period();  
+
+    // Проверка необходимости считывания 
+    bool check_time(unsigned long time);
+    // Обновление времени считывания
+    void update();
+    // Получение сигнала готовности к считыванию
+    bool read_signal(bool clear=false);
+
+    // Установить значение считанного состояния, если ошибка возврат true
+    bool set_signal(uint8_t num, float value);
+    // Получить значение считанного состояния, если ошибка возврат true
+    bool get_signal(uint8_t num, float &result);
+    // Установить значения считанных состояний, если ошибка возврат true
+    bool set_signal(std::vector<float> value);
+    // Получить вектор значений считанных состояний
+    std::vector<float> get_signal();
+
+    // Установить значение считанного показателя, если ошибка возврат true
+    bool set_value(uint8_t num, float value);
+    // Получить значение считанного показателя, если ошибка возврат true
+    bool get_value(uint8_t num, float &result);
+    // Установить значения считанных показателей, если ошибка возврат true
+    bool set_value(std::vector<float> value);
+    // Получить вектор значений считанных показателей
+    std::vector<float> get_value();
+
+
+
+
+
+
+
+
+    // (-) ----- Period_adjuster -> (Time_Channel | Grow_Timer), (-) ----- исключить Period_type 
+    // настройка компонента, если ошибка возврат true 
+    bool set_channel_setting(uint8_t num, Period_adjuster period, enum Period_type period_type); 
+    // настройка всех компонентов, если ошибка возврат true
+    bool set_channel_setting(std::vector<Period_adjuster> period, std::vector<enum Period_type> period_type);
+    
     // получение настройки типа времени компонента (передаётся в result), если ошибка возврат true
     bool get_period_type(uint8_t num, enum Period_type &result); 
-    // настройка всех компонентов, если ошибка возврат true
-    bool set_period(std::vector<Period_adjuster> period, std::vector<enum Period_type> period_type);
     // получение настройки работы всех компонентов
-    std::vector<Period_adjuster> get_period();
+    std::vector<Period_adjuster> get_channel_setting();
+
     // получение настройки типов времени всех компонентов
-    std::vector<enum Period_type> get_period_type();
+    std::vector<enum Period_type> get_period_type(); // (-)
+
+
+
+
+
+
+
+
+
+
+
+
+    // получение настройки работы компонента (передаётся в result), если ошибка возврат true
+    bool get_period(uint8_t num, Period_adjuster &result); 
 
     /// Проверка времени 
     // Без обновления, если 0, то все устройства в тех же состояниях
@@ -96,6 +157,16 @@ public:
     // Получить изменения сигнала у определённого компонента, если ошибка возврат true
     bool get_state_change(uint8_t num, int8_t &result);
 
+
+
+
+
+
+
+
+
+
+
     // Получить количество компонентов
     uint8_t get_count_component();
 
@@ -107,7 +178,7 @@ public:
     // Проверить совподает ли содержимое модулей, без учёта настроек (для отфильтровывания среди неподходящих)
     bool filter(Grow_device &device); // (-) ----- убрать привязку к порядку
 
-    /// Функции превращения в байтовую строку (-) ----- доработать под код Дениса
+    /// Функции превращения в байтовую строку (-) ----- доработать под код Дениса (-) ----- добавить генерацию пакетов (возможно другой класс)
     // Получение размера строки
     size_t get_size();
     // Заполение массива байтов, возврат количество байт (должен совпадать с размером строки)

@@ -33,10 +33,12 @@ public:
 
     // получение типа датчика
     enum Type_sensor get_type();
+    
     // получение id
     uint8_t get_id();
     // установка id
     void set_id(uint8_t id);
+
     // Получить значение считанного показателя
     float get_value();
     // Установить значение считанного показателя
