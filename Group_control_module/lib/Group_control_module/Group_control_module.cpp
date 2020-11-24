@@ -729,66 +729,79 @@ bool Group_control_module::check_sensor_read() {
 }
 
 bool Group_control_module::handler_devices() {
-    if(!check_device_period())
+    if(!check_sensor_read())
         return true;
-    // Произвести переключение исполнительных устройств
+    // Произвести чтение с устройств
     for(int i = 0; i < devices_.size(); ++i) {
-        bool result = devices_[i].get_state_change();
-        if (result) {
+        if (devices_[i].read_signal(true)) {
             LoRa_address connect_adr = devices_[i].get_address();
-            // инициализация
             contact_data_.init_contact(connect_adr);
-            // создание пакетов обмена
-            for(int j = 0; j < devices_[i].get_count_component(); ++j) {
-                int8_t change_state;
-                uint16_t device_value;
-                Exchange_packet packet;
-                uint8_t size = 0;
-                uint8_t com = 1; // установить значение
-                if (devices_[i].get_state_change(j, change_state)) {
-                    if(change_state == -1) {
-                        device_value = 0;
-                    }
-                    else {
-                        devices_[i].get_value(j, device_value);
-                    }
-
-                    uint8_t obj = devices_[i].get_component(j).get_type();
-                    uint8_t id = devices_[i].get_component(j).get_id();
-                    static_cast<Packet_Device*>(packet.packet)->get_size_by_data(&obj, &com, &size);
-                    uint8_t *data = new uint8_t[size];
-                    if(size == 1) { 
-                        data[0] = device_value & 0xFF;
-                    }
-                    else {
-                        data[0] = (device_value >> 8) & 0xFF;
-                        data[1] = device_value & 0xFF;
-                    }
-                    packet.creat_packet(size + 11, PACKET_DEVICE);
-                    packet.packet->set_dest_adr(connect_adr);
-                    packet.packet->set_sour_adr(contact_data_.get_my_adr());
-                    packet.packet->set_packet_type(PACKET_DEVICE);
-                    static_cast<Packet_Device*>(packet.packet)->set_setting(devices_[i].get_setting());
-                    static_cast<Packet_Device*>(packet.packet)->set_packet_data(&obj, &id, &com, data, nullptr);
-                    contact_data_.add_packet(packet);
-                    delete[] data;
-                }
-            }
-            // старт передачи
             if(contact_data_.start_transfer())
-                Serial.println("Error start device transfer");
-            devices_[i].check_time(true); // (!) ----- Обнуляем вне зависимости от того, дошло ли сообщение, возвращаем при ошибке
+                Serial.println("Error start sensor transfer");
             break;
         }
     }
     return false;
+    // if(!check_device_period())
+    //     return true;
+    // // Произвести переключение исполнительных устройств
+    // for(int i = 0; i < devices_.size(); ++i) {
+    //     bool result = devices_[i].get_state_change();
+    //     if (result) {
+    //         LoRa_address connect_adr = devices_[i].get_address();
+    //         // инициализация
+    //         contact_data_.init_contact(connect_adr);
+    //         // создание пакетов обмена
+    //         for(int j = 0; j < devices_[i].get_count_component(); ++j) {
+    //             int8_t change_state;
+    //             uint16_t device_value;
+    //             Exchange_packet packet;
+    //             uint8_t size = 0;
+    //             uint8_t com = 1; // установить значение
+    //             if (devices_[i].get_state_change(j, change_state)) {
+    //                 if(change_state == -1) {
+    //                     device_value = 0;
+    //                 }
+    //                 else {
+    //                     devices_[i].get_value(j, device_value);
+    //                 }
+
+    //                 uint8_t obj = devices_[i].get_component(j).get_type();
+    //                 uint8_t id = devices_[i].get_component(j).get_id();
+    //                 static_cast<Packet_Device*>(packet.packet)->get_size_by_data(&obj, &com, &size);
+    //                 uint8_t *data = new uint8_t[size];
+    //                 if(size == 1) { 
+    //                     data[0] = device_value & 0xFF;
+    //                 }
+    //                 else {
+    //                     data[0] = (device_value >> 8) & 0xFF;
+    //                     data[1] = device_value & 0xFF;
+    //                 }
+    //                 packet.creat_packet(size + 11, PACKET_DEVICE);
+    //                 packet.packet->set_dest_adr(connect_adr);
+    //                 packet.packet->set_sour_adr(contact_data_.get_my_adr());
+    //                 packet.packet->set_packet_type(PACKET_DEVICE);
+    //                 static_cast<Packet_Device*>(packet.packet)->set_setting(devices_[i].get_setting());
+    //                 static_cast<Packet_Device*>(packet.packet)->set_packet_data(&obj, &id, &com, data, nullptr);
+    //                 contact_data_.add_packet(packet);
+    //                 delete[] data;
+    //             }
+    //         }
+    //         // старт передачи
+    //         if(contact_data_.start_transfer())
+    //             Serial.println("Error start device transfer");
+    //         devices_[i].check_time(true); // (!) ----- Обнуляем вне зависимости от того, дошло ли сообщение, возвращаем при ошибке
+    //         break;
+    //     }
+    // }
+    // return false;
 }
 bool Group_control_module::handler_sensors() {
     if(!check_sensor_read())
         return true;
     // Произвести чтение с датчиков
     for(int i = 0; i < sensors_.size(); ++i) {
-        if (sensors_[i].signal(true)) {
+        if (sensors_[i].read_signal(true)) {
             LoRa_address connect_adr = sensors_[i].get_address();
             contact_data_.init_contact(connect_adr);
             if(contact_data_.start_transfer())
