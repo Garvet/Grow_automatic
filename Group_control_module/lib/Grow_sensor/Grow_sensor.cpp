@@ -5,6 +5,8 @@ extern const uint16_t LORA_ADDRESS_BRANCH;
 static uint8_t id_mas[COUNT_TYPE_SENSOR];
 
 Grow_sensor::Grow_sensor(uint8_t amt_component, enum Type_sensor* type_sensor) {
+    system_id_ = 0;
+    address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
     change_value_ = false;
@@ -12,8 +14,15 @@ Grow_sensor::Grow_sensor(uint8_t amt_component, enum Type_sensor* type_sensor) {
         id_mas[i] = 0;
     for(int i = 0; i < amt_component; ++i)
         component_.push_back(Grow_sensor_component(type_sensor[i], (id_mas[type_sensor[i]]++)));
+    
+    for (int i = 0; i < COUNT_TYPE_SENSOR; ++i)
+        if(id_mas[i] > 1) {
+            setting_ = 0x04; // 0000.0100 - бит индивидуального номера, в случае наличия повторов
+        }
 }
 Grow_sensor::Grow_sensor(uint8_t amt_component, uint8_t* type_sensor) {
+    system_id_ = 0;
+    address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
     change_value_ = false;
@@ -21,9 +30,16 @@ Grow_sensor::Grow_sensor(uint8_t amt_component, uint8_t* type_sensor) {
         id_mas[i] = 0;
     for(int i = 0; i < amt_component; ++i)
         component_.push_back(Grow_sensor_component((enum Type_sensor)(type_sensor[i]), (id_mas[type_sensor[i]]++)));
+    
+    for (int i = 0; i < COUNT_TYPE_SENSOR; ++i)
+        if(id_mas[i] > 1) {
+            setting_ = 0x04;
+        }
 }
 
 Grow_sensor::Grow_sensor(std::vector<enum Type_sensor> type_sensor) {
+    system_id_ = 0;
+    address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
     change_value_ = false;
@@ -31,7 +47,14 @@ Grow_sensor::Grow_sensor(std::vector<enum Type_sensor> type_sensor) {
         id_mas[i] = 0;
     for(int i = 0; i < type_sensor.size(); ++i)
         component_.push_back(Grow_sensor_component(type_sensor[i], (id_mas[type_sensor[i]]++)));
+    
+    for (int i = 0; i < COUNT_TYPE_SENSOR; ++i)
+        if(id_mas[i] > 1) {
+            setting_ = 0x04;
+        }
 }
+
+// --- Поля класса-платы ---
 
 void Grow_sensor::set_system_id(uint32_t system_id) {
     system_id_ = system_id;
@@ -73,6 +96,34 @@ uint8_t Grow_sensor::get_setting() {
     return setting_;
 }
 
+// --- Обработка времени ---
+
+void Grow_sensor::set_period(unsigned long period) {
+    period_ = period;
+}
+unsigned long Grow_sensor::get_period() {
+    return period_;
+}
+
+bool Grow_sensor::check_time(unsigned long time) {
+    end_time_ = time;
+    if ((end_time_ - read_time_) > period_)
+        readout_signal_ = true;
+    return readout_signal_;
+}
+void Grow_sensor::update() {
+    read_time_ = end_time_; 
+}
+bool Grow_sensor::read_signal(bool clear) {
+    if (!clear)
+        return readout_signal_;
+    clear = readout_signal_;
+    readout_signal_ = false;
+    return clear;
+}
+
+// --- Поля компонентов ---
+
 bool Grow_sensor::get_type(uint8_t num, enum Type_sensor &result) {
     if(get_count_component() <= num)
         return true;
@@ -98,29 +149,6 @@ std::vector<uint8_t> Grow_sensor::get_id() {
     return id;
 }
 
-void Grow_sensor::set_period(unsigned long period) {
-    period_ = period;
-}
-unsigned long Grow_sensor::get_period() {
-    return period_;
-}
-bool Grow_sensor::check_time(unsigned long time) {
-    end_time_ = time;
-    if ((end_time_ - read_time_) > period_)
-        readout_signal_ = true;
-    return readout_signal_;
-}
-void Grow_sensor::update() {
-    read_time_ = end_time_; 
-}
-bool Grow_sensor::read_signal(bool clear) {
-    if (!clear)
-        return readout_signal_;
-    clear = readout_signal_;
-    readout_signal_ = false;
-    return clear;
-}
-
 bool Grow_sensor::set_value(uint8_t num, float value) {
     if(get_count_component() <= num)
         return true;
@@ -139,6 +167,7 @@ bool Grow_sensor::set_value(std::vector<float> value) {
         return true;
     for(int i = 0; i < get_count_component(); ++i)
         component_[i].set_value(value[i]);
+    change_value_ = true;
     return false;
 }
 std::vector<float> Grow_sensor::get_value() {
@@ -148,6 +177,7 @@ std::vector<float> Grow_sensor::get_value() {
     return value;
 }
 
+// --- Информации о компонентах ---
 
 uint8_t Grow_sensor::get_count_component() {
     return component_.size();
@@ -159,6 +189,8 @@ Grow_sensor_component Grow_sensor::get_component(uint8_t num) {
 std::vector<Grow_sensor_component> Grow_sensor::get_component() {
     return component_;
 } 
+
+// --- Внешняя связь ---
 
 bool Grow_sensor::filter(Grow_sensor &sensor) {
     if(component_.size() != sensor.component_.size())
@@ -215,7 +247,7 @@ size_t Grow_sensor::set_data(uint8_t *data, size_t available_size) {
     return size;
 }
 
-#if defined (SERIAL_LOG_OUTPUT)
+#if defined(SERIAL_LOG_OUTPUT)
 const char *sensor_component_name[] = 
     {"Analog_signal", "Discrete_signal", "Battery_charge", "Air_humidity", "Air_temperature", 
     "Water_temperature", "Illumination_level", "Lamp_power", "Pump_power", "Indicator_pH",

@@ -5,6 +5,7 @@ extern const uint16_t LORA_ADDRESS_BRANCH;
 static uint8_t id_mas[COUNT_TYPE_DEVICE];
 
 Grow_device::Grow_device(uint8_t amt_component, enum Type_device* type_device) {
+    system_id_ = 0;
     address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
@@ -13,8 +14,14 @@ Grow_device::Grow_device(uint8_t amt_component, enum Type_device* type_device) {
         id_mas[i] = 0;
     for(int i = 0; i < amt_component; ++i)
         component_.push_back(Grow_device_component(type_device[i], (id_mas[type_device[i]]++)));
+    
+    for (int i = 0; i < COUNT_TYPE_DEVICE; ++i)
+        if(id_mas[i] > 1) {
+            setting_ = 0x02; // 0000.0010 - бит индивидуального номера, в случае наличия повторов
+        }
 }
 Grow_device::Grow_device(uint8_t amt_component, uint8_t* type_device) {
+    system_id_ = 0;
     address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
@@ -23,8 +30,14 @@ Grow_device::Grow_device(uint8_t amt_component, uint8_t* type_device) {
         id_mas[i] = 0;
     for(int i = 0; i < amt_component; ++i)
         component_.push_back(Grow_device_component((enum Type_device)(type_device[i]), (id_mas[type_device[i]]++)));
+    
+    for (int i = 0; i < COUNT_TYPE_DEVICE; ++i)
+        if(id_mas[i] > 1) {
+            setting_ = 0x02;
+        }
 }
 Grow_device::Grow_device(std::vector<enum Type_device> type_device) {
+    system_id_ = 0;
     address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
@@ -33,7 +46,14 @@ Grow_device::Grow_device(std::vector<enum Type_device> type_device) {
         id_mas[i] = 0;
     for(int i = 0; i < type_device.size(); ++i)
         component_.push_back(Grow_device_component(type_device[i], (id_mas[type_device[i]]++)));
+    
+    for (int i = 0; i < COUNT_TYPE_DEVICE; ++i)
+        if(id_mas[i] > 1) {
+            setting_ = 0x02;
+        }
 }
+
+// --- Поля класса-платы ---
 
 void Grow_device::set_system_id(uint32_t system_id) {
     system_id_ = system_id;
@@ -75,11 +95,45 @@ uint8_t Grow_device::get_setting() {
     return setting_;
 }
 
+// --- Обработка времени ---
+
+void Grow_device::set_period(unsigned long period) {
+    period_ = period;
+}
+unsigned long Grow_device::get_period() {
+    return period_;
+}
+
+bool Grow_device::check_time(unsigned long time) {
+    end_time_ = time;
+    if ((end_time_ - read_time_) > period_)
+        readout_signal_ = true;
+    return readout_signal_;
+}
+void Grow_device::update() {
+    read_time_ = end_time_; 
+}
+bool Grow_device::read_signal(bool clear) {
+    if (!clear)
+        return readout_signal_;
+    clear = readout_signal_;
+    readout_signal_ = false;
+    return clear;
+}
+
+// --- Поля компонентов ---
+
 bool Grow_device::get_type(uint8_t num, enum Type_device &result) {
     if(get_count_component() <= num)
         return true;
     result = component_[num].get_type();
     return false;
+}
+std::vector<enum Type_device> Grow_device::get_type() {
+    std::vector<enum Type_device> type_device;
+    for(int i = 0; i < get_count_component(); ++i)
+        type_device.push_back(component_[i].get_type());
+    return type_device;
 }
 bool Grow_device::get_id(uint8_t num, uint8_t &result) {
     if(get_count_component() <= num)
@@ -87,126 +141,98 @@ bool Grow_device::get_id(uint8_t num, uint8_t &result) {
     result = component_[num].get_id();
     return false;
 }
-
-bool Grow_device::set_period(uint8_t num, Period_adjuster period, enum Period_type period_type) {
-    if(get_count_component() <= num)
-        return true;
-    component_[num].set_period(period, period_type);
-    return false;
+std::vector<uint8_t> Grow_device::get_id() {
+    std::vector<uint8_t> id;
+    for(int i = 0; i < get_count_component(); ++i)
+        id.push_back(component_[i].get_id());
+    return id;
 }
 
-bool Grow_device::get_period(uint8_t num, Period_adjuster &result) {
+bool Grow_device::set_pwm_value(uint8_t num, uint16_t pwm_value) {
     if(get_count_component() <= num)
         return true;
-    result = component_[num].get_period();
-    return false;
-}
-bool Grow_device::get_period_type(uint8_t num, enum Period_type &result) {
-    if(get_count_component() <= num)
-        return true;
-    result = component_[num].get_period_type();
-    return false;
-}
-bool Grow_device::set_period(std::vector<Period_adjuster> period, std::vector<enum Period_type> period_type) {
-    if((get_count_component() != period.size()) || (get_count_component() != period_type.size()))
-        return true;
-    for(int i = 0; i < get_count_component(); ++i) {
-        component_[i].set_period(period[i], period_type[i]);
-    }
-    return false;
-}
-std::vector<Period_adjuster> Grow_device::get_period() {
-    std::vector<Period_adjuster> period;
-    for(int i = 0; i < get_count_component(); ++i) {
-        period.push_back(component_[i].get_period());
-    }
-    return period;
-}
-std::vector<enum Period_type> Grow_device::get_period_type() {
-    std::vector<enum Period_type> period_type;
-    for(int i = 0; i < get_count_component(); ++i) {
-        period_type.push_back(component_[i].get_period_type());
-    }
-    return period_type;
-}
-
-int8_t Grow_device::check_time(bool clear) {
-    int8_t state_change = 0;
-    int8_t result = 0;
-    for(int i = 0; i < get_count_component(); ++i) {
-        result = component_[i].check_time(clear);
-        if(result != 0)
-            state_change = result;
-    }
-    return state_change;
-}
-int8_t Grow_device::check_time(uint8_t time, bool clear) {
-    int8_t state_change = 0;
-    int8_t result = 0;
-    for(int i = 0; i < get_count_component(); ++i) {
-        result = component_[i].check_time(time, clear);
-        if(result != 0)
-            state_change = result;
-    }
-    return state_change;
-}
-int8_t Grow_device::check_time(RtcDateTime date_time, bool clear) {
-    int8_t state_change = 0;
-    int8_t result = 0;
-    uint8_t time = 0;
-    for(int i = 0; i < get_count_component(); ++i) {
-        switch (component_[i].get_period_type()) {
-        case SEC: time = date_time.Second(); break;
-        case MIN: time = date_time.Minute(); break;
-        case HOUR: time = date_time.Hour(); break;
-        default: continue;
-        }
-        result = component_[i].check_time(time, clear);
-        if(result != 0)
-            state_change = result;
-    }
-    return state_change;
-}
-
-bool Grow_device::set_value(uint8_t num, uint16_t value) {
-    if(get_count_component() <= num)
-        return true;
-    component_[num].set_value(value);
+    component_[num].set_pwm_value(pwm_value);
     change_value_ = true;
     return false;
 }
-
-bool Grow_device::get_value(uint8_t num, uint16_t &result) {
+bool Grow_device::get_pwm_value(uint8_t num, uint16_t &result) {
     if(get_count_component() <= num)
         return true;
-    result = component_[num].get_value();
+    result = component_[num].get_pwm_value();
     return false;
 }
-bool Grow_device::get_signal() {
-    for(int i = 0; i < get_count_component(); ++i) {
-        if(component_[i].get_signal())
-            return true;
-    }
+bool Grow_device::set_pwm_value(std::vector<uint16_t> pwm_value) {
+    if(get_count_component() != pwm_value.size())
+        return true;
+    for(int i = 0; i < get_count_component(); ++i)
+        component_[i].set_pwm_value(pwm_value[i]);
+    change_value_ = true;
     return false;
 }
-bool Grow_device::get_signal(uint8_t num) {
+std::vector<uint16_t> Grow_device::get_pwm_value() {
+    std::vector<uint16_t> pwm_value;
+    for(int i = 0; i < get_count_component(); ++i)
+        pwm_value.push_back(component_[i].get_pwm_value());
+    return pwm_value;
+}
+
+bool Grow_device::set_state(uint8_t num, bool state) {
     if(get_count_component() <= num)
-        return false;
-    return component_[num].get_signal();
-}
-bool Grow_device::get_state_change() {
-    for(int num = 0; num < component_.size(); ++num) {
-        if(component_[num].get_state_change())
-            return true;
-    }
+        return true;
+    component_[num].set_state(state);
+    change_value_ = true;
     return false;
 }
-bool Grow_device::get_state_change(uint8_t num, int8_t &result) {
+bool Grow_device::get_state(uint8_t num, bool &result) {
     if(get_count_component() <= num)
-        return false;
-    result = component_[num].get_state_change();
-    return true;
+        return true;
+    result = component_[num].get_state();
+    return false;
 }
+bool Grow_device::set_state(std::vector<bool> state) {
+    if(get_count_component() != state.size())
+        return true;
+    for(int i = 0; i < get_count_component(); ++i)
+        component_[i].set_state(state[i]);
+    change_value_ = true;
+    return false;
+}
+std::vector<bool> Grow_device::get_state() {
+    std::vector<bool> state;
+    for(int i = 0; i < get_count_component(); ++i)
+        state.push_back(component_[i].get_state());
+    return state;
+}
+
+bool Grow_device::set_time_control(uint8_t num, Time_control time_control) {
+    if(get_count_component() <= num)
+        return true;
+    component_[num].set_time_control(time_control);
+    change_value_ = true;
+    return false;
+}
+bool Grow_device::get_time_control(uint8_t num, Time_control &result) {
+    if(get_count_component() <= num)
+        return true;
+    result = component_[num].get_time_control();
+    return false;
+}
+bool Grow_device::set_time_control(std::vector<Time_control> time_controls) {
+    if(get_count_component() != time_controls.size())
+        return true;
+    for(int i = 0; i < get_count_component(); ++i)
+        component_[i].set_time_control(time_controls[i]);
+    change_value_ = true;
+    return false;
+}
+std::vector<Time_control> Grow_device::get_time_control() {
+    std::vector<Time_control> state;
+    for(int i = 0; i < get_count_component(); ++i)
+        state.push_back(component_[i].get_time_control());
+    return state;
+}
+
+// --- Информации о компонентах ---
 
 uint8_t Grow_device::get_count_component() {
     return component_.size();
@@ -218,6 +244,8 @@ Grow_device_component Grow_device::get_component(uint8_t num) {
 std::vector<Grow_device_component> Grow_device::get_component() {
     return component_;
 }
+
+// --- Внешняя связь ---
 
 bool Grow_device::filter(Grow_device &device) {
     if(component_.size() != device.component_.size())
@@ -266,7 +294,7 @@ size_t Grow_device::set_data(uint8_t *data, size_t available_size) {
 }
 
 
-#if defined (SERIAL_LOG_OUTPUT)
+#if defined(SERIAL_LOG_OUTPUT)
 const char *device_component_name[] = 
     {"Signal_PWM", "Signal_digital", "Fan_PWM", "Pumping_system", "Phytolamp_digital", 
     "Phytolamp_PWM"};
@@ -299,33 +327,33 @@ void Grow_device::print() {
         Serial.print("0");
     Serial.print((address_ & 0xFF), 16);
     
-    Serial.println("  Components:");
-    enum Type_device type_component;
-    enum Period_type period_type; 
-    Period_adjuster period_adjuster;
-    uint8_t frequency, period, bias;
-    for(int j = 0; j < component_.size(); ++j) {
-        Serial.print("   [");
-        Serial.print(j);
-        Serial.print("] ");
-        get_type(j, type_component);
-        Serial.print(device_component_name[type_component]);
-        Serial.print(" (№");
-        Serial.print((uint)type_component);
-        Serial.println(")");
-        get_period_type(j, period_type);
-        Serial.print("       Period_type: ");
-        get_period(j, period_adjuster);
-        bias = period_adjuster.get_dawn();
-        period = period_adjuster.get_number();
-        frequency = period_adjuster.get_max_period_range() / period_adjuster.get_period_range();
-        Serial.println(device_period_type_name[period_type]);
-        Serial.print("       Frequency: ");
-        Serial.println(frequency);
-        Serial.print("       Period: ");
-        Serial.println(period);
-        Serial.print("       Bias: ");
-        Serial.println(bias);
-    }
+    // Serial.println("  Components:");
+    // enum Type_device type_component;
+    // enum Period_type period_type; 
+    // Period_adjuster period_adjuster;
+    // uint8_t frequency, period, bias;
+    // for(int j = 0; j < component_.size(); ++j) {
+    //     Serial.print("   [");
+    //     Serial.print(j);
+    //     Serial.print("] ");
+    //     get_type(j, type_component);
+    //     Serial.print(device_component_name[type_component]);
+    //     Serial.print(" (№");
+    //     Serial.print((uint)type_component);
+    //     Serial.println(")");
+    //     get_period_type(j, period_type);
+    //     Serial.print("       Period_type: ");
+    //     get_period(j, period_adjuster);
+    //     bias = period_adjuster.get_dawn();
+    //     period = period_adjuster.get_number();
+    //     frequency = period_adjuster.get_max_period_range() / period_adjuster.get_period_range();
+    //     Serial.println(device_period_type_name[period_type]);
+    //     Serial.print("       Frequency: ");
+    //     Serial.println(frequency);
+    //     Serial.print("       Period: ");
+    //     Serial.println(period);
+    //     Serial.print("       Bias: ");
+    //     Serial.println(bias);
+    // }
 }
 #endif

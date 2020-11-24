@@ -36,6 +36,8 @@ public:
     Grow_device(std::vector<enum Type_device> type_device);
     ~Grow_device() = default;
 
+    /// --- Поля класса-платы ---
+
     // установка индивидуального номера платы
     void set_system_id(uint32_t system_id_);
     // получение индивидуального номера платы
@@ -61,14 +63,7 @@ public:
     // Получение настроек LoRa-передачи
     uint8_t get_setting(); 
 
-    // получение типа компонента (передаётся в result), если ошибка возврат true
-    bool get_type(uint8_t num, enum Type_device &result); 
-    // получение вектора типов компонентов
-    std::vector<enum Type_device> get_type();
-    // получение id компонента (передаётся в result | не путать с ID платы, этот номер для количества повторений), если ошибка возврат true
-    bool get_id(uint8_t num, uint8_t &result); 
-    // получение вектора id компонентов
-    std::vector<uint8_t> get_id();
+    /// --- Обработка времени ---
 
     // Установить период опроса модуля
     void set_period(unsigned long period);
@@ -82,90 +77,45 @@ public:
     // Получение сигнала готовности к считыванию
     bool read_signal(bool clear=false);
 
+    /// --- Поля компонентов ---
+
+    // получение типа компонента (передаётся в result), если ошибка возврат true
+    bool get_type(uint8_t num, enum Type_device &result); 
+    // получение вектора типов компонентов
+    std::vector<enum Type_device> get_type();
+    // получение id компонента (передаётся в result | не путать с ID платы, этот номер для количества повторений), если ошибка возврат true
+    bool get_id(uint8_t num, uint8_t &result); 
+    // получение вектора id компонентов
+    std::vector<uint8_t> get_id();
+
+    // Установить значение ШИМ сигнала, если ошибка возврат true
+    bool set_pwm_value(uint8_t num, uint16_t pwm_value);
+    // Получить значение ШИМ сигнала, если ошибка возврат true
+    bool get_pwm_value(uint8_t num, uint16_t &result);
+    // Установить значения ШИМ сигналов, если ошибка возврат true
+    bool set_pwm_value(std::vector<uint16_t> pwm_value);
+    // Получить вектор значений ШИМ сигналов
+    std::vector<uint16_t> get_pwm_value();
+
     // Установить значение считанного состояния, если ошибка возврат true
-    bool set_signal(uint8_t num, float value);
+    bool set_state(uint8_t num, bool state);
     // Получить значение считанного состояния, если ошибка возврат true
-    bool get_signal(uint8_t num, float &result);
+    bool get_state(uint8_t num, bool &result);
     // Установить значения считанных состояний, если ошибка возврат true
-    bool set_signal(std::vector<float> value);
+    bool set_state(std::vector<bool> state);
     // Получить вектор значений считанных состояний
-    std::vector<float> get_signal();
+    std::vector<bool> get_state();
 
-    // Установить значение считанного показателя, если ошибка возврат true
-    bool set_value(uint8_t num, float value);
-    // Получить значение считанного показателя, если ошибка возврат true
-    bool get_value(uint8_t num, float &result);
-    // Установить значения считанных показателей, если ошибка возврат true
-    bool set_value(std::vector<float> value);
-    // Получить вектор значений считанных показателей
-    std::vector<float> get_value();
+    // Установить настройки временного контроля, если ошибка возврат true
+    bool set_time_control(uint8_t num, Time_control time_control);
+    // Получить настройки временного контроля, если ошибка возврат true
+    bool get_time_control(uint8_t num, Time_control &result);
+    // Установить настройки временного контроля всех компонентов, если ошибка возврат true
+    bool set_time_control(std::vector<Time_control> time_controls);
+    // Получить настройки временного контроля всех компонентов
+    std::vector<Time_control> get_time_control();
 
-
-
-
-
-
-
-
-    // (-) ----- Period_adjuster -> (Time_Channel | Grow_Timer), (-) ----- исключить Period_type 
-    // настройка компонента, если ошибка возврат true 
-    bool set_channel_setting(uint8_t num, Period_adjuster period, enum Period_type period_type); 
-    // настройка всех компонентов, если ошибка возврат true
-    bool set_channel_setting(std::vector<Period_adjuster> period, std::vector<enum Period_type> period_type);
-    
-    // получение настройки типа времени компонента (передаётся в result), если ошибка возврат true
-    bool get_period_type(uint8_t num, enum Period_type &result); 
-    // получение настройки работы всех компонентов
-    std::vector<Period_adjuster> get_channel_setting();
-
-    // получение настройки типов времени всех компонентов
-    std::vector<enum Period_type> get_period_type(); // (-)
-
-
-
-
-
-
-
-
-
-
-
-
-    // получение настройки работы компонента (передаётся в result), если ошибка возврат true
-    bool get_period(uint8_t num, Period_adjuster &result); 
-
-    /// Проверка времени 
-    // Без обновления, если 0, то все устройства в тех же состояниях
-    int8_t check_time(bool clear = false);
-    // С обновлением в единицах (ч, м, или с, переданых из вне, м.б. некорректно, если компоненты отталкиваются от разных единиц), если 0, то все устройства в тех же состояниях
-    int8_t check_time(uint8_t time, bool clear = false);
-    // С обновлением по значению времени, если 0, то все устройства в тех же состояниях
-    int8_t check_time(RtcDateTime date_time, bool clear = false);
-
-    // Установить значение сигнала в рабочем состоянии для определённого компонента, если ошибка возврат true
-    bool set_value(uint8_t num, uint16_t value);
-
-    // Получить значение сигнала определённого компонента, если ошибка возврат true
-    bool get_value(uint8_t num, uint16_t &result);
-    // Получить наличие сигнала хоть у одного компонента
-    bool get_signal();
-    // Получить наличие сигнала у определённого компонента, если ошибка false (т.е. нет сигнала)
-    bool get_signal(uint8_t num);
-    //  Получить наличие изменения сигнала хоть у одного компонента
-    bool get_state_change();
-    // Получить изменения сигнала у определённого компонента, если ошибка возврат true
-    bool get_state_change(uint8_t num, int8_t &result);
-
-
-
-
-
-
-
-
-
-
+    /// --- Информации о компонентах ---
 
     // Получить количество компонентов
     uint8_t get_count_component();
@@ -174,6 +124,8 @@ public:
     Grow_device_component get_component(uint8_t num);
     // Получить вектор компонентов
     std::vector<Grow_device_component> get_component();
+
+    /// --- Внешняя связь ---
 
     // Проверить совподает ли содержимое модулей, без учёта настроек (для отфильтровывания среди неподходящих)
     bool filter(Grow_device &device); // (-) ----- убрать привязку к порядку
@@ -188,7 +140,7 @@ public:
 
 #if defined (SERIAL_LOG_OUTPUT)
     /// вывод класса в Serial
-    void print();
+    void print(); // (-) ---- добавить в вывод обработку канала
 #endif
 };
 

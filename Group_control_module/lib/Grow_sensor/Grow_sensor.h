@@ -31,6 +31,8 @@ public:
     Grow_sensor(std::vector<enum Type_sensor> type_sensor);
     ~Grow_sensor() = default;
 
+    /// --- Поля класса-платы ---
+
     // установка индивидуального номера платы
     void set_system_id(uint32_t system_id_);
     // получение индивидуального номера платы
@@ -56,14 +58,7 @@ public:
     // Получение настроек LoRa-передачи
     uint8_t get_setting();
 
-    // получение типа компонента (передаётся в result), если ошибка возврат true
-    bool get_type(uint8_t num, enum Type_sensor &result);
-    // получение вектора типов компонентов
-    std::vector<enum Type_sensor> get_type();
-    // получение id компонента (передаётся в result | не путать с ID платы, этот номер для количества повторений), если ошибка возврат true
-    bool get_id(uint8_t num, uint8_t &result);
-    // получение вектора id компонентов
-    std::vector<uint8_t> get_id();
+    /// --- Обработка времени ---
 
     // Установить период опроса модуля
     void set_period(unsigned long period);
@@ -77,6 +72,18 @@ public:
     // Получение сигнала готовности к считыванию
     bool read_signal(bool clear=false);
 
+
+    /// --- Поля компонентов ---
+
+    // получение типа компонента (передаётся в result), если ошибка возврат true
+    bool get_type(uint8_t num, enum Type_sensor &result);
+    // получение вектора типов компонентов
+    std::vector<enum Type_sensor> get_type();
+    // получение id компонента (передаётся в result | не путать с ID платы, этот номер для количества повторений), если ошибка возврат true
+    bool get_id(uint8_t num, uint8_t &result);
+    // получение вектора id компонентов
+    std::vector<uint8_t> get_id();
+
     // Установить значение считанного показателя, если ошибка возврат true
     bool set_value(uint8_t num, float value);
     // Получить значение считанного показателя, если ошибка возврат true
@@ -86,6 +93,8 @@ public:
     // Получить вектор значений считанных показателей
     std::vector<float> get_value();
 
+    /// --- Информации о компонентах ---
+
     // Получить количество компонентов
     uint8_t get_count_component();
 
@@ -93,6 +102,8 @@ public:
     Grow_sensor_component get_component(uint8_t num);
     // Получить вектор компонентов
     std::vector<Grow_sensor_component> get_component();
+
+    /// --- Внешняя связь ---
 
     // Проверить совподает ли содержимое модулей, без учёта настроек (для отфильтровывания среди неподходящих)
     bool filter(Grow_sensor &sensor); // (-) ----- убрать привязку к порядку
