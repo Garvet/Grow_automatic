@@ -51,21 +51,21 @@ Packet_analyzer::Packet_analyzer() {
 //     _field = field;
 //     _count_field = count_field;
 // }
-bool Packet_analyzer::select_packet(uint8_t* packet, uint8_t lenght) {
-    if ((lenght < _max_address) || (packet == nullptr))
+bool Packet_analyzer::select_packet(uint8_t* packet, uint8_t length) {
+    if ((length < _max_address) || (packet == nullptr))
         return true;
     _creat_packet = false;
     _packet = packet;
-    _lenght = lenght;
+    _length = length;
     _receive_length = _max_address + 1;
-    _send_lenght = _max_address + 1;
+    _send_length = _max_address + 1;
     return false;
 }
 uint8_t Packet_analyzer::get_receive_length() {
     return _receive_length;
 }
-uint8_t Packet_analyzer::get_send_lenght() {
-    return _send_lenght;
+uint8_t Packet_analyzer::get_send_length() {
+    return _send_length;
 }
 
 bool Packet_analyzer::set_setting(uint8_t setting) {
@@ -74,11 +74,11 @@ bool Packet_analyzer::set_setting(uint8_t setting) {
 
 // Адрес группы адресанта
 uint16_t Packet_analyzer::get_dest_adr_group() {
-    return _field[num_dest_adr_group]->get_value(_packet, _lenght);
+    return _field[num_dest_adr_group]->get_value(_packet, _length);
 }  
 // Адрес ветви адресанта
 uint16_t Packet_analyzer::get_dest_adr_branch() {
-    return _field[num_dest_adr_branch]->get_value(_packet, _lenght);
+    return _field[num_dest_adr_branch]->get_value(_packet, _length);
 }
 // Адрес адресанта
 LoRa_address Packet_analyzer::get_dest_adr() {
@@ -86,11 +86,11 @@ LoRa_address Packet_analyzer::get_dest_adr() {
 }
 // Адрес группы отправителя
 uint16_t Packet_analyzer::get_sour_adr_group() {
-    return _field[num_sour_adr_group]->get_value(_packet, _lenght);
+    return _field[num_sour_adr_group]->get_value(_packet, _length);
 }
 // Адрес ветви отправителя
 uint16_t Packet_analyzer::get_sour_adr_branch() {
-    return _field[num_sour_adr_branch]->get_value(_packet, _lenght);
+    return _field[num_sour_adr_branch]->get_value(_packet, _length);
 }
 // Адрес отправителя
 LoRa_address Packet_analyzer::get_sour_adr() {
@@ -98,19 +98,19 @@ LoRa_address Packet_analyzer::get_sour_adr() {
 }
 // Тип пакета
 uint8_t  Packet_analyzer::get_packet_type() {
-    return _field[num_type]->get_value(_packet, _lenght);
+    return _field[num_type]->get_value(_packet, _length);
 }
 // Номер пакета
 uint16_t Packet_analyzer::get_packet_number() {
-    return _field[num_number]->get_value(_packet, _lenght);
+    return _field[num_number]->get_value(_packet, _length);
 }          
 // Адрес группы адресанта
 bool Packet_analyzer::set_dest_adr_group(uint16_t adr) {
-    return _field[num_dest_adr_group]->set_value(adr, _packet, _lenght);
+    return _field[num_dest_adr_group]->set_value(adr, _packet, _length);
 }  
 // Адрес ветви  адресанта
 bool Packet_analyzer::set_dest_adr_branch(uint16_t adr) {
-    return _field[num_dest_adr_branch]->set_value(adr, _packet, _lenght);
+    return _field[num_dest_adr_branch]->set_value(adr, _packet, _length);
 } 
 // Адрес адресанта
 bool Packet_analyzer::set_dest_adr(LoRa_address adr) {
@@ -125,11 +125,11 @@ bool Packet_analyzer::set_dest_adr(LoRa_address adr) {
 }
 // Адрес группы отправителя
 bool Packet_analyzer::set_sour_adr_group(uint16_t adr) {
-    return _field[num_sour_adr_group]->set_value(adr, _packet, _lenght);
+    return _field[num_sour_adr_group]->set_value(adr, _packet, _length);
 }  
 // Адрес ветви  отправителя
 bool Packet_analyzer::set_sour_adr_branch(uint16_t adr) {
-    return _field[num_sour_adr_branch]->set_value(adr, _packet, _lenght);
+    return _field[num_sour_adr_branch]->set_value(adr, _packet, _length);
 } 
 // Адрес отправителя
 bool Packet_analyzer::set_sour_adr(LoRa_address adr) {
@@ -144,11 +144,11 @@ bool Packet_analyzer::set_sour_adr(LoRa_address adr) {
 }
 // Тип пакета
 bool Packet_analyzer::set_packet_type(uint8_t pac_type) {
-    return _field[num_type]->set_value(pac_type, _packet, _lenght);
+    return _field[num_type]->set_value(pac_type, _packet, _length);
 } 
 // Номер пакета
 bool Packet_analyzer::set_packet_number(uint16_t num) {
-    return _field[num_number]->set_value(num, _packet, _lenght);
+    return _field[num_number]->set_value(num, _packet, _length);
 }          
 
 
@@ -177,7 +177,7 @@ uint8_t Packet_Connection::set_packet_data(uint8_t *com, uint8_t *data, uint8_t 
         return 2;
     }
     _command = *com;
-    error = field_byte.set_value(_command, (_packet + _receive_length), (_lenght - _receive_length));
+    error = field_byte.set_value(_command, (_packet + _receive_length), (_length - _receive_length));
     ++_receive_length;
     if (error)
         return 3;
@@ -200,7 +200,7 @@ uint8_t Packet_Connection::set_packet_data(uint8_t *com, uint8_t *data, uint8_t 
             if ((*len % 2) != 0)
                 return 5;
             _len = *len / 2; // делить на 2 или не делить (число номеров по 8 или по 16)
-            error = field_byte.set_value(_len, (_packet + _receive_length), (_lenght - _receive_length));
+            error = field_byte.set_value(_len, (_packet + _receive_length), (_length - _receive_length));
             ++_receive_length;
             if (error)
                 return 6;
@@ -214,7 +214,7 @@ uint8_t Packet_Connection::set_packet_data(uint8_t *com, uint8_t *data, uint8_t 
             break;
         case 0x0C:
             _len = *len;
-            error = field_byte.set_value(_len, (_packet + _receive_length), (_lenght - _receive_length));
+            error = field_byte.set_value(_len, (_packet + _receive_length), (_length - _receive_length));
             ++_receive_length;
             if (error)
                 return 7;
@@ -225,7 +225,7 @@ uint8_t Packet_Connection::set_packet_data(uint8_t *com, uint8_t *data, uint8_t 
     }
     
     for (int i = 0; i < _len; ++i) {
-        error = field_byte.set_value(data[i], (_packet + _receive_length), (_lenght - _receive_length));
+        error = field_byte.set_value(data[i], (_packet + _receive_length), (_length - _receive_length));
         ++_receive_length;
         if (error)
             return 9;
@@ -240,7 +240,7 @@ uint8_t Packet_Connection::get_packet_data(uint8_t *com, uint8_t *data, uint8_t 
     _receive_length = MINIMAL_PACKET_SIZE;
 
     // комманда
-    _command = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+    _command = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
     ++_receive_length;
     if (!(_command < CONNECT_COMMAND_DATA)) {
         _command = 0xFF;
@@ -264,7 +264,7 @@ uint8_t Packet_Connection::get_packet_data(uint8_t *com, uint8_t *data, uint8_t 
             _len = *len;
             break;
         case 0x06:
-            _len = (field_byte.get_value((_packet + _receive_length), _lenght)) * 2;
+            _len = (field_byte.get_value((_packet + _receive_length), _length)) * 2;
             ++_receive_length;
             *len = _len;
             break;
@@ -277,7 +277,7 @@ uint8_t Packet_Connection::get_packet_data(uint8_t *com, uint8_t *data, uint8_t 
             *len = 0;
             break;
         case 0x0C:
-            _len = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+            _len = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
             ++_receive_length;
             *len = _len;
             break;
@@ -287,7 +287,7 @@ uint8_t Packet_Connection::get_packet_data(uint8_t *com, uint8_t *data, uint8_t 
     }
 
     for (int i = 0; i < _len; ++i) {
-        data[i] = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+        data[i] = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
         ++_receive_length;
     }
 
@@ -297,7 +297,7 @@ uint8_t Packet_Connection::get_packet_data(uint8_t *com, uint8_t *data, uint8_t 
 
 
 uint8_t Packet_Connection::get_size_by_data(uint8_t *com, uint8_t *size_data, uint8_t *len) {
-    _send_lenght = MINIMAL_PACKET_SIZE;
+    _send_length = MINIMAL_PACKET_SIZE;
     *size_data = 0;
 
     // комманда
@@ -306,7 +306,7 @@ uint8_t Packet_Connection::get_size_by_data(uint8_t *com, uint8_t *size_data, ui
         return 1;
     }
     _command = *com;
-    ++_send_lenght;
+    ++_send_length;
     // данные
     int _len;
     if (connect_com_data[_command] != 0xFF) {
@@ -324,7 +324,7 @@ uint8_t Packet_Connection::get_size_by_data(uint8_t *com, uint8_t *size_data, ui
         case 0x06:
             if ((*len % 2) != 0)
                 return 3;
-            ++_send_lenght;
+            ++_send_length;
             _len = *len; // делить на 2 или не делить (число номеров по 8 или по 16)
             // _len = *len * 2; // делить на 2 или не делить (число номеров по 8 или по 16)
             break;
@@ -335,7 +335,7 @@ uint8_t Packet_Connection::get_size_by_data(uint8_t *com, uint8_t *size_data, ui
             _len = 0; // (!) ----- ----- ----- ----- -----
             break;
         case 0x0C:
-            ++_send_lenght;
+            ++_send_length;
             _len = *len;
             break;
         default:
@@ -343,16 +343,16 @@ uint8_t Packet_Connection::get_size_by_data(uint8_t *com, uint8_t *size_data, ui
         }
     }
     *size_data = _len;
-    _send_lenght += _len;
+    _send_length += _len;
     return 0;
 }
 uint8_t Packet_Connection::get_size_by_packet(uint8_t *size_data) {
     if (_packet == nullptr)
         return 1;
-    _send_lenght = MINIMAL_PACKET_SIZE;
+    _send_length = MINIMAL_PACKET_SIZE;
     // комманда
-    _command = field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght));
-    ++_send_lenght;
+    _command = field_byte.get_value((_packet + _send_length), (_length - _send_length));
+    ++_send_length;
     if (!(_command < CONNECT_COMMAND_DATA)) {
         _command = 0xFF;
         return 2;
@@ -365,15 +365,15 @@ uint8_t Packet_Connection::get_size_by_packet(uint8_t *size_data) {
         switch (_command)
         {
         case 0x01:
-            if (((_lenght - _send_lenght) == 1) || ((_lenght - _send_lenght) == 2))
-                *size_data = _lenght - _send_lenght;
+            if (((_length - _send_length) == 1) || ((_length - _send_length) == 2))
+                *size_data = _length - _send_length;
             else
                 *size_data = 0xFF;
             return 3;
             break;
         case 0x06:
-            *size_data = (field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght))) * 2;
-            ++_send_lenght;
+            *size_data = (field_byte.get_value((_packet + _send_length), (_length - _send_length))) * 2;
+            ++_send_length;
             break;
         case 0x09:
             *size_data = 0; // (!) ----- ----- ----- ----- -----
@@ -382,14 +382,14 @@ uint8_t Packet_Connection::get_size_by_packet(uint8_t *size_data) {
             *size_data = 0; // (!) ----- ----- ----- ----- -----
             break;
         case 0x0C:
-            *size_data = field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght));
-            ++_send_lenght;
+            *size_data = field_byte.get_value((_packet + _send_length), (_length - _send_length));
+            ++_send_length;
             break;
         default:
             return 4;
         }
     }
-    _send_lenght += *size_data;
+    _send_length += *size_data;
     return 0;
 }
 
@@ -427,7 +427,7 @@ uint8_t Packet_Sensor::set_packet_data(uint8_t* amt, uint8_t* param, uint8_t* nu
     _receive_length = MINIMAL_PACKET_SIZE;
     // количество параметров
     if (field_bit[0].get_value(&_setting) != 0) {
-        field_byte.set_value(*amt, (_packet + _receive_length), (_lenght - _receive_length));
+        field_byte.set_value(*amt, (_packet + _receive_length), (_length - _receive_length));
         count = *amt;
         ++_receive_length;
     }
@@ -440,7 +440,7 @@ uint8_t Packet_Sensor::set_packet_data(uint8_t* amt, uint8_t* param, uint8_t* nu
         }
         _param = param[i];
         if (field_bit[1].get_value(&_setting) != 1) {
-            error = field_byte.set_value(_param, (_packet + _receive_length), (_lenght - _receive_length));
+            error = field_byte.set_value(_param, (_packet + _receive_length), (_length - _receive_length));
             ++_receive_length;
         }
         if (error)
@@ -448,7 +448,7 @@ uint8_t Packet_Sensor::set_packet_data(uint8_t* amt, uint8_t* param, uint8_t* nu
         
         // индивидуальный номер
         if (field_bit[2].get_value(&_setting) != 0) {
-            error = field_byte.set_value(num[i], (_packet + _receive_length), (_lenght - _receive_length));
+            error = field_byte.set_value(num[i], (_packet + _receive_length), (_length - _receive_length));
             ++_receive_length;
         }
         if (error)
@@ -457,15 +457,15 @@ uint8_t Packet_Sensor::set_packet_data(uint8_t* amt, uint8_t* param, uint8_t* nu
         // данные
         switch (sensor_param_data[_param]) {
         case 0:
-            error = field_PWM.set_value(*(data + i), (_packet + _receive_length), (_lenght - _receive_length));
+            error = field_PWM.set_value(*(data + i), (_packet + _receive_length), (_length - _receive_length));
             _receive_length += 2;
             break;
         case 1:
-            error = field_byte.set_value(*(data + i), (_packet + _receive_length), (_lenght - _receive_length));
+            error = field_byte.set_value(*(data + i), (_packet + _receive_length), (_length - _receive_length));
             _receive_length += 1;
             break;
         case 2:
-            error = field_float.set_value(*(data + i), (_packet + _receive_length), (_lenght - _receive_length));
+            error = field_float.set_value(*(data + i), (_packet + _receive_length), (_length - _receive_length));
             _receive_length += 4;
             break;
         default:
@@ -485,7 +485,7 @@ uint8_t Packet_Sensor::get_packet_data(uint8_t* amt, uint8_t* param, uint8_t* nu
     _receive_length = MINIMAL_PACKET_SIZE;
     // количество параметров
     if (field_bit[0].get_value(&_setting) != 0) {
-        count = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+        count = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
         *amt = count;
         ++_receive_length;
     }
@@ -493,7 +493,7 @@ uint8_t Packet_Sensor::get_packet_data(uint8_t* amt, uint8_t* param, uint8_t* nu
     for (int i = 0; i < count; ++i) {
         // параметр
         if (field_bit[1].get_value(&_setting) != 1) {
-            _param = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+            _param = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
             ++_receive_length;
         }
         else {
@@ -509,22 +509,22 @@ uint8_t Packet_Sensor::get_packet_data(uint8_t* amt, uint8_t* param, uint8_t* nu
         
         // индивидуальный номер
         if (field_bit[2].get_value(&_setting) != 0) {
-            num[i] = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+            num[i] = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
             ++_receive_length;
         }
 
         // данные
         switch (sensor_param_data[_param]) {
         case 0:
-            data[i] = field_PWM.get_value((_packet + _receive_length), (_lenght - _receive_length)); // & 0xFFFF; (?)
+            data[i] = field_PWM.get_value((_packet + _receive_length), (_length - _receive_length)); // & 0xFFFF; (?)
             _receive_length += 2;
             break;
         case 1:
-            data[i] = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length)); // & 0xFF;
+            data[i] = field_byte.get_value((_packet + _receive_length), (_length - _receive_length)); // & 0xFF;
             _receive_length += 1;
             break;
         case 2:
-            data[i] = field_float.get_value((_packet + _receive_length), (_lenght - _receive_length));
+            data[i] = field_float.get_value((_packet + _receive_length), (_length - _receive_length));
             _receive_length += 4;
             break;
         default:
@@ -537,13 +537,13 @@ uint8_t Packet_Sensor::get_packet_data(uint8_t* amt, uint8_t* param, uint8_t* nu
 
 
 uint8_t Packet_Sensor::get_size_by_data(uint8_t *amt, uint8_t *param, uint8_t *size_data) {
-    _send_lenght = MINIMAL_PACKET_SIZE;
+    _send_length = MINIMAL_PACKET_SIZE;
     *size_data = 0;
     uint8_t count = 1;
     // количество параметров
     if (field_bit[0].get_value(&_setting) != 0) {
         count = *amt;
-        ++_send_lenght;
+        ++_send_length;
     }
 
     for (int i = 0; i < count; ++i) {
@@ -555,27 +555,27 @@ uint8_t Packet_Sensor::get_size_by_data(uint8_t *amt, uint8_t *param, uint8_t *s
         _param = param[i];
 
         if (field_bit[1].get_value(&_setting) != 1) {
-            ++_send_lenght;
+            ++_send_length;
         }
         
         // индивидуальный номер
         if (field_bit[2].get_value(&_setting) != 0) {
-            ++_send_lenght;
+            ++_send_length;
         }
 
         // данные
         switch (sensor_param_data[_param]) {
         case 0:
             *size_data += 2;
-            _send_lenght += 2;
+            _send_length += 2;
             break;
         case 1:
             *size_data += 1;
-            _send_lenght += 1;
+            _send_length += 1;
             break;
         case 2:
             *size_data += 4;
-            _send_lenght += 4;
+            _send_length += 4;
             break;
         default:
             return 5;
@@ -589,18 +589,18 @@ uint8_t Packet_Sensor::get_size_by_packet(uint8_t *amt, uint8_t *param, uint8_t 
         return 1;
     *amt = 1;
     *size_data = 0;
-    _send_lenght = MINIMAL_PACKET_SIZE;
+    _send_length = MINIMAL_PACKET_SIZE;
 
     // количество параметров
     if (field_bit[0].get_value(&_setting) != 0) {
-        *amt = field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght));
-        ++_send_lenght;
+        *amt = field_byte.get_value((_packet + _send_length), (_length - _send_length));
+        ++_send_length;
     }
 
     for (int i = 0; i < *amt; ++i) {
         if (field_bit[1].get_value(&_setting) != 1) {
-            _param = field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght));
-            ++_send_lenght;
+            _param = field_byte.get_value((_packet + _send_length), (_length - _send_length));
+            ++_send_length;
         }
         else {
             _param = param[i];
@@ -613,22 +613,22 @@ uint8_t Packet_Sensor::get_size_by_packet(uint8_t *amt, uint8_t *param, uint8_t 
         
         // индивидуальный номер
         if (field_bit[2].get_value(&_setting) != 0) {
-            ++_send_lenght;
+            ++_send_length;
         }
 
         // данные
         switch (sensor_param_data[_param]) {
         case 0:
             *size_data += 2;
-            _send_lenght += 2;
+            _send_length += 2;
             break;
         case 1:
             *size_data += 1;
-            _send_lenght += 1;
+            _send_length += 1;
             break;
         case 2:
             *size_data += 4;
-            _send_lenght += 4;
+            _send_length += 4;
             break;
         default:
             return 3;
@@ -666,7 +666,7 @@ bool Packet_Sensor::set_parametr(uint8_t *param) {
             _param = 0xFF;
             return true;
         }
-        field_byte.set_value(_param, (_packet + bias), _lenght);
+        field_byte.set_value(_param, (_packet + bias), _length);
         _param = param[i];
         ++_receive_length;
         // bias += X, где X = 1, 2 или 4 в зависимости от параметра
@@ -703,15 +703,15 @@ bool Packet_Sensor::set_data(uint32_t *data) {
 
         switch (sensor_param_data[param]) {
         case 0:
-            error = field_PWM.set_value(*(data + i), (_packet + bias), _lenght);
+            error = field_PWM.set_value(*(data + i), (_packet + bias), _length);
             bias += 2;
             break;
         case 1:
-            error = field_byte.set_value(*(data + i), (_packet + bias), _lenght);
+            error = field_byte.set_value(*(data + i), (_packet + bias), _length);
             bias += 1;
             break;
         case 2:
-            error = field_float.set_value(*(data + i), (_packet + bias), _lenght);
+            error = field_float.set_value(*(data + i), (_packet + bias), _length);
             bias += 4;
             break;
         default:
@@ -760,7 +760,7 @@ uint8_t Packet_Device::set_packet_data(uint8_t *obj, uint8_t *num, uint8_t *com,
     }
     _object = *obj;
     if (field_bit[0].get_value(&_setting) != 1) {
-        error = field_byte.set_value(_object, (_packet + _receive_length), (_lenght - _receive_length));
+        error = field_byte.set_value(_object, (_packet + _receive_length), (_length - _receive_length));
         ++_receive_length;
     }
     if (error)
@@ -769,7 +769,7 @@ uint8_t Packet_Device::set_packet_data(uint8_t *obj, uint8_t *num, uint8_t *com,
 
     // индивидуальный номер
     if (field_bit[1].get_value(&_setting) != 0) {
-        error = field_byte.set_value(*num, (_packet + _receive_length), (_lenght - _receive_length));
+        error = field_byte.set_value(*num, (_packet + _receive_length), (_length - _receive_length));
         ++_receive_length;
     }
     if (error)
@@ -781,14 +781,14 @@ uint8_t Packet_Device::set_packet_data(uint8_t *obj, uint8_t *num, uint8_t *com,
         return 5;
     }
     _command = *com;
-    error = field_byte.set_value(_command, (_packet + _receive_length), (_lenght - _receive_length));
+    error = field_byte.set_value(_command, (_packet + _receive_length), (_length - _receive_length));
     ++_receive_length;
     if (error)
         return 6;
 
     // данные
     for (int i = 0; i < device_object_data[_object][_command]; ++i) {
-        error = field_byte.set_value(data[i], (_packet + _receive_length), (_lenght - _receive_length));
+        error = field_byte.set_value(data[i], (_packet + _receive_length), (_length - _receive_length));
         ++_receive_length;
 
         if (error)
@@ -805,7 +805,7 @@ uint8_t Packet_Device::get_packet_data(uint8_t *obj, uint8_t *num, uint8_t *com,
 
     // объект
     if (field_bit[0].get_value(&_setting) != 1) {
-        _object = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+        _object = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
         ++_receive_length;
     }
     else {
@@ -819,12 +819,12 @@ uint8_t Packet_Device::get_packet_data(uint8_t *obj, uint8_t *num, uint8_t *com,
 
     // индивидуальный номер
     if (field_bit[1].get_value(&_setting) != 0) {
-        *num = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+        *num = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
         ++_receive_length;
     }
 
     // комманда
-    _command = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+    _command = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
     ++_receive_length;
     if (!(_command < DEVICE_COMMAND[_object])) {
         _command = 0xFF;
@@ -836,7 +836,7 @@ uint8_t Packet_Device::get_packet_data(uint8_t *obj, uint8_t *num, uint8_t *com,
     if(len != nullptr)
         *len = 0;
     for (int i = 0; i < device_object_data[_object][_command]; ++i) {
-        data[i] = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+        data[i] = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
         if(len != nullptr)
             ++*len;
         ++_receive_length;
@@ -849,7 +849,7 @@ uint8_t Packet_Device::get_packet_data(uint8_t *obj, uint8_t *num, uint8_t *com,
 
     
 uint8_t Packet_Device::get_size_by_data(uint8_t *obj, uint8_t *com, uint8_t *size_data) {
-    _send_lenght = MINIMAL_PACKET_SIZE;
+    _send_length = MINIMAL_PACKET_SIZE;
     *size_data = 0;
 
     // объект
@@ -859,12 +859,12 @@ uint8_t Packet_Device::get_size_by_data(uint8_t *obj, uint8_t *com, uint8_t *siz
     }
     _object = *obj;
     if (field_bit[0].get_value(&_setting) != 1) {
-        ++_send_lenght;
+        ++_send_length;
     }
     
     // индивидуальный номер
     if (field_bit[1].get_value(&_setting) != 0) {
-        ++_send_lenght;
+        ++_send_length;
     }
 
     // комманда
@@ -873,10 +873,10 @@ uint8_t Packet_Device::get_size_by_data(uint8_t *obj, uint8_t *com, uint8_t *siz
         return 2;
     }
     _command = *com;
-    ++_send_lenght;
+    ++_send_length;
 
     // данные
-    _send_lenght += device_object_data[_object][_command];
+    _send_length += device_object_data[_object][_command];
     *size_data += device_object_data[_object][_command];
     
     return 0;
@@ -887,12 +887,12 @@ uint8_t Packet_Device::get_size_by_packet(uint8_t *obj, uint8_t *size_data) {
         return 1;
 
     *size_data = 0;
-    _send_lenght = MINIMAL_PACKET_SIZE;
+    _send_length = MINIMAL_PACKET_SIZE;
 
     // объект
     if (field_bit[0].get_value(&_setting) != 1) {
-        _object = field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght));
-        ++_send_lenght;
+        _object = field_byte.get_value((_packet + _send_length), (_length - _send_length));
+        ++_send_length;
     }
     else {
         _object = *obj;
@@ -904,12 +904,12 @@ uint8_t Packet_Device::get_size_by_packet(uint8_t *obj, uint8_t *size_data) {
 
     // индивидуальный номер
     if (field_bit[1].get_value(&_setting) != 0) {
-        ++_send_lenght;
+        ++_send_length;
     }
 
     // комманда
-    _command = field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght));
-    ++_send_lenght;
+    _command = field_byte.get_value((_packet + _send_length), (_length - _send_length));
+    ++_send_length;
     if (!(_command < DEVICE_COMMAND[_object])) {
         _command = 0xFF;
         return 3;
@@ -917,7 +917,7 @@ uint8_t Packet_Device::get_size_by_packet(uint8_t *obj, uint8_t *size_data) {
 
     // данные
     *size_data += device_object_data[_object][_command];
-    _send_lenght += device_object_data[_object][_command];
+    _send_length += device_object_data[_object][_command];
 
     return 0;
 }
@@ -968,7 +968,7 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
         return 2;
     }
     _command = *com;
-    error = field_byte.set_value(_command, (_packet + _receive_length), (_lenght - _receive_length));
+    error = field_byte.set_value(_command, (_packet + _receive_length), (_length - _receive_length));
     ++_receive_length;
     if (error)
         return 3;
@@ -984,7 +984,7 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
         case 0x00:
             // запись ID до длины поля с данными
             for(int i = 0; i < 4; ++i) {
-                error = field_byte.set_value(data[i], (_packet + _receive_length), (_lenght - _receive_length));
+                error = field_byte.set_value(data[i], (_packet + _receive_length), (_length - _receive_length));
                 ++_receive_length;
                 if (error)
                     return 4 + i;
@@ -992,7 +992,7 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
             data = data + 4;
 
             _len = *len - 1;
-            error = field_byte.set_value(_len, (_packet + _receive_length), (_lenght - _receive_length));
+            error = field_byte.set_value(_len, (_packet + _receive_length), (_length - _receive_length));
             ++_receive_length;
             if (error)
                 return 5;
@@ -1001,7 +1001,7 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
 
         // case 0x02:
         //     for(int i = 0; i < 2; ++i) {
-        //         error = field_byte.set_value(data[i], (_packet + _receive_length), (_lenght - _receive_length));
+        //         error = field_byte.set_value(data[i], (_packet + _receive_length), (_length - _receive_length));
         //         ++_receive_length;
         //         if (error)
         //             return 6 + i;
@@ -1011,7 +1011,7 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
         //     if ((*len % 2) != 0)
         //         return 7;
         //     _len = *len / 2; // делить на 2 или не делить (число номеров по 8 или по 16)
-        //     error = field_byte.set_value(_len, (_packet + _receive_length), (_lenght - _receive_length));
+        //     error = field_byte.set_value(_len, (_packet + _receive_length), (_length - _receive_length));
         //     ++_receive_length;
         //     if (error)
         //         return 8;
@@ -1020,7 +1020,7 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
 
         // case 0x09:
         //     for(int i = 0; i < 3; ++i) {
-        //         error = field_byte.set_value(data[i], (_packet + _receive_length), (_lenght - _receive_length));
+        //         error = field_byte.set_value(data[i], (_packet + _receive_length), (_length - _receive_length));
         //         ++_receive_length;
         //         if (error)
         //             return 9 + i;
@@ -1030,7 +1030,7 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
         //     if ((*len % 2) != 0)
         //         return 10;
         //     _len = *len / 2; // делить на 2 или не делить (число номеров по 8 или по 16)
-        //     error = field_byte.set_value(_len, (_packet + _receive_length), (_lenght - _receive_length));
+        //     error = field_byte.set_value(_len, (_packet + _receive_length), (_length - _receive_length));
         //     ++_receive_length;
         //     if (error)
         //         return 11;
@@ -1042,7 +1042,7 @@ uint8_t Packet_System::set_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
     }
 
     for (int i = 0; i < _len; ++i) {
-        error = field_byte.set_value(data[i], (_packet + _receive_length), (_lenght - _receive_length));
+        error = field_byte.set_value(data[i], (_packet + _receive_length), (_length - _receive_length));
         ++_receive_length;
         if (error)
             return 13;
@@ -1057,7 +1057,7 @@ uint8_t Packet_System::get_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
     _receive_length = MINIMAL_PACKET_SIZE;
 
     // комманда
-    _command = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+    _command = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
     ++_receive_length;
     if (!(_command < SYSTEM_COMMAND_DATA)) {
         _command = 0xFF;
@@ -1078,32 +1078,32 @@ uint8_t Packet_System::get_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
         case 0x00:
             // получение ID до длины поля с данными
             for (int i = 0; i < 4; ++i) {
-                data[i] = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+                data[i] = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
                 ++_receive_length;
             }
             data = data + 4;
 
-            _len = (field_byte.get_value((_packet + _receive_length), _lenght)) + 1;
+            _len = (field_byte.get_value((_packet + _receive_length), _length)) + 1;
             ++_receive_length;
             *len = _len;
             break;
         // case 0x02:
         //     for (int i = 0; i < 2; ++i) {
-        //         data[i] = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+        //         data[i] = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
         //         ++_receive_length;
         //     }
         //     data = data + 2;
-        //     _len = (field_byte.get_value((_packet + _receive_length), _lenght)) * 2;
+        //     _len = (field_byte.get_value((_packet + _receive_length), _length)) * 2;
         //     ++_receive_length;
         //     *len = _len;
         //     break;
         // case 0x09:
         //     for (int i = 0; i < 3; ++i) {
-        //         data[i] = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+        //         data[i] = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
         //         ++_receive_length;
         //     }
         //     data = data + 3;
-        //     _len = (field_byte.get_value((_packet + _receive_length), _lenght)) * 2;
+        //     _len = (field_byte.get_value((_packet + _receive_length), _length)) * 2;
         //     ++_receive_length;
         //     *len = _len;
         //     break;
@@ -1113,7 +1113,7 @@ uint8_t Packet_System::get_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
     }
 
     for (int i = 0; i < _len; ++i) {
-        data[i] = field_byte.get_value((_packet + _receive_length), (_lenght - _receive_length));
+        data[i] = field_byte.get_value((_packet + _receive_length), (_length - _receive_length));
         ++_receive_length;
     }
     return 0;
@@ -1121,7 +1121,7 @@ uint8_t Packet_System::get_packet_data(uint8_t *com, uint8_t *data, uint8_t *len
 
 
 uint8_t Packet_System::get_size_by_data(uint8_t *size_data, uint8_t *com, uint8_t *len) {
-    _send_lenght = MINIMAL_PACKET_SIZE;
+    _send_length = MINIMAL_PACKET_SIZE;
     *size_data = 0;
 
     // комманда
@@ -1130,7 +1130,7 @@ uint8_t Packet_System::get_size_by_data(uint8_t *size_data, uint8_t *com, uint8_
         return 1;
     }
     _command = *com;
-    ++_send_lenght;
+    ++_send_length;
     // данные
     int _len;
     if (system_com_data[_command] != 0xFF) {
@@ -1140,8 +1140,8 @@ uint8_t Packet_System::get_size_by_data(uint8_t *size_data, uint8_t *com, uint8_
         switch (_command)
         {
         case 0x00:
-            _send_lenght += 4; // смещение на ID
-            ++_send_lenght;
+            _send_length += 4; // смещение на ID
+            ++_send_length;
             _len = *len + 1;
             size_data += 4;
             break;
@@ -1149,14 +1149,14 @@ uint8_t Packet_System::get_size_by_data(uint8_t *size_data, uint8_t *com, uint8_
         // case 0x02:
         //     if ((*len % 2) != 0)
         //         return 3;
-        //     _send_lenght += 3;
+        //     _send_length += 3;
         //     _len = *len; // делить на 2 или не делить (число номеров по 8 или по 16)
         //     // _len = *len * 2; // делить на 2 или не делить (число номеров по 8 или по 16)
         //     break;
         // case 0x09:
         //     if ((*len % 2) != 0)
         //         return 4;
-        //     _send_lenght += 4;
+        //     _send_length += 4;
         //     _len = *len; // делить на 2 или не делить (число номеров по 8 или по 16)
         //     // _len = *len * 2; // делить на 2 или не делить (число номеров по 8 или по 16)
         //     break;
@@ -1165,16 +1165,16 @@ uint8_t Packet_System::get_size_by_data(uint8_t *size_data, uint8_t *com, uint8_
         }
     }
     *size_data += _len;
-    _send_lenght += _len;
+    _send_length += _len;
     return 0;
 }
 uint8_t Packet_System::get_size_by_packet(uint8_t *size_data) {
     if (_packet == nullptr)
         return 1;
-    _send_lenght = MINIMAL_PACKET_SIZE;
+    _send_length = MINIMAL_PACKET_SIZE;
     // комманда
-    _command = field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght));
-    ++_send_lenght;
+    _command = field_byte.get_value((_packet + _send_length), (_length - _send_length));
+    ++_send_length;
     if (!(_command < SYSTEM_COMMAND_DATA)) {
         _command = 0xFF;
         return 2;
@@ -1187,26 +1187,26 @@ uint8_t Packet_System::get_size_by_packet(uint8_t *size_data) {
         switch (_command)
         {
         case 0x00:
-            _send_lenght += 4; // смещение на ID
+            _send_length += 4; // смещение на ID
             *size_data = 4; // смещение на ID
-            *size_data += (field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght))) + 1;
-            ++_send_lenght;
+            *size_data += (field_byte.get_value((_packet + _send_length), (_length - _send_length))) + 1;
+            ++_send_length;
             break;
         // case 0x02:
-        //     _send_lenght += 2;
-        //     *size_data = (field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght))) * 2;
-        //     ++_send_lenght;
+        //     _send_length += 2;
+        //     *size_data = (field_byte.get_value((_packet + _send_length), (_length - _send_length))) * 2;
+        //     ++_send_length;
         //     break;
         // case 0x09:
-        //     _send_lenght += 3;
-        //     *size_data = (field_byte.get_value((_packet + _send_lenght), (_lenght - _send_lenght))) * 2;
-        //     ++_send_lenght;
+        //     _send_length += 3;
+        //     *size_data = (field_byte.get_value((_packet + _send_length), (_length - _send_length))) * 2;
+        //     ++_send_length;
         //     break;
         default:
             return 4;
         }
     }
-    _send_lenght += *size_data;
+    _send_length += *size_data;
     return 0;
 }
 
