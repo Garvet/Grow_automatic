@@ -40,9 +40,9 @@ public:
 class Packet_analyzer {
 protected:
     uint8_t *_packet; // указатель на пакет с данными
-    uint8_t _lenght; // длина пакета
+    uint8_t _length; // длина пакета
     uint8_t _receive_length; // указатель обработчика приёма (для работы в случае ошибки) (--) ----- исключить
-    uint8_t _send_lenght; // указатель опработчика отправки (для работы в случае ошибки) (--) ----- исключить
+    uint8_t _send_length; // указатель опработчика отправки (для работы в случае ошибки) (--) ----- исключить
     Address_field **_field; // указатель на массив полей пакета
     uint16_t _count_field; // количество полей
     uint16_t _max_address; // максимаьлный адрес регистров пакета
@@ -54,11 +54,11 @@ public:
     Packet_analyzer();
     ~Packet_analyzer()=default;
     // выбор пакета для обработки
-    bool select_packet(uint8_t* packet, uint8_t lenght);
+    bool select_packet(uint8_t* packet, uint8_t length);
     // получить количество пройденных байт обработчиком приёма
     uint8_t get_receive_length(); //  (--) ----- исключить
     // получить количество пройденных байт обработчиком отправки
-    uint8_t get_send_lenght(); //  (--) ----- исключить
+    uint8_t get_send_length(); //  (--) ----- исключить
     
     uint16_t get_dest_adr_group();  // получить адрес группы адресанта
     uint16_t get_dest_adr_branch(); // получить адрес ветви  адресанта
