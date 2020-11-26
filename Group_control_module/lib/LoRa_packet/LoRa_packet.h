@@ -3,11 +3,11 @@
 
 #include <Arduino.h>
 #include <vector>
-#include <array>
+// #include <array>
 // #include <algorithm>
 
 #define SIZE_LORA_PACKET_MAX_LEN 250 // - 254 max
-#define SIZE_LORA_PACKET_BUFFER 500
+#define SIZE_LORA_PACKET_BUFFER 350
 
 class LoRa_packet_data;
 class LoRa_packet;
