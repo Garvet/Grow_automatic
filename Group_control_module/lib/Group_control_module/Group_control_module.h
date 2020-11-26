@@ -11,6 +11,7 @@
 
 #include <LoRa_contact_data.h>
 #include <Grow_sensor.h>
+#include <Grow_sensor_interface.h>
 #include <Grow_device.h>
 
 // (!) ----- (-) ----- перенести на статическую память

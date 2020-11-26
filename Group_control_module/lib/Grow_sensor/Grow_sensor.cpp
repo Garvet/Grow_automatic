@@ -2,7 +2,7 @@
 
 extern const uint16_t LORA_ADDRESS_BRANCH;
 
-static uint8_t id_mas[COUNT_TYPE_SENSOR];
+uint8_t id_mas_sensors[COUNT_TYPE_SENSOR];
 
 Grow_sensor::Grow_sensor(uint8_t amt_component, enum Type_sensor* type_sensor) {
     system_id_ = 0;
@@ -11,12 +11,12 @@ Grow_sensor::Grow_sensor(uint8_t amt_component, enum Type_sensor* type_sensor) {
     active_ = false;
     change_value_ = false;
     for(int i = 0; i < COUNT_TYPE_SENSOR; ++i)
-        id_mas[i] = 0;
+        id_mas_sensors[i] = 0;
     for(int i = 0; i < amt_component; ++i)
-        component_.push_back(Grow_sensor_component(type_sensor[i], (id_mas[type_sensor[i]]++)));
+        component_.push_back(Grow_sensor_component(type_sensor[i], (id_mas_sensors[type_sensor[i]]++)));
     
     for (int i = 0; i < COUNT_TYPE_SENSOR; ++i)
-        if(id_mas[i] > 1) {
+        if(id_mas_sensors[i] > 1) {
             setting_ = 0x04; // 0000.0100 - бит индивидуального номера, в случае наличия повторов
         }
 }
@@ -27,12 +27,12 @@ Grow_sensor::Grow_sensor(uint8_t amt_component, uint8_t* type_sensor) {
     active_ = false;
     change_value_ = false;
     for(int i = 0; i < COUNT_TYPE_SENSOR; ++i)
-        id_mas[i] = 0;
+        id_mas_sensors[i] = 0;
     for(int i = 0; i < amt_component; ++i)
-        component_.push_back(Grow_sensor_component((enum Type_sensor)(type_sensor[i]), (id_mas[type_sensor[i]]++)));
+        component_.push_back(Grow_sensor_component((enum Type_sensor)(type_sensor[i]), (id_mas_sensors[type_sensor[i]]++)));
     
     for (int i = 0; i < COUNT_TYPE_SENSOR; ++i)
-        if(id_mas[i] > 1) {
+        if(id_mas_sensors[i] > 1) {
             setting_ = 0x04;
         }
 }
@@ -44,12 +44,12 @@ Grow_sensor::Grow_sensor(std::vector<enum Type_sensor> type_sensor) {
     active_ = false;
     change_value_ = false;
     for(int i = 0; i < COUNT_TYPE_SENSOR; ++i)
-        id_mas[i] = 0;
+        id_mas_sensors[i] = 0;
     for(int i = 0; i < type_sensor.size(); ++i)
-        component_.push_back(Grow_sensor_component(type_sensor[i], (id_mas[type_sensor[i]]++)));
+        component_.push_back(Grow_sensor_component(type_sensor[i], (id_mas_sensors[type_sensor[i]]++)));
     
     for (int i = 0; i < COUNT_TYPE_SENSOR; ++i)
-        if(id_mas[i] > 1) {
+        if(id_mas_sensors[i] > 1) {
             setting_ = 0x04;
         }
 }
@@ -59,7 +59,7 @@ Grow_sensor::Grow_sensor(std::vector<enum Type_sensor> type_sensor) {
 void Grow_sensor::set_system_id(uint32_t system_id) {
     system_id_ = system_id;
 }
-uint32_t Grow_sensor::get_system_id() {
+uint32_t Grow_sensor::get_system_id() const {
     return system_id_;
 }
 
@@ -68,11 +68,11 @@ void Grow_sensor::set_active(uint8_t active) {
         active_ = active;
 }
 
-uint8_t Grow_sensor::get_active() {
+uint8_t Grow_sensor::get_active() const {
     return active_;
 }
 
-bool Grow_sensor::get_change_value() {
+bool Grow_sensor::get_change_value() const {
     return change_value_;
 }
 void Grow_sensor::clear_change_value() {
@@ -85,14 +85,14 @@ bool Grow_sensor::set_address(uint16_t address) {
     address_ = address;
     return false;
 }
-uint16_t Grow_sensor::get_address() {
+uint16_t Grow_sensor::get_address() const {
     return address_;
 }
 
 void Grow_sensor::set_setting(uint8_t setting) {
     setting_ = setting;
 }
-uint8_t Grow_sensor::get_setting() {
+uint8_t Grow_sensor::get_setting() const {
     return setting_;
 }
 
@@ -101,7 +101,7 @@ uint8_t Grow_sensor::get_setting() {
 void Grow_sensor::set_period(unsigned long period) {
     period_ = period;
 }
-unsigned long Grow_sensor::get_period() {
+unsigned long Grow_sensor::get_period() const {
     return period_;
 }
 
@@ -125,6 +125,12 @@ bool Grow_sensor::read_signal(bool clear) {
 // --- Поля компонентов ---
 
 bool Grow_sensor::get_type(uint8_t num, enum Type_sensor &result) {
+    if(get_count_component() <= num)
+        return true;
+    result = component_[num].get_type();
+    return false;
+}
+bool Grow_sensor::get_type(uint8_t num, uint8_t &result) {
     if(get_count_component() <= num)
         return true;
     result = component_[num].get_type();
@@ -200,51 +206,6 @@ bool Grow_sensor::filter(Grow_sensor &sensor) {
             return false;
     }
     return true;
-}
-
-
-size_t Grow_sensor::get_size() {
-    // unsigned long _period; 4
-    // uint8_t _amt_component; 1
-    // Config_grow_sensor_component* _component; not save
-    size_t size = 5;
-    for(int i = 0; i < component_.size(); ++i)
-        size += component_[i].get_size();
-    return size;
-}
-size_t Grow_sensor::get_data(uint8_t *data) {
-    if(data == nullptr)
-        return 0;
-    size_t size = 0;
-    data[size++] = (uint8_t)((period_ >> 24) & 0xFF);
-    data[size++] = (uint8_t)((period_ >> 16) & 0xFF);
-    data[size++] = (uint8_t)((period_ >> 8) & 0xFF);
-    data[size++] = (uint8_t)(period_ & 0xFF);
-    data[size++] = component_.size();
-    for(int i = 0; i < component_.size(); ++i)
-        size += component_[i].get_data(data+size);
-    return size;
-}
-size_t Grow_sensor::set_data(uint8_t *data, size_t available_size) {
-    if(data == nullptr)
-        return 0;
-    size_t size = 0;
-    component_.clear();
-    period_  = ((ulong)data[size++]) << 24;
-    period_ |= ((ulong)data[size++]) << 16;
-    period_ |= ((ulong)data[size++]) << 8;
-    period_ |= ((ulong)data[size++]);
-    uint8_t amt_component = data[size++];
-    if(amt_component != 0) {
-        component_.resize(amt_component);
-        for(int i = 0; i < COUNT_TYPE_SENSOR; ++i)
-            id_mas[i] = 0;
-        for(int i = 0; i < amt_component; ++i) {
-            size += component_[i].set_data(data+size, available_size-size);
-            component_[i].set_id(id_mas[component_[i].get_type()]++);            
-        }
-    }
-    return size;
 }
 
 #if defined(SERIAL_LOG_OUTPUT)

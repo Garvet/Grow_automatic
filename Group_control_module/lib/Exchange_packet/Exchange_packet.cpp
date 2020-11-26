@@ -7,12 +7,15 @@ Exchange_packet::Exchange_packet() {
     creat_packet(1,0);
 }
 
-
 Exchange_packet::Exchange_packet(const Exchange_packet &exchange_packet) {
     packet = nullptr;
     packet_data = nullptr;
     len = 0;
     *this = exchange_packet;
+}
+
+Exchange_packet::Exchange_packet(Exchange_packet &&exchange_packet) {
+    *this = std::move(exchange_packet);
 }
 
 Exchange_packet::~Exchange_packet() {
@@ -100,10 +103,28 @@ class Exchange_packet& Exchange_packet::operator=(const class Exchange_packet& r
     // Проверка на самоприсваивание
     if (this == &right)
         return *this;
-    // Перенос значений
+    // Копирование значений
     set_setting(right.setting_);
     creat_packet(right.len, right.type_packet);
     for (int i = 0; i < len; ++i)
         packet_data[i] = right.packet_data[i];
+    return *this;
+}
+class Exchange_packet& Exchange_packet::operator=(class Exchange_packet&& right) {
+    // Проверка на самоприсваивание
+    if (this == &right)
+        return *this;
+    // Перемещение значений
+    setting_ = right.setting_;
+    packet = right.packet;
+    packet_data = right.packet_data;
+    len = right.len;
+    type_packet = right.type_packet;
+    // Удаление старых значений
+    right.setting_ = 0;
+    right.packet = nullptr;
+    right.packet_data;
+    right.len = 0;
+    right.type_packet = 0xFF;
     return *this;
 }

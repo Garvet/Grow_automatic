@@ -24,6 +24,8 @@ private:
     bool change_value_; // флаг изменённого значения считанных показателей
 
     uint8_t setting_; // настройски (для LoRa-протокола)
+
+    friend class Grow_sensor_interface;
 public:
     Grow_sensor() = default;
     Grow_sensor(uint8_t amt_component, enum Type_sensor* type_sensor);
@@ -36,34 +38,34 @@ public:
     // установка индивидуального номера платы
     void set_system_id(uint32_t system_id_);
     // получение индивидуального номера платы
-    uint32_t get_system_id();
+    uint32_t get_system_id() const;
 
     // установка состояния активности
     void set_active(uint8_t active);
     // получение состояния активности
-    uint8_t get_active();
+    uint8_t get_active() const;
 
     // получение флага об изменённом состоянии)
-    bool get_change_value();
+    bool get_change_value() const;
     // сброс флага изменённого состояния
     void clear_change_value();
 
     // установка адреса модуля (ветви, без группы)
     bool set_address(uint16_t address);
     // получение адреса модуля (ветви, без группы)
-    uint16_t get_address();
+    uint16_t get_address() const;
 
     // Установка настроек LoRa-передачи
     void set_setting(uint8_t setting);
     // Получение настроек LoRa-передачи
-    uint8_t get_setting();
+    uint8_t get_setting() const;
 
     /// --- Обработка времени ---
 
     // Установить период опроса модуля
     void set_period(unsigned long period);
     // Получить период опроса модуля
-    unsigned long get_period();  
+    unsigned long get_period() const;  
 
     // Проверка необходимости считывания 
     bool check_time(unsigned long time);
@@ -77,6 +79,7 @@ public:
 
     // получение типа компонента (передаётся в result), если ошибка возврат true
     bool get_type(uint8_t num, enum Type_sensor &result);
+    bool get_type(uint8_t num, uint8_t &result);
     // получение вектора типов компонентов
     std::vector<enum Type_sensor> get_type();
     // получение id компонента (передаётся в result | не путать с ID платы, этот номер для количества повторений), если ошибка возврат true
@@ -107,14 +110,6 @@ public:
 
     // Проверить совподает ли содержимое модулей, без учёта настроек (для отфильтровывания среди неподходящих)
     bool filter(Grow_sensor &sensor); // (-) ----- убрать привязку к порядку
-
-    /// Функции превращения в байтовую строку (-) ----- доработать под код Дениса (-) ----- добавить генерацию пакетов (возможно другой класс)
-    // Получение размера строки
-    size_t get_size();
-    // Заполение массива байтов, возврат количество байт (должен совпадать с размером строки)
-    size_t get_data(uint8_t *data);
-    // Заполнение объекта класса по байтовой строке, возврат количество использованных байт
-    size_t set_data(uint8_t *data, size_t available_size);
 
 #if defined (SERIAL_LOG_OUTPUT)
     /// вывод класса в Serial

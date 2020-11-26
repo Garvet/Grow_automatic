@@ -18,6 +18,7 @@ public:
     // Конструкторы
     Exchange_packet();
     Exchange_packet(const Exchange_packet &exchange_packet);
+    Exchange_packet(Exchange_packet &&exchange_packet);
     ~Exchange_packet();
     // Получение пакета в виде вектора
     std::vector<uint8_t> get_packet() const;
@@ -35,6 +36,8 @@ public:
     void clear_packet();
     // Оператор копирования
     class Exchange_packet& operator=(const class Exchange_packet& right);
+    // Оператор перемещения
+    class Exchange_packet& operator=(class Exchange_packet&& right);
 };
 
 #endif // __EXCHANGE_PACKET_H__

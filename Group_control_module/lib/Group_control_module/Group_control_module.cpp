@@ -312,7 +312,7 @@ size_t Group_control_module::get_size() {
     // class Config_grow_device* _devices; not save
     size_t size = 9 + (name_.size() & 0xFF);
     for(int i = 0; i < sensors_.size(); ++i)
-        size += sensors_[i].get_size();
+        size += grow_sensor_interface.get_size(sensors_[i]);
     for(int i = 0; i < devices_.size(); ++i)
         size += devices_[i].get_size();
     return size;
@@ -337,7 +337,7 @@ size_t Group_control_module::get_data(uint8_t *data) {
     for(int i = 0; i < name_.size(); ++i)
         data[size++] = name_[i];
     for(int i = 0; i < sensors_.size(); ++i)
-        size += sensors_[i].get_data(data+size);
+        size += grow_sensor_interface.get_data(sensors_[i], data+size);
     for(int i = 0; i < devices_.size(); ++i)
         size += devices_[i].get_data(data+size);
     return size;
@@ -374,7 +374,7 @@ size_t Group_control_module::set_data(uint8_t *data, size_t available_size) {
     if(amt_sensors != 0) {
         sensors_.resize(amt_sensors);
         for(int i = 0; i < amt_sensors; ++i) {
-            size += sensors_[i].set_data(data+size, available_size-size);
+            size += grow_sensor_interface.set_data(sensors_[i], data+size, available_size-size);
             sensors_[i].set_address(address++);
         }
     }
