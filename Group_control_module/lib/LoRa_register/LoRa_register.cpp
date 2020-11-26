@@ -71,7 +71,7 @@ std::vector<uint8_t> LoRa_register::field_registers(Address_field* fields, uint8
     }
     return registers;
 }
-std::vector<uint8_t> LoRa_register::field_registers(std::vector<Address_field> fields) {
+std::vector<uint8_t> LoRa_register::field_registers(std::vector<Address_field>& fields) {
     std::vector<uint8_t> registers;
     bool reg_add[LORA_DATA_SIZE];
     uint8_t adr;
@@ -114,7 +114,7 @@ std::vector<uint8_t> LoRa_register::check_missing_register(Address_field* fields
     }
     return registers;
 }
-std::vector<uint8_t> LoRa_register::check_missing_register(std::vector<Address_field> fields) {
+std::vector<uint8_t> LoRa_register::check_missing_register(std::vector<Address_field>& fields) {
     std::vector<uint8_t> registers;
     if(fields.size() == 0)
         return registers;
@@ -168,7 +168,7 @@ bool LoRa_register::check_read(Address_field* fields, uint8_t amt_fields, std::v
     return check_reg_read; // Наличие хоть одного регистра, который нужно будет считать
 
 }
-bool LoRa_register::check_read(std::vector<Address_field> fields, std::vector<uint8_t>* reg_read, std::vector<uint8_t>* reg_not_read) { 
+bool LoRa_register::check_read(std::vector<Address_field>& fields, std::vector<uint8_t>* reg_read, std::vector<uint8_t>* reg_not_read) { 
     bool check_reg_read = false;
     uint8_t reg_bit[LORA_DATA_SIZE];
     for(int i = 0; i < LORA_DATA_SIZE; ++i) {

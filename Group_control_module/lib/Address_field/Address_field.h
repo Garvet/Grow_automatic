@@ -56,14 +56,14 @@ public:
     bool set_value(uint32_t value, uint8_t *register_value, int register_count=(uint16_t(-1)));
 
     /// Получение полей класса (значения см. выше)
-    Register*get_registers();
-    uint8_t  get_reg_count();
-    uint16_t get_max_address();
-    uint32_t get_min_value();
-    uint32_t get_max_value();
-    uint32_t*get_reserved_value(); 
-    uint32_t get_reserv_count();
-    char get_mode();
+    Register*get_registers()   const;
+    uint8_t  get_reg_count()   const;
+    uint16_t get_max_address() const;
+    uint32_t get_min_value()   const;
+    uint32_t get_max_value()   const;
+    uint32_t*get_reserved_value() const; 
+    uint32_t get_reserv_count() const;
+    char get_mode() const;
     
     /// Операторы сравнения
     friend bool operator==(const Address_field& left, const Address_field& right);

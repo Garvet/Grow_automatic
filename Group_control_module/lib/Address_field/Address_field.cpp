@@ -151,28 +151,28 @@ bool Address_field::set_value(uint32_t value, uint8_t *register_value, int regis
     return false;
 }
 
-Register *Address_field::get_registers() {
+Register *Address_field::get_registers() const {
     return registers_;
 }
-uint8_t Address_field::get_reg_count() {
+uint8_t Address_field::get_reg_count() const {
     return reg_count_;
 }
-uint16_t Address_field::get_max_address() {
+uint16_t Address_field::get_max_address() const {
     return max_address_;
 }
-uint32_t Address_field::get_min_value() {
+uint32_t Address_field::get_min_value() const {
     return min_value_;
 }
-uint32_t Address_field::get_max_value() {
+uint32_t Address_field::get_max_value() const {
     return max_value_;
 }
-uint32_t *Address_field::get_reserved_value() {
+uint32_t *Address_field::get_reserved_value() const {
     return reserved_value_;
 }
-uint32_t Address_field::get_reserv_count() {
+uint32_t Address_field::get_reserv_count() const {
     return reserv_count_;
 }
-char Address_field::get_mode() {
+char Address_field::get_mode() const {
     return mode_;
 }
 
