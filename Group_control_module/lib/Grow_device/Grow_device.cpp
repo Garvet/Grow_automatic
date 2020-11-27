@@ -36,7 +36,7 @@ Grow_device::Grow_device(uint8_t amt_component, uint8_t* type_device) {
             setting_ = 0x02;
         }
 }
-Grow_device::Grow_device(std::vector<enum Type_device> type_device) {
+Grow_device::Grow_device(const std::vector<enum Type_device>& type_device) {
     system_id_ = 0;
     address_ = 0xFFFF;
     setting_ = 0;
@@ -161,7 +161,7 @@ bool Grow_device::get_pwm_value(uint8_t num, uint16_t &result) {
     result = component_[num].get_pwm_value();
     return false;
 }
-bool Grow_device::set_pwm_value(std::vector<uint16_t> pwm_value) {
+bool Grow_device::set_pwm_value(const std::vector<uint16_t>& pwm_value) {
     if(get_count_component() != pwm_value.size())
         return true;
     for(int i = 0; i < get_count_component(); ++i)
@@ -217,7 +217,7 @@ bool Grow_device::get_time_control(uint8_t num, Time_control &result) {
     result = component_[num].get_time_control();
     return false;
 }
-bool Grow_device::set_time_control(std::vector<Time_control> time_controls) {
+bool Grow_device::set_time_control(const std::vector<Time_control>& time_controls) {
     if(get_count_component() != time_controls.size())
         return true;
     for(int i = 0; i < get_count_component(); ++i)

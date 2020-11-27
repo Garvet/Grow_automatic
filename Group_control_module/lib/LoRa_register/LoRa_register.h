@@ -31,15 +31,15 @@ public:
     // Выдаёт адреса регистров, относящихся к данному полю
     std::vector<uint8_t> field_registers(Address_field field);
     std::vector<uint8_t> field_registers(Address_field* fields, uint8_t amt_fields);
-    std::vector<uint8_t> field_registers(std::vector<Address_field>& fields);
+    std::vector<uint8_t> field_registers(const std::vector<Address_field>& fields);
     // Проверка получения номеров регистров, которые нужно считать для данного списка полей
     std::vector<uint8_t> check_missing_register(Address_field field);
     std::vector<uint8_t> check_missing_register(Address_field* fields, uint8_t amt_fields);
-    std::vector<uint8_t> check_missing_register(std::vector<Address_field>& fields);
+    std::vector<uint8_t> check_missing_register(const std::vector<Address_field>& fields);
     // Проверка на необходимость считывания перед записью новых значений (т.е. занимают ли поля весь объём данных регистра)
     bool check_read(Address_field field);
     bool check_read(Address_field* fields, uint8_t amt_fields, std::vector<uint8_t>* reg_read, std::vector<uint8_t>* reg_not_read);
-    bool check_read(std::vector<Address_field>& fields, std::vector<uint8_t>* reg_read, std::vector<uint8_t>* reg_not_read);
+    bool check_read(const std::vector<Address_field>& fields, std::vector<uint8_t>* reg_read, std::vector<uint8_t>* reg_not_read);
 
 public:
     LoRa_register();

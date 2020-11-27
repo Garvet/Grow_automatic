@@ -130,13 +130,13 @@ bool LoRa_contact_data::add_packet(uint8_t len, uint8_t* packet, uint8_t setting
         v_packet.push_back(packet[i]);
     return add_packet(v_packet, setting);
 }
-bool LoRa_contact_data::add_packet(std::vector<uint8_t> packet, uint8_t setting) {
+bool LoRa_contact_data::add_packet(const std::vector<uint8_t>& packet, uint8_t setting) {
     class Exchange_packet e_packet;
     e_packet.set_packet(packet);
     e_packet.set_setting(setting);
     return add_packet(e_packet);
 }
-uint8_t LoRa_contact_data::add_packet(std::vector<std::vector<uint8_t>> packet, std::vector<uint8_t> setting) {
+uint8_t LoRa_contact_data::add_packet(const std::vector<std::vector<uint8_t>>& packet, const std::vector<uint8_t>& setting) {
     if(packet.size() != setting.size())
         return 0;
     class Exchange_packet e_packet;
@@ -150,7 +150,7 @@ uint8_t LoRa_contact_data::add_packet(std::vector<std::vector<uint8_t>> packet, 
 }
 bool LoRa_contact_data::add_packet(const Exchange_packet &packet) {
     // if((!_init) || (packet.len < MINIMAL_PACKET_SIZE) || (send_packet_.size() >= 250)) // проверка на инициализацию только в 1 сторону (?) ----- 
-    if((packet.len < MINIMAL_PACKET_SIZE) || (send_packet_.size() >= 250))
+    if((packet.packet_data.get_len() < MINIMAL_PACKET_SIZE) || (send_packet_.size() >= 250))
         return true;
     if(init_){
         if((packet.packet->get_dest_adr_group() != connect_adr_.group) ||
@@ -698,13 +698,15 @@ bool LoRa_contact_data::create_disconnet_packet(bool error) {
 //   я жду | от всех (при глобальном адресе ожидания - тоже все)
 bool LoRa_contact_data::packet_dont_correct(bool global_adr, bool all_adr_sendler) {
     // Проверка размера пакета
-    if(last_receive_packet_.len < MINIMAL_PACKET_SIZE)
+    if(last_receive_packet_.packet_data.get_len() < MINIMAL_PACKET_SIZE)
         return false;
     // Проверка "пакет отправлен мне"
-    if(last_receive_packet_.packet->get_dest_adr() != my_adr_)
+    if(last_receive_packet_.packet->get_dest_adr() != my_adr_) {
         // Проверка "пакет отправлен всем"
-        if(!(global_adr && (last_receive_packet_.packet->get_dest_adr().global())))
+        if(!(global_adr && (last_receive_packet_.packet->get_dest_adr().global()))) {
             return false;
+        }
+    }
     // Проверка "мне не важно кто отправлял"
     if(!((connect_adr_.global()) || all_adr_sendler))
         // Проверка "мне важно кто отправил"
@@ -713,7 +715,7 @@ bool LoRa_contact_data::packet_dont_correct(bool global_adr, bool all_adr_sendle
     return true;
 }
 // Проверка соответствия типа пакета
-bool LoRa_contact_data::check_packet_type(uint8_t type_packet, std::vector<uint8_t> subtype_packet) {
+bool LoRa_contact_data::check_packet_type(uint8_t type_packet, const std::vector<uint8_t>& subtype_packet) {
     if(last_receive_packet_.type_packet != type_packet)
         return false;
     if(subtype_packet.size() == 0)
@@ -736,7 +738,7 @@ int16_t LoRa_contact_data::search_num_packet(uint16_t number) {
     return -1;
 }
 // удаление номеров в send_packet_ и обновление send_flag_
-uint8_t LoRa_contact_data::pop_num_packet(std::vector<uint16_t> number) {
+uint8_t LoRa_contact_data::pop_num_packet(const std::vector<uint16_t>& number) {
     int i;
     for(i = 0; i < number.size(); ++i) {
         int16_t search = search_num_packet(number[i]);

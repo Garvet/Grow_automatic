@@ -37,7 +37,7 @@ Grow_sensor::Grow_sensor(uint8_t amt_component, uint8_t* type_sensor) {
         }
 }
 
-Grow_sensor::Grow_sensor(std::vector<enum Type_sensor> type_sensor) {
+Grow_sensor::Grow_sensor(const std::vector<enum Type_sensor>& type_sensor) {
     system_id_ = 0;
     address_ = 0xFFFF;
     setting_ = 0;
@@ -168,7 +168,7 @@ bool Grow_sensor::get_value(uint8_t num, float &result) {
     result = component_[num].get_value();
     return false;
 }
-bool Grow_sensor::set_value(std::vector<float> value) {
+bool Grow_sensor::set_value(const std::vector<float>& value) {
     if(get_count_component() != value.size())
         return true;
     for(int i = 0; i < get_count_component(); ++i)

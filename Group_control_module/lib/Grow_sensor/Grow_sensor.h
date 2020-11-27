@@ -30,7 +30,7 @@ public:
     Grow_sensor() = default;
     Grow_sensor(uint8_t amt_component, enum Type_sensor* type_sensor);
     Grow_sensor(uint8_t amt_component, uint8_t* type_sensor);
-    Grow_sensor(std::vector<enum Type_sensor> type_sensor);
+    Grow_sensor(const std::vector<enum Type_sensor>& type_sensor);
     ~Grow_sensor() = default;
 
     /// --- Поля класса-платы ---
@@ -92,7 +92,7 @@ public:
     // Получить значение считанного показателя, если ошибка возврат true
     bool get_value(uint8_t num, float &result);
     // Установить значения считанных показателей, если ошибка возврат true
-    bool set_value(std::vector<float> value);
+    bool set_value(const std::vector<float>& value);
     // Получить вектор значений считанных показателей
     std::vector<float> get_value();
 

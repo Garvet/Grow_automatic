@@ -158,12 +158,12 @@ private:
     //   я жду | от всех (при глобальном адресе ожидания - тоже все)
     bool packet_dont_correct(bool global_adr=false, bool all_adr_sendler=false);
     // Проверка соответствия типа пакета
-    bool check_packet_type(uint8_t type_packet, std::vector<uint8_t> subtype_packet={}); 
+    bool check_packet_type(uint8_t type_packet, const std::vector<uint8_t>& subtype_packet={}); 
     
     // поиск номера в _send_packet
     int16_t search_num_packet(uint16_t number); 
     // удаление номеров в _send_packet и обновление _send_flag
-    uint8_t pop_num_packet(std::vector<uint16_t> number); 
+    uint8_t pop_num_packet(const std::vector<uint16_t>& number); 
     // сортировка _reciev_packet
     void sort_num_packet(); 
 
@@ -226,8 +226,8 @@ public:
 
     // --- Создание пакетов для обмена информацией ---
     bool add_packet(uint8_t len, uint8_t* packet, uint8_t setting=0);
-    bool add_packet(std::vector<uint8_t> packet, uint8_t setting=0);
-    uint8_t add_packet(std::vector<std::vector<uint8_t>> packet, std::vector<uint8_t> setting);
+    bool add_packet(const std::vector<uint8_t>& packet, uint8_t setting=0);
+    uint8_t add_packet(const std::vector<std::vector<uint8_t>>& packet, const std::vector<uint8_t>& setting);
     bool add_packet(const Exchange_packet& packet);
     bool clear_send_packet();
 

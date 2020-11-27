@@ -1,8 +1,110 @@
+#define __PACKET_ANALYZER_H__ // (-) -----
 #ifndef __PACKET_ANALYZER_H__
 #define __PACKET_ANALYZER_H__
+#define __PACKET_ANALYZER_H__OLD // (-) -----
+
 
 #include <Arduino.h>
 #include <Address_field.h>
+#include <LoRa_packet.h>
+
+#define MINIMAL_PACKET_SIZE 9
+extern const uint16_t LORA_ADDRESS_BRANCH;
+#define PACKET_CONNECTION 0x00
+#define PACKET_SENSOR 0x01
+#define PACKET_DEVICE 0x02
+#define PACKET_SYSTEM 0x03
+
+// (!) ----- Поменяй глобальные адреса на рассчитываемые
+#define LORA_GLOBAL_ADDRESS    0x01FF7FFF
+#define LORA_GLOBAL_ADR_GROUP  0x1FF
+#define LORA_GLOBAL_ADR_BRANCH 0x7FFF
+
+class LoRa_address {
+public:
+    uint16_t group = 0xFFFF;  // Адрес группы
+    uint16_t branch = 0xFFFF; // Адрес ветви
+public:
+    LoRa_address() = default;
+    LoRa_address(const uint16_t group, const uint16_t branch);
+    LoRa_address(const uint32_t adr);
+    LoRa_address(const LoRa_address &adr) = default;
+    ~LoRa_address() = default;
+
+    bool global();
+
+    friend bool operator==(const LoRa_address& left, const LoRa_address& right);
+    friend bool operator!=(const LoRa_address& left, const LoRa_address& right);
+    friend bool operator==(const LoRa_address& left, const uint32_t& right);
+    friend bool operator!=(const LoRa_address& left, const uint32_t& right);
+    friend bool operator==(const uint32_t& left, const LoRa_address& right);
+    friend bool operator!=(const uint32_t& left, const LoRa_address& right);
+};
+
+
+
+class Packet_analyzer {
+protected:
+
+    Address_field **field_header_; // поля шапки
+    Address_field **field_packet_; // поля пакета
+
+
+    // uint8_t *packet_;
+    uint8_t lenght_;
+    uint8_t receiv_lenght_;
+    uint8_t send_lenght_;
+    Address_field **field_;
+    uint16_t count_field_;
+    uint16_t max_address_;
+    uint8_t setting_;
+    bool creat_packet_;
+
+    bool set_field(Address_field **field, uint16_t count_field);
+public:
+    Packet_analyzer();
+    ~Packet_analyzer()=default;
+    bool select_packet(uint8_t* packet, uint8_t lenght);
+    uint8_t get_receiv_lenght();
+    uint8_t get_send_lenght();
+    
+    uint16_t get_dest_adr_group( uint8_t *packet_);  // Адрес группы адресанта
+    uint16_t get_dest_adr_branch( uint8_t *packet_); // Адрес ветви  адресанта
+    LoRa_address get_dest_adr( uint8_t *packet_);    // Адрес адресанта
+    uint16_t get_sour_adr_group( uint8_t *packet_);  // Адрес группы отправителя
+    uint16_t get_sour_adr_branch( uint8_t *packet_); // Адрес ветви  отправителя
+    LoRa_address get_sour_adr( uint8_t *packet_);    // Адрес отправителя
+    uint8_t  get_packet_type( uint8_t *packet_);     // Тип пакета
+    uint16_t get_packet_number( uint8_t *packet_);   // Номер пакета
+
+    bool set_dest_adr_group(uint16_t adr);  // Адрес группы адресанта
+    bool set_dest_adr_branch(uint16_t adr); // Адрес ветви  адресанта
+    bool set_dest_adr(LoRa_address adr); // Адрес адресанта
+    bool set_sour_adr_group(uint16_t adr);  // Адрес группы отправителя
+    bool set_sour_adr_branch(uint16_t adr); // Адрес ветви  отправителя
+    bool set_sour_adr(LoRa_address adr); // Адрес отправителя
+    bool set_packet_type(uint8_t pac_type); // Тип пакета
+    bool set_packet_number(uint16_t num);   // Номер пакета
+
+    virtual bool set_setting(uint8_t setting=0);
+};
+
+
+
+#endif // __PACKET_ANALYZER_H__
+
+
+
+
+
+
+
+#ifndef __PACKET_ANALYZER_H__OLD
+#define __PACKET_ANALYZER_H__OLD
+
+#include <Arduino.h>
+#include <Address_field.h>
+#include <LoRa_packet.h>
 #include <vector>
 
 #define MINIMAL_PACKET_SIZE 9
@@ -39,6 +141,7 @@ public:
 
 class Packet_analyzer {
 protected:
+public: // (!)(!)(!) ----- (-) -----
     uint8_t *_packet; // указатель на пакет с данными
     uint8_t _length; // длина пакета
     uint8_t _receive_length; // указатель обработчика приёма (для работы в случае ошибки) (--) ----- исключить
@@ -54,6 +157,7 @@ public:
     Packet_analyzer();
     ~Packet_analyzer()=default;
     // выбор пакета для обработки
+    bool select_packet(LoRa_packet& packet);
     bool select_packet(uint8_t* packet, uint8_t length);
     // получить количество пройденных байт обработчиком приёма
     uint8_t get_receive_length(); //  (--) ----- исключить
@@ -175,4 +279,4 @@ public:
 //     virtual bool set_setting(uint8_t setting=0);
 // };
 
-#endif // __PACKET_ANALYZER_H__
+#endif // __PACKET_ANALYZER_H__OLD

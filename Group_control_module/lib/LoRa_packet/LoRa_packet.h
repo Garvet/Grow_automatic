@@ -3,20 +3,34 @@
 
 #include <Arduino.h>
 #include <vector>
-// #include <array>
-// #include <algorithm>
 
-#define SIZE_LORA_PACKET_MAX_LEN 250 // - 254 max
-#define SIZE_LORA_PACKET_BUFFER 350
+#define USE_STANDARD_ARRAY
+#if defined( USE_STANDARD_ARRAY )
+#include <array>
+#include <algorithm>
+#endif
 
+// #define SIZE_LORA_PACKET_MAX_LEN 250 // - 254 max
+// #define SIZE_LORA_PACKET_BUFFER 100
+constexpr size_t SIZE_LORA_PACKET_MAX_LEN = 250; // - 254 max
+constexpr size_t SIZE_LORA_PACKET_BUFFER = 100;
+ 
 class LoRa_packet_data;
 class LoRa_packet;
 
 class LoRa_packet_data {
+public: // (!)(!)(!) ----- (-) -----
     bool free_object_ = true; // Свободный объект
 public:
-    uint8_t data[SIZE_LORA_PACKET_MAX_LEN]; // Байты
     uint8_t len = 0; // Количество байт
+#if defined( USE_STANDARD_ARRAY )
+    std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN> data;
+#else
+    uint8_t data[SIZE_LORA_PACKET_MAX_LEN]; // Байты
+#endif
+
+    bool add_data(uint8_t data_byte);
+    bool add_data(uint8_t* data_byte, uint8_t amt_byte);
 
     bool set_data(uint8_t* data, uint8_t len);
     void set_data(const class LoRa_packet& lora_packet);
@@ -39,27 +53,34 @@ private:
     bool search_data();
 public:
     LoRa_packet();
-    LoRa_packet(uint8_t* data, uint8_t len, bool crc_err=false, uint8_t rssi=0, float snr=0);
+    LoRa_packet(uint8_t* data, uint8_t len, bool crc_err=false, uint8_t rssi=0);
     LoRa_packet(const LoRa_packet& right);
     LoRa_packet(LoRa_packet&& right);
     ~LoRa_packet();
-    // Функция заполенния объекта, в конструкторе с параметром происходит автоматически
-    bool set_packet(uint8_t* data, uint8_t len, bool crc_err=false, uint8_t rssi=0, float snr=0);
+
+    // Функция заполенния объекта
+    bool add_packet_data(uint8_t data);
+    bool add_packet_data(uint8_t* data, uint8_t len);
+    bool set_packet(uint8_t* data, uint8_t len, bool crc_err=false, uint8_t rssi=0);
+
+    // Очистка пакета
+    void clear_packet();
 
     // получение содержимого пакета
-    LoRa_packet_data* get_packet();
-    std::vector<uint8_t> get_data(); // (-) -----
+    LoRa_packet_data* get_packet() const;
+    std::vector<uint8_t> get_data() const; // (-) -----
     // получение одного байта
-    uint8_t get_data(int num); 
+    uint8_t get_data(int num) const; 
     // получение длины пакета
-    uint8_t get_len(); 
+    uint8_t get_len() const; 
     // получение ошибки передачи пакета
-    bool    get_crc_error(); 
+    bool    get_crc_error() const; 
     // получение RSSI пакета
-    uint8_t get_rssi();
+    uint8_t get_rssi() const;
 
     // получение одного байта
     uint8_t& operator[](const int index);
+    const uint8_t& operator[](const int index) const;
     // перегрузка оператора копирования
     LoRa_packet& operator=(const LoRa_packet& right);
     // перегрузка оператора перемещения

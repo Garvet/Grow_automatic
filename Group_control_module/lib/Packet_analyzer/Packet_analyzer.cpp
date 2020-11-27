@@ -1,6 +1,5 @@
 #include "Packet_analyzer.h"
 #include "Packet_field.h"
-
 LoRa_address::LoRa_address(const uint16_t group, const uint16_t branch):group(group),branch(branch){}
 
 LoRa_address::LoRa_address(const uint32_t adr):group((uint16_t)(adr >> 16)),branch((uint16_t)(adr)){}
@@ -51,6 +50,14 @@ Packet_analyzer::Packet_analyzer() {
 //     _field = field;
 //     _count_field = count_field;
 // }
+bool Packet_analyzer::select_packet(LoRa_packet& packet) {
+    _creat_packet = false;
+    _packet = &packet[0];
+    _length = SIZE_LORA_PACKET_MAX_LEN;
+    _receive_length = _max_address + 1;
+    _send_length = _max_address + 1;
+    return false;
+}
 bool Packet_analyzer::select_packet(uint8_t* packet, uint8_t length) {
     if ((length < _max_address) || (packet == nullptr))
         return true;

@@ -419,29 +419,32 @@ class LoRa_packet LoRa::receiver_packet(uint8_t count, ulong wait, bool rssi, bo
 // Содержание последнего принятого пакета
 class LoRa_packet LoRa::read_packet_data(bool crc_err, bool f_rssi, bool f_snr) {
     uint32_t length, adr;
-    uint8_t rssi, *data;
-    float snr;
+    uint8_t rssi;//, *data;
     if (f_rssi)
         rssi = packet_rssi();
     else
         rssi = 0;
-    if (f_snr)
-        snr = packet_snr();
-    else
-        snr = 0;
+
     field_get(FifoRxBytesNb, &length, true);
     field_get(FifoRxCurrentAddr, &adr, true);
     field_set(FifoAddrPtr, adr);
     
-    data = new uint8_t[length];
+    class LoRa_packet send_packet(nullptr, 0, crc_err, rssi);
     uint32_t data32 = 0;
     for(int i = 0; i < length; ++i) {
         field_get(Fifo, &data32, true);
-        data[i] = data32 & 0xFF;
+        send_packet.add_packet_data(data32);
+        // send_packet.add_packet_data((uint8_t)(data32 & 0xFF));
+        // data[i] = data32 & 0xFF;
     }
-    class LoRa_packet send_packet(data, length, crc_err, rssi, snr);
-    delete[] data;
-
+    // data = new uint8_t[length];
+    // uint32_t data32 = 0;
+    // for(int i = 0; i < length; ++i) {
+    //     field_get(Fifo, &data32, true);
+    //     data[i] = data32 & 0xFF;
+    // }
+    // class LoRa_packet send_packet(data, length, crc_err, rssi);
+    // delete[] data;
     return send_packet;
 }
 
@@ -470,7 +473,7 @@ bool LoRa::sender_packet(uint8_t* packet, uint8_t len, bool wait) {
         return true;
     return false;
 }
-bool LoRa::sender_packet(std::vector<uint8_t> packet, bool wait) {
+bool LoRa::sender_packet(const std::vector<uint8_t>& packet, bool wait) {
     packet_begin();
     if (packet_write(packet))
         return true;
@@ -495,7 +498,7 @@ bool LoRa::packet_write(uint8_t* packet, uint8_t len) {
     field_set(PayloadLength, _packet_length);
     return false;
 }
-bool LoRa::packet_write(std::vector<uint8_t> packet) {
+bool LoRa::packet_write(const std::vector<uint8_t>& packet) {
     if (packet.size() + _packet_length > 255)
         return true;
     _packet_length += packet.size();

@@ -33,7 +33,7 @@ public:
     Grow_device() = default;
     Grow_device(uint8_t amt_component, enum Type_device* type_sensor);
     Grow_device(uint8_t amt_component, uint8_t* type_sensor);
-    Grow_device(std::vector<enum Type_device> type_device);
+    Grow_device(const std::vector<enum Type_device>& type_device);
     ~Grow_device() = default;
 
     /// --- Поля класса-платы ---
@@ -93,7 +93,7 @@ public:
     // Получить значение ШИМ сигнала, если ошибка возврат true
     bool get_pwm_value(uint8_t num, uint16_t &result);
     // Установить значения ШИМ сигналов, если ошибка возврат true
-    bool set_pwm_value(std::vector<uint16_t> pwm_value);
+    bool set_pwm_value(const std::vector<uint16_t>& pwm_value);
     // Получить вектор значений ШИМ сигналов
     std::vector<uint16_t> get_pwm_value();
 
@@ -111,7 +111,7 @@ public:
     // Получить настройки временного контроля, если ошибка возврат true
     bool get_time_control(uint8_t num, Time_control &result);
     // Установить настройки временного контроля всех компонентов, если ошибка возврат true
-    bool set_time_control(std::vector<Time_control> time_controls);
+    bool set_time_control(const std::vector<Time_control>& time_controls);
     // Получить настройки временного контроля всех компонентов
     std::vector<Time_control> get_time_control();
 

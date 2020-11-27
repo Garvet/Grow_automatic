@@ -58,6 +58,7 @@ uint8_t data[100] = {0x00, 0x01, 0x00, 0x04, 0x0F, 0x00, 0x02, 0x00, 0x03, 0xD0,
                      0x03, 0x01, 0x06, 0x05, 0x02, 0x01, 0x05, 0x02, 0x01, 0x10, 
                      0x07};
 
+extern std::array<LoRa_packet_data, SIZE_LORA_PACKET_BUFFER> lora_packet_data;
 void GT_print_NR_S() {
     if(__GCM__.sensors_.size() != 0) {
         Serial.println(" ----- ----- sensors ----- -----");
@@ -132,6 +133,24 @@ void GT_print_R() {
 void GT_print() {
     GT_print_NR();
     GT_print_R();
+    
+    int amt = 0;
+    int num[SIZE_LORA_PACKET_BUFFER];
+    for(int i = 0; i < SIZE_LORA_PACKET_BUFFER; ++i) {
+        if(!lora_packet_data[i].free_object_) {
+            num[amt] = i;
+            ++amt;
+        }
+    }
+    Serial.print("amt = ");
+    Serial.print(amt);
+    Serial.print(" (");
+    for(int i = 0; i < amt; ++i) {
+        Serial.print(num[i]);
+        if(i < amt - 1)
+            Serial.print(", ");
+    }
+    Serial.println(")");
 }
 void GT_print_f() {
     Serial.println("Filters:");
