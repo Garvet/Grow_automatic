@@ -114,7 +114,6 @@ void Group_control_module::LoRa_interrupt() {
     bool add_err = false;
     if(err != 0) {
         if(mode_ == GT_SETTING) {
-                                                                                        Serial.println("\n!!!!!!");
             LoRa_address adr = contact_data_.get_connect_adr();
             for(int i = 0; i < devices_.size(); ++i) {
                 if(devices_[i].get_address() == adr.branch) {
