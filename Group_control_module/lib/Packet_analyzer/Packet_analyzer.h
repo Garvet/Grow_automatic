@@ -1,4 +1,4 @@
-#define __PACKET_ANALYZER_H__ // (-) -----
+// #define __PACKET_ANALYZER_H__ // (-) -----
 #ifndef __PACKET_ANALYZER_H__
 #define __PACKET_ANALYZER_H__
 #define __PACKET_ANALYZER_H__OLD // (-) -----
@@ -8,18 +8,22 @@
 #include <Address_field.h>
 #include <LoRa_packet.h>
 
-#define MINIMAL_PACKET_SIZE 9
+#define MINIMAL_PACKET_SIZE 9 //
+#define PACKET_HEADER_SIZE 9
 extern const uint16_t LORA_ADDRESS_BRANCH;
-#define PACKET_CONNECTION 0x00
-#define PACKET_SENSOR 0x01
-#define PACKET_DEVICE 0x02
-#define PACKET_SYSTEM 0x03
 
+// #define PACKET_CONNECTION 0x00
+// #define PACKET_SENSOR 0x01
+// #define PACKET_DEVICE 0x02
+// #define PACKET_SYSTEM 0x03
+
+// (?) ----- использовать пространство?
+
+// Адресация в LoRa-сети
 // (!) ----- Поменяй глобальные адреса на рассчитываемые
 #define LORA_GLOBAL_ADDRESS    0x01FF7FFF
 #define LORA_GLOBAL_ADR_GROUP  0x1FF
 #define LORA_GLOBAL_ADR_BRANCH 0x7FFF
-
 class LoRa_address {
 public:
     uint16_t group = 0xFFFF;  // Адрес группы
@@ -41,55 +45,120 @@ public:
     friend bool operator!=(const uint32_t& left, const LoRa_address& right);
 };
 
-
+// Пакеты в LoRa-сети
+// Типы пакетов
+enum class Packet_Type {
+    CONNECTION = 0x00,
+    SENSOR,
+    DEVICE,
+    SYSTEM
+};
 
 class Packet_analyzer {
 protected:
-
     Address_field **field_header_; // поля шапки
     Address_field **field_packet_; // поля пакета
+    uint16_t amt_field_header_; // количество полей шапки
+    uint16_t amt_field_packet_; // количество полей пакета
 
+    uint8_t setting_; // настройки передатчика (общие)
 
-    // uint8_t *packet_;
-    uint8_t lenght_;
-    uint8_t receiv_lenght_;
-    uint8_t send_lenght_;
-    Address_field **field_;
-    uint16_t count_field_;
-    uint16_t max_address_;
-    uint8_t setting_;
-    bool creat_packet_;
+    size_t last_filled_byte = 0; // номер последнего заполненного байта пакета (не шапки)
+    size_t last_read_byte = 0;  // номер последнего прочитанного байта пакета (не шапки)
 
-    bool set_field(Address_field **field, uint16_t count_field);
+    // // LoRa_packet* packet;
+    // uint8_t lenght_;
+    // uint8_t receiv_lenght_;
+    // uint8_t send_lenght_;
+    // Address_field **field_;
+    // uint16_t count_field_;
+    // uint16_t max_address_;
+    // uint8_t setting_;
+    // bool creat_packet_;
+    // bool set_field(Address_field **field, uint16_t count_field);
 public:
     Packet_analyzer();
     ~Packet_analyzer()=default;
-    bool select_packet(uint8_t* packet, uint8_t lenght);
-    uint8_t get_receiv_lenght();
-    uint8_t get_send_lenght();
+    // bool select_packet(LoRa_packet* packet);
+    // uint8_t get_receiv_lenght();
+    // uint8_t get_send_lenght();
     
-    uint16_t get_dest_adr_group( uint8_t *packet_);  // Адрес группы адресанта
-    uint16_t get_dest_adr_branch( uint8_t *packet_); // Адрес ветви  адресанта
-    LoRa_address get_dest_adr( uint8_t *packet_);    // Адрес адресанта
-    uint16_t get_sour_adr_group( uint8_t *packet_);  // Адрес группы отправителя
-    uint16_t get_sour_adr_branch( uint8_t *packet_); // Адрес ветви  отправителя
-    LoRa_address get_sour_adr( uint8_t *packet_);    // Адрес отправителя
-    uint8_t  get_packet_type( uint8_t *packet_);     // Тип пакета
-    uint16_t get_packet_number( uint8_t *packet_);   // Номер пакета
+    uint16_t     get_dest_adr_group(LoRa_packet& packet);  // Адрес группы адресанта
+    uint16_t     get_dest_adr_branch(LoRa_packet& packet); // Адрес ветви  адресанта
+    LoRa_address get_dest_adr(LoRa_packet& packet);        // Адрес адресанта
+    uint16_t     get_sour_adr_group(LoRa_packet& packet);  // Адрес группы отправителя
+    uint16_t     get_sour_adr_branch(LoRa_packet& packet); // Адрес ветви  отправителя
+    LoRa_address get_sour_adr(LoRa_packet& packet);        // Адрес отправителя
+    uint8_t      get_packet_type(LoRa_packet& packet);     // Тип пакета
+    uint16_t     get_packet_number(LoRa_packet& packet);   // Номер пакета
 
-    bool set_dest_adr_group(uint16_t adr);  // Адрес группы адресанта
-    bool set_dest_adr_branch(uint16_t adr); // Адрес ветви  адресанта
-    bool set_dest_adr(LoRa_address adr); // Адрес адресанта
-    bool set_sour_adr_group(uint16_t adr);  // Адрес группы отправителя
-    bool set_sour_adr_branch(uint16_t adr); // Адрес ветви  отправителя
-    bool set_sour_adr(LoRa_address adr); // Адрес отправителя
-    bool set_packet_type(uint8_t pac_type); // Тип пакета
-    bool set_packet_number(uint16_t num);   // Номер пакета
+    bool set_dest_adr_group (LoRa_packet& packet, uint16_t adr);   // Адрес группы адресанта
+    bool set_dest_adr_branch(LoRa_packet& packet, uint16_t adr);   // Адрес ветви  адресанта
+    bool set_dest_adr(LoRa_packet& packet, LoRa_address adr);      // Адрес адресанта
+    bool set_sour_adr_group (LoRa_packet& packet, uint16_t adr);   // Адрес группы отправителя
+    bool set_sour_adr_branch(LoRa_packet& packet, uint16_t adr);   // Адрес ветви  отправителя
+    bool set_sour_adr(LoRa_packet& packet, LoRa_address adr);      // Адрес отправителя
+    bool set_packet_type  (LoRa_packet& packet, uint8_t pac_type); // Тип пакета
+    bool set_packet_number(LoRa_packet& packet, uint16_t num);     // Номер пакета
 
     virtual bool set_setting(uint8_t setting=0);
+    uint8_t get_setting();
 };
 
 
+class Packet_Connection: public Packet_analyzer {
+private:
+    uint8_t command_ = 0;
+public:
+    virtual bool set_setting(uint8_t setting=0); // установить настройки
+
+    /// --- Запись в пакет ---
+    // Установить команду
+    uint8_t set_command(LoRa_packet& packet, uint8_t com);
+    // Установить данные
+    uint8_t set_data(LoRa_packet& packet, uint8_t *data, uint8_t len);
+    // Занести в пакет параметры и данные
+    uint8_t set_packet_data(LoRa_packet& packet, uint8_t *com, uint8_t *data, uint8_t *len); 
+
+    /// --- Чтение из пакета ---
+    // Получить команду
+    uint8_t get_command(LoRa_packet& packet, uint8_t *com);
+    // Получить данные
+    uint8_t get_data(LoRa_packet& packet, uint8_t *data, uint8_t *len);
+    // Получить из пакета параметры и данные
+    uint8_t get_packet_data(LoRa_packet& packet, uint8_t *com, uint8_t *data, uint8_t *len); 
+    
+    /// --- Расчёты ---
+    // Узнать объём поля данных по параметрам
+    uint8_t get_size_by_data(uint8_t *com, uint8_t *len, uint8_t &size_data); 
+    // Узнать объём поля данных по содержимому пакета
+    uint8_t get_size_by_packet(LoRa_packet& packet, uint8_t &size_data); 
+};
+
+class Packet_Sensor: public Packet_analyzer {
+private:
+    // uint8_t param_; // (--) ----- исключить
+public:
+    virtual bool set_setting(uint8_t setting=0); // установить настройки
+
+    /// --- Запись в пакет ---
+    // занести в пакет параметры и данные
+    uint8_t set_packet_data(LoRa_packet& packet, uint8_t *amt, uint8_t *param, uint8_t *num, uint32_t *data);
+
+    /// --- Чтение из пакета ---
+    // получить из пакета параметры и данные
+    uint8_t get_packet_data(LoRa_packet& packet, uint8_t *amt, uint8_t *param, uint8_t *num, uint32_t *data);
+    bool get_count   (LoRa_packet& packet,  uint8_t &amt); // setting[0] == 1 иначе вернёт 1
+    // bool get_parametr(LoRa_packet& packet,  uint8_t &param, uint8_t *num);
+    // bool get_id_component(LoRa_packet& packet, uint8_t &id, uint8_t *num, uint8_t *param); // setting[2] == 1 иначе вернёт 0
+    // bool get_data    (LoRa_packet& packet,  uint32_t &data, uint8_t *num, uint8_t *param); // len = {1, 2, 4}
+    
+    /// --- Расчёты ---
+    // узнать объём поля данных по параметрам
+    uint8_t get_size_by_data(uint8_t *amt, uint8_t *param, uint8_t &size_data);
+    // узнать объём поля данных по содержимому пакета
+    uint8_t get_size_by_packet(LoRa_packet& packet, uint8_t *amt, uint8_t *param, uint8_t &size_data);
+};
 
 #endif // __PACKET_ANALYZER_H__
 

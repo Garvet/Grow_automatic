@@ -28,10 +28,10 @@ uint8_t num_dest_adr_group = 0,  // Destination Address group
         num_type = 4,   // Packet Type
         num_number = 5; // Packet Number
 
-uint16_t count_field_packet_connection = 6;
-Address_field *field_packet_connection[6] = {&field_dest_adr_group, &field_dest_adr_branch, 
-                                             &field_sour_adr_group, &field_sour_adr_branch, 
-                                             &field_type, &field_number};
+uint16_t count_field_packet_header = 6;
+Address_field *field_packet_header[6] = {&field_dest_adr_group, &field_dest_adr_branch, 
+                                         &field_sour_adr_group, &field_sour_adr_branch, 
+                                         &field_type, &field_number};
 
 
 // Типы данных
@@ -72,7 +72,7 @@ uint8_t connect_com_data[CONNECT_COMMAND_DATA] = {1, 0xFF, 0, 0, 1, 0, 0xFF, 0, 
 // ----- sensor (пакеты датчиков) -----
 const uint8_t SENSOR_PARAM_DATA = 0x0C + 1;
 // типы датчиков находятся в "Grow_sensor_component.h"
-uint8_t sensor_param_data[SENSOR_PARAM_DATA] = {0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+uint8_t sensor_param_data[SENSOR_PARAM_DATA] = {2, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
 
 // ----- device (пакеты устройств) -----
 const uint8_t DEVICE_OBJECT = 0x08 + 1;

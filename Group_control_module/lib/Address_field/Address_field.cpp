@@ -151,6 +151,55 @@ bool Address_field::set_value(uint32_t value, uint8_t *register_value, int regis
     return false;
 }
 
+#if defined( ADD_LORA_PACKET_CODE )
+uint32_t Address_field::get_value(class LoRa_packet& packet, uint8_t bias) {
+    if ((SIZE_LORA_PACKET_MAX_LEN - bias) < (max_address_ + 1))
+        return -1;
+    uint32_t value = 0;
+    if(reg_revers_) {
+        for (int i = 0; i < reg_count_; ++i) {
+            value <<= registers_[i].bit_count();
+            value |= (packet[registers_[i].address() + bias] & registers_[i].mask()) >> registers_[i].bit_bias();
+        }
+    }
+    else {
+        for (int i = (reg_count_ - 1); i >= 0; --i) {
+            value <<= registers_[i].bit_count();
+            value |= (packet[registers_[i].address() + bias] & registers_[i].mask()) >> registers_[i].bit_bias();
+        }
+    }
+    return value;
+}
+bool Address_field::set_value(uint32_t value, class LoRa_packet& packet, uint8_t bias) {
+    if (((SIZE_LORA_PACKET_MAX_LEN - bias) < (max_address_ + 1)) || (mode_ == 'r') ||
+                (value < min_value_) || (value > max_value_))
+        return true;
+    for (int i = 0; i < reserv_count_; ++i)
+        if (value == reserved_value_[i])
+            return true;
+
+    // while(packet.get_len() < max_address_ + bias)
+    //     packet.add_packet_data(0);
+    packet.add_packet_data(&packet[packet.get_len()-1], max_address_ + bias - packet.get_len() + 1);
+
+    if(reg_revers_) {
+        for (int i = (reg_count_ - 1); i >= 0; --i) {
+            packet[registers_[i].address() + bias] &= ~registers_[i].mask();
+            packet[registers_[i].address() + bias] |= (value & (registers_[i].mask() >> registers_[i].bit_bias())) << registers_[i].bit_bias();
+            value >>= registers_[i].bit_count();
+        }
+    }
+    else {
+        for (int i = 0; i < reg_count_; ++i) {
+            packet[registers_[i].address() + bias] &= ~registers_[i].mask();
+            packet[registers_[i].address() + bias] |= (value & (registers_[i].mask() >> registers_[i].bit_bias())) << registers_[i].bit_bias();
+            value >>= registers_[i].bit_count();
+        }
+    }
+    return false;
+}
+#endif
+
 Register *Address_field::get_registers() const {
     return registers_;
 }

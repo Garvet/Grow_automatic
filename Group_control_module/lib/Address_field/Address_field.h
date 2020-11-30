@@ -2,6 +2,10 @@
 #define __ADDRESS_FIELD_H__
 
 #include <Arduino.h>
+#define ADD_LORA_PACKET_CODE
+#if defined( ADD_LORA_PACKET_CODE )
+#include <LoRa_packet.h>
+#endif
 
 // (!) ----- (-) ----- перенести на статическую память
 
@@ -54,6 +58,14 @@ public:
     uint32_t get_value(uint8_t *register_value, int register_count=(uint16_t(-1)));
     // установить значение:передаётся значение, адрес массива куда заносится объект и длина массива, вернёт наличие ошибки (0 - нет ошибок, 1 - есть ошибка)
     bool set_value(uint32_t value, uint8_t *register_value, int register_count=(uint16_t(-1)));
+
+#if defined( ADD_LORA_PACKET_CODE )
+    // получение значения поля: передаётся пакет в котором ищется значение
+    uint32_t get_value(class LoRa_packet& packet, uint8_t bias=0);
+    // установить значение:передаётся значение, пакет куда заносится объект
+    bool set_value(uint32_t value, class LoRa_packet& packet, uint8_t bias=0);
+#endif
+
 
     /// Получение полей класса (значения см. выше)
     Register*get_registers()   const;
