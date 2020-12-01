@@ -27,12 +27,12 @@ public:
 
     /// --- LoRa-соединение ---
     // Регистрация (представиться) кодирование и декодирование
-    Exchange_packet creat_regist_packet(Grow_sensor &grow_sensor);
-    Grow_sensor read_regist_packet(Exchange_packet& Exchange_packet);
+    LoRa_packet creat_regist_packet(Grow_sensor &grow_sensor);
+    Grow_sensor read_regist_packet(LoRa_packet& packet);
     // sitting (period) // device setting work 
-    // Отправка данных
-    std::vector<std::vector<uint8_t>> creat_send_data_packet(Grow_sensor &grow_sensor);
-    // get data
+    // Отправка и приём данных
+    uint8_t creat_send_data_packet(Grow_sensor &grow_sensor, LoRa_packet* packet);
+    uint8_t read_send_data_packet(Grow_sensor &grow_sensor, LoRa_packet* packet, uint8_t amt);
 
     /// --- Отчётность ---
     // Регистрация

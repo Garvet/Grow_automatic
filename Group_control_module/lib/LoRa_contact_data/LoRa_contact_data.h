@@ -95,9 +95,13 @@ private:
     class Exchange_packet last_send_packet_;    // Пакет для отправки
     uint8_t amt_packet_ = 0;          // количество принятых пакетов
     uint8_t expected_amt_packet_ = 0; // ожидаемое количество принятых пакетов
-    std::vector<std::vector<uint8_t>> send_packet_; // Отправляемые пакеты
+
+    // std::vector<std::vector<uint8_t>> send_packet_; // Отправляемые пакеты
+    // std::vector<bool> send_flag_;                   // Флаг был ли отправлен пакет
+    // std::vector<std::vector<uint8_t>> reciev_packet_; // Принятые пакеты
+    std::vector<LoRa_packet> send_packet_; // Отправляемые пакеты
     std::vector<bool> send_flag_;                   // Флаг был ли отправлен пакет
-    std::vector<std::vector<uint8_t>> reciev_packet_; // Принятые пакеты
+    std::vector<LoRa_packet> reciev_packet_; // Принятые пакеты
 
     bool init_ = false; // инициализирован старт для контакта
     
@@ -138,7 +142,7 @@ private:
 
     /// --- функции создания пакетов ---
     // создание основы пакета
-    void create_packet(uint8_t size, uint8_t type_packet); 
+    void create_packet(uint8_t size, Packet_Type type_packet); 
     // создание пакета установки соединения (num = count_pack) или ответа на 
     //   запрос соединения (3 реакции +, +num и -wait) (и при замене инициативы)
     bool create_connect_packet(uint8_t amt_packet=0, bool swap_type=false); 
@@ -158,7 +162,7 @@ private:
     //   я жду | от всех (при глобальном адресе ожидания - тоже все)
     bool packet_dont_correct(bool global_adr=false, bool all_adr_sendler=false);
     // Проверка соответствия типа пакета
-    bool check_packet_type(uint8_t type_packet, const std::vector<uint8_t>& subtype_packet={}); 
+    bool check_packet_type(Packet_Type type_packet, const std::vector<uint8_t>& subtype_packet={}); 
     
     // поиск номера в _send_packet
     int16_t search_num_packet(uint16_t number); 
@@ -225,10 +229,13 @@ public:
     uint16_t get_channel();
 
     // --- Создание пакетов для обмена информацией ---
-    bool add_packet(uint8_t len, uint8_t* packet, uint8_t setting=0);
-    bool add_packet(const std::vector<uint8_t>& packet, uint8_t setting=0);
-    uint8_t add_packet(const std::vector<std::vector<uint8_t>>& packet, const std::vector<uint8_t>& setting);
-    bool add_packet(const Exchange_packet& packet);
+    // bool add_packet(uint8_t len, uint8_t* packet, uint8_t setting=0);
+    // bool add_packet(const std::vector<uint8_t>& packet, uint8_t setting=0);
+    // uint8_t add_packet(const std::vector<std::vector<uint8_t>>& packet, const std::vector<uint8_t>& setting);
+    bool add_packet(uint8_t len, uint8_t* packet);
+    bool add_packet(const std::vector<uint8_t>& packet);
+    uint8_t add_packet(const std::vector<std::vector<uint8_t>>& packet);
+    bool add_packet(LoRa_packet packet);
     bool clear_send_packet();
 
     // --- Соединение через установление контакта ---
@@ -250,9 +257,9 @@ public:
     int8_t get_state_contact();
 
     // Изъять пакет из списка принятых (удаляется)
-    std::vector<uint8_t> get_packet();
+    LoRa_packet get_packet();
     // Изъять все пришедшие пакеты
-    std::vector<std::vector<uint8_t>> get_all_packet();
+    std::vector<LoRa_packet> get_all_packet();
     
     // Функция работы системы (запускается прерываниями на DIO, 
     //   или в цикличной функции с предварительной проверкой DIO)

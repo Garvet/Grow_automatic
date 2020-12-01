@@ -152,7 +152,7 @@ bool Address_field::set_value(uint32_t value, uint8_t *register_value, int regis
 }
 
 #if defined( ADD_LORA_PACKET_CODE )
-uint32_t Address_field::get_value(class LoRa_packet& packet, uint8_t bias) {
+uint32_t Address_field::get_value(const class LoRa_packet& packet, uint8_t bias) {
     if ((SIZE_LORA_PACKET_MAX_LEN - bias) < (max_address_ + 1))
         return -1;
     uint32_t value = 0;

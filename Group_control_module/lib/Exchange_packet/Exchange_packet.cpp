@@ -1,14 +1,14 @@
 #include "Exchange_packet.h"
 
 Exchange_packet::Exchange_packet() {
-    packet = nullptr;
+    packet = &packet_analyzer;
     // packet_data = new LoRa_packet();
     // len = 0;
     // creat_packet(1,0);
 }
 
 Exchange_packet::Exchange_packet(const Exchange_packet &exchange_packet) {
-    packet = nullptr;
+    packet = &packet_analyzer;
     // packet_data = new LoRa_packet();
     // len = 0;
     *this = exchange_packet;
@@ -22,11 +22,14 @@ Exchange_packet::~Exchange_packet() {
     // if(packet_data != nullptr)
     //     delete packet_data;
     // creat_packet(0, 0xFF);
-    if(packet != nullptr)
-        delete[] packet;
+    // if(packet != nullptr)
+    //     delete[] packet;
 }
 
 void Exchange_packet::creat_packet(uint8_t new_len, uint8_t new_type) {
+    creat_packet(new_len, (Packet_Type)new_type);
+}
+void Exchange_packet::creat_packet(uint8_t new_len, Packet_Type new_type) {
     bool change = false;
     // if (len != new_len){
     //     len = new_len;
@@ -42,39 +45,38 @@ void Exchange_packet::creat_packet(uint8_t new_len, uint8_t new_type) {
     // packet_data.clear_packet();
     if (type_packet != new_type) {
         type_packet = new_type;
-        if(packet != nullptr) {
-            // delete packet;
-            delete[] packet;
-            packet = nullptr;
-        }
-        if((new_len != 0) && (new_type != 0xFF)) {
+        // if(packet != nullptr) {
+        //     // delete packet;
+        //     delete[] packet;
+        //     packet = nullptr;
+        // }
+        if(new_len != 0) {
             switch (new_type) {
-            case PACKET_CONNECTION:
-                packet = new class Packet_Connection;
+            case Packet_Type::CONNECTION:
+                packet = &packet_connection;
                 break;
-            case PACKET_SENSOR:
-                packet = new class Packet_Sensor;
+            case Packet_Type::SENSOR:
+                packet = &packet_sensor;
                 break;
-            case PACKET_DEVICE:
-                packet = new class Packet_Device;
+            case Packet_Type::DEVICE:
+                packet = &packet_device;
                 break;
-            case PACKET_SYSTEM:
-                packet = new class Packet_System;
+            case Packet_Type::SYSTEM:
+                packet = &packet_system;
                 break;
-            case 0x04: // (-) -----
-                // packet = new class Packet_Error;
-                packet = new class Packet_analyzer;
+            case (Packet_Type)0x04: // (-) -----
+                packet = &packet_analyzer;  //&packet_error
                 break;
             default:
-                packet = new class Packet_analyzer;
+                packet = &packet_analyzer;
                 break;
             }
-            packet->select_packet(packet_data);
+            // packet->select_packet(packet_data);
             change = true;
         }
     }
     if(change && (packet != nullptr)) {
-        packet->select_packet(packet_data);
+        // packet->select_packet(packet_data);
         packet->set_setting(setting_);
     }
 }
@@ -134,9 +136,9 @@ class Exchange_packet& Exchange_packet::operator=(class Exchange_packet&& right)
     type_packet = right.type_packet;
     // Удаление старых значений
     right.setting_ = 0;
-    right.packet = nullptr;
+    // right.packet = nullptr;
     // right.packet_data = nullptr;
     // right.len = 0;
-    right.type_packet = 0xFF;
+    // right.type_packet = 0xFF;
     return *this;
 }

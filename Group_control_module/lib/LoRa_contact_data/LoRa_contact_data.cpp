@@ -124,43 +124,49 @@ uint16_t LoRa_contact_data::get_channel() {
 
 // --- Создание пакетов для обмена информацией ---
 
-bool LoRa_contact_data::add_packet(uint8_t len, uint8_t* packet, uint8_t setting) {
-    std::vector<uint8_t> v_packet;
-    for(int i = 0; i < len; ++i)
-        v_packet.push_back(packet[i]);
-    return add_packet(v_packet, setting);
+bool LoRa_contact_data::add_packet(uint8_t len, uint8_t* packet) {
+    // std::vector<uint8_t> v_packet;
+    // for(int i = 0; i < len; ++i)
+    //     v_packet.push_back(packet[i]);
+    return add_packet(LoRa_packet(packet, len));
 }
-bool LoRa_contact_data::add_packet(const std::vector<uint8_t>& packet, uint8_t setting) {
-    class Exchange_packet e_packet;
-    e_packet.set_packet(packet);
-    e_packet.set_setting(setting);
-    return add_packet(e_packet);
+bool LoRa_contact_data::add_packet(const std::vector<uint8_t>& packet) {
+    // class Exchange_packet e_packet;
+    // e_packet.set_packet(packet);
+    // e_packet.set_setting(setting);
+    // return add_packet(e_packet);
+    return add_packet(LoRa_packet(packet)); 
+    // return add_packet(LoRa_packet(packet, len));
 }
-uint8_t LoRa_contact_data::add_packet(const std::vector<std::vector<uint8_t>>& packet, const std::vector<uint8_t>& setting) {
-    if(packet.size() != setting.size())
-        return 0;
-    class Exchange_packet e_packet;
+uint8_t LoRa_contact_data::add_packet(const std::vector<std::vector<uint8_t>>& packet) {
+    // if(packet.size() != setting.size())
+    //     return 0;
+    // class Exchange_packet e_packet;
     for(int i = 0; i < packet.size(); ++i) {
-        e_packet.set_packet(packet[i]);
-        e_packet.set_setting(setting[i]);
-        if(add_packet(e_packet))
+        // e_packet.set_packet(packet[i]);
+        // e_packet.set_setting(setting[i]);
+        if(add_packet(LoRa_packet(packet[i])))
             return i;
     }
     return packet.size();
 }
-bool LoRa_contact_data::add_packet(const Exchange_packet &packet) {
+bool LoRa_contact_data::add_packet(LoRa_packet packet) {
+
     // if((!_init) || (packet.len < MINIMAL_PACKET_SIZE) || (send_packet_.size() >= 250)) // проверка на инициализацию только в 1 сторону (?) ----- 
-    if((packet.packet_data.get_len() < MINIMAL_PACKET_SIZE) || (send_packet_.size() >= 250))
-        return true;
-    if(init_){
-        if((packet.packet->get_dest_adr_group() != connect_adr_.group) ||
-           (packet.packet->get_dest_adr_branch() != connect_adr_.branch))
-        return true;
+
+    if(init_) {
+        // if((packet_analyzer.get_dest_adr_group(packet) != connect_adr_.group) ||
+        //    (packet_analyzer.get_dest_adr_branch(packet) != connect_adr_.branch))
+        if(packet_analyzer.get_dest_adr(packet)!= connect_adr_)
+            return true;
     }
-    packet.packet->set_packet_number(num_end_packet_++);
+    packet_analyzer.set_packet_number(packet,num_end_packet_++);
+    // packet.packet->set_packet_number(num_end_packet_++);
+
     // packet.packet->set_dest_adr(connect_adr_); (?) -----
-    // packet.packet->set_sour_adr(my_adr_);
-    send_packet_.push_back(packet.get_packet());
+    // packet.packet->set_sour_adr(my_adr_);      (?) -----
+
+    send_packet_.push_back(std::move(packet));
     send_flag_.push_back(true); 
     amt_packet_ = send_packet_.size();
     return false;
@@ -203,7 +209,8 @@ bool LoRa_contact_data::start_transfer() {
         //     send_flag_.push_back(true); (?) ----- почему убрал и куда перенёс?
     }
     uint8_t com = 0x00;
-    static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, &amt_packet_, nullptr);
+    // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, &amt_packet_, nullptr);
+    packet_connection.set_packet_data(last_send_packet_.packet_data, &com, &amt_packet_, nullptr);
     stade_communication_ = SC_CONNECTION;
     set_LoRa_mode_send();
     return false;
@@ -271,7 +278,7 @@ int8_t LoRa_contact_data::get_state_contact() {
 } 
 
 // Изъять пакет из списка принятых (удаляется)
-std::vector<uint8_t> LoRa_contact_data::get_packet() {
+LoRa_packet LoRa_contact_data::get_packet() {
     if((!get_signal_complete()) && (stade_communication_ != SC_PACKET_ACCEPTED))
         return {};
     if(reciev_packet_.size() < 2) {
@@ -284,13 +291,13 @@ std::vector<uint8_t> LoRa_contact_data::get_packet() {
     }
     if(reciev_packet_.size() == 0)
         return {};
-    std::vector<uint8_t> packet;
-    packet = reciev_packet_[0];
+    LoRa_packet packet;
+    packet = std::move(reciev_packet_[0]);
     reciev_packet_.erase(reciev_packet_.begin());
     return packet;
 }
 // Изъять все пришедшие пакеты
-std::vector<std::vector<uint8_t>> LoRa_contact_data::get_all_packet() {
+std::vector<LoRa_packet> LoRa_contact_data::get_all_packet() {
     if((!get_signal_complete()) && (stade_communication_ != SC_PACKET_ACCEPTED))
         return {};
     if (stade_communication_ == SC_PACKET_ACCEPTED) {
@@ -487,12 +494,16 @@ void LoRa_contact_data::clear() {
 // --- функции создания пакетов ---
 
 // создание основы пакета
-void LoRa_contact_data::create_packet(uint8_t size, uint8_t type_packet) {
-    last_send_packet_.creat_packet(size, type_packet);
-    last_send_packet_.packet->set_dest_adr(connect_adr_);
-    last_send_packet_.packet->set_sour_adr(my_adr_);
-    last_send_packet_.packet->set_packet_type(type_packet);
-    last_send_packet_.packet->set_packet_number(num_end_packet_++);
+void LoRa_contact_data::create_packet(uint8_t size, Packet_Type type_packet) {
+    // last_send_packet_.creat_packet(size, type_packet);
+    // last_send_packet_.packet->set_dest_adr(connect_adr_);
+    // last_send_packet_.packet->set_sour_adr(my_adr_);
+    // last_send_packet_.packet->set_packet_type(type_packet);
+    // last_send_packet_.packet->set_packet_number(num_end_packet_++);
+    packet_analyzer.set_dest_adr(last_send_packet_.packet_data, connect_adr_);
+    packet_analyzer.set_sour_adr(last_send_packet_.packet_data, my_adr_);
+    packet_analyzer.set_packet_type(last_send_packet_.packet_data, type_packet);
+    packet_analyzer.set_packet_number(last_send_packet_.packet_data, (num_end_packet_++));
 }
 // создание пакета установки соединения (num = count_pack) или ответа на 
 //   запрос соединения (3 реакции +, +num и -wait) (и при замене инициативы)
@@ -508,22 +519,25 @@ bool LoRa_contact_data::create_connect_packet(uint8_t amt_packet, bool swap_type
         size = 11;
         com = 0x00; 
         data[0] = amt_packet; 
-        create_packet(size, PACKET_CONNECTION);
-        static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, nullptr);
+        create_packet(size, Packet_Type::CONNECTION);
+        // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, nullptr);
+        packet_connection.set_packet_data(last_send_packet_.packet_data, &com, data, nullptr);
         break;
     }
     // Получатель
     case TC_RECIPIENT: {
         // 255 - отложен, 0-254 без swap_type - принят, с swap_type - принят с заменой, 
-        connect_adr_ = last_receive_packet_.packet->get_sour_adr();
+        // connect_adr_ = last_receive_packet_.packet->get_sour_adr();
+        connect_adr_ = packet_analyzer.get_sour_adr(last_send_packet_.packet_data);
         if(amt_packet != 255) {
             if(!swap_type) {
                 size = 11;
                 com = 0x01; 
                 data[1] = 0; 
                 len = 1;
-                create_packet(size, PACKET_CONNECTION);
-                static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, &len);
+                create_packet(size, Packet_Type::CONNECTION);
+                // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, &len);
+                packet_connection.set_packet_data(last_send_packet_.packet_data, &com, data, &len);
             }
             else {
                 size = 12;
@@ -531,8 +545,9 @@ bool LoRa_contact_data::create_connect_packet(uint8_t amt_packet, bool swap_type
                 data[0] = 0;
                 data[1] = amt_packet;
                 len = 2;
-                create_packet(size, PACKET_CONNECTION);
-                static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, &len);
+                create_packet(size, Packet_Type::CONNECTION);
+                // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, &len);
+                packet_connection.set_packet_data(last_send_packet_.packet_data, &com, data, &len);
                 
             }
         }
@@ -540,8 +555,9 @@ bool LoRa_contact_data::create_connect_packet(uint8_t amt_packet, bool swap_type
             size = 11 + (uint8_t)swap_type;
             com = 0x01; 
             data[0] = 1; 
-            create_packet(size, PACKET_CONNECTION);
-            static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, nullptr);
+            create_packet(size, Packet_Type::CONNECTION);
+            // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, nullptr);
+            packet_connection.set_packet_data(last_send_packet_.packet_data, &com, data, nullptr);
         }
         break;
     }
@@ -561,7 +577,9 @@ bool LoRa_contact_data::create_data_packet() {
         last_send_packet_.clear_packet();
         for(int i = 0; i < send_packet_.size(); ++i) {
             if(send_flag_[i]) {
-                last_send_packet_.set_packet(send_packet_[i]);
+                // last_send_packet_.set_packet(send_packet_[i]);
+                last_send_packet_.packet_data = send_packet_[i];
+
                 send_flag_[i] = false;
                 err = false;
                 break;
@@ -582,8 +600,9 @@ bool LoRa_contact_data::create_amt_packet() {
         // создание запроса
         uint8_t size = 10;
         uint8_t com = 0x03;
-        create_packet(size, PACKET_CONNECTION);
-        static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, nullptr, nullptr);
+        create_packet(size, Packet_Type::CONNECTION);
+        // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, nullptr, nullptr);
+        packet_connection.set_packet_data(last_send_packet_.packet_data, &com, nullptr, nullptr);
         break;
     }
     // Получатель
@@ -593,8 +612,9 @@ bool LoRa_contact_data::create_amt_packet() {
         uint8_t com = 0x04;
         uint8_t data[1] = {amt_packet_}; 
         // сделать проверку повторной передачи (?) -----
-        create_packet(size, PACKET_CONNECTION);
-        static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, nullptr);
+        create_packet(size, Packet_Type::CONNECTION);
+        // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, nullptr);
+        packet_connection.set_packet_data(last_send_packet_.packet_data, &com, data, nullptr);
         break;
     }
     default: 
@@ -612,8 +632,9 @@ bool LoRa_contact_data::create_number_packet() {
         // Создание запроса
         uint8_t size = 10;
         uint8_t com = 0x05;
-        create_packet(size, PACKET_CONNECTION);
-        static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, nullptr, nullptr);
+        create_packet(size, Packet_Type::CONNECTION);
+        // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, nullptr, nullptr);
+        packet_connection.set_packet_data(last_send_packet_.packet_data, &com, nullptr, nullptr);
         break;
     }
     // Получатель
@@ -628,13 +649,18 @@ bool LoRa_contact_data::create_number_packet() {
             data = new uint8_t[len]; 
         for(int i = 0; i < (len / 2); ++i) {
             uint16_t number;
-            packet.set_packet(reciev_packet_[i]);
-            number = packet.packet->get_packet_number();
+
+            packet.packet_data = reciev_packet_[i];
+            // packet.set_packet(reciev_packet_[i]);
+
+            // number = packet.packet->get_packet_number();
+            number = packet_analyzer.get_packet_number(packet.packet_data);
             data[i * 2] = (number >> 8) & 0xFF;
             data[(i * 2) + 1] = number & 0xFF;
         }
-        create_packet(size, PACKET_CONNECTION);
-        static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, &len);
+        create_packet(size, Packet_Type::CONNECTION);
+        // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, &len);
+        packet_connection.set_packet_data(last_send_packet_.packet_data, &com, data, &len);
         if(len != 0)
             delete[] data;
         break;
@@ -654,8 +680,9 @@ bool LoRa_contact_data::create_reset_wait_packet() {
         // Создание пакета
         uint8_t size = 10;
         uint8_t com = 0x02;
-        create_packet(size, PACKET_CONNECTION);
-        static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, nullptr, nullptr);
+        create_packet(size, Packet_Type::CONNECTION);
+        // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, nullptr, nullptr);
+                packet_connection.set_packet_data(last_send_packet_.packet_data, &com, nullptr, nullptr);
         break;
     }
     default: 
@@ -679,8 +706,9 @@ bool LoRa_contact_data::create_disconnet_packet(bool error) {
         uint8_t data[1] = {0}; 
         if(error)
             data[0] = 2;
-        create_packet(size, PACKET_CONNECTION);
-        static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, nullptr);
+        create_packet(size, Packet_Type::CONNECTION);
+        // static_cast<Packet_Connection*>(last_send_packet_.packet)->set_packet_data(&com, data, nullptr);
+        packet_connection.set_packet_data(last_send_packet_.packet_data, &com, data, nullptr);
         break;
     }
     default: 
@@ -701,21 +729,24 @@ bool LoRa_contact_data::packet_dont_correct(bool global_adr, bool all_adr_sendle
     if(last_receive_packet_.packet_data.get_len() < MINIMAL_PACKET_SIZE)
         return false;
     // Проверка "пакет отправлен мне"
-    if(last_receive_packet_.packet->get_dest_adr() != my_adr_) {
+    // if(last_receive_packet_.packet->get_dest_adr() != my_adr_) {
+    if(packet_analyzer.get_dest_adr(last_receive_packet_.packet_data) != my_adr_) {
         // Проверка "пакет отправлен всем"
-        if(!(global_adr && (last_receive_packet_.packet->get_dest_adr().global()))) {
+        // if(!(global_adr && (last_receive_packet_.packet->get_dest_adr().global()))) {
+        if(!(global_adr && (packet_analyzer.get_dest_adr(last_receive_packet_.packet_data).global()))) {
             return false;
         }
     }
     // Проверка "мне не важно кто отправлял"
     if(!((connect_adr_.global()) || all_adr_sendler))
         // Проверка "мне важно кто отправил"
-        if(last_receive_packet_.packet->get_sour_adr() != connect_adr_)
+        // if(last_receive_packet_.packet->get_sour_adr() != connect_adr_)
+        if(packet_analyzer.get_sour_adr(last_receive_packet_.packet_data) != connect_adr_)
             return false;
     return true;
 }
 // Проверка соответствия типа пакета
-bool LoRa_contact_data::check_packet_type(uint8_t type_packet, const std::vector<uint8_t>& subtype_packet) {
+bool LoRa_contact_data::check_packet_type(Packet_Type type_packet, const std::vector<uint8_t>& subtype_packet) {
     if(last_receive_packet_.type_packet != type_packet)
         return false;
     if(subtype_packet.size() == 0)
@@ -729,11 +760,15 @@ bool LoRa_contact_data::check_packet_type(uint8_t type_packet, const std::vector
 
 // поиск номера в send_packet_
 int16_t LoRa_contact_data::search_num_packet(uint16_t number) {
-    class Exchange_packet packet;
+    // class Exchange_packet packet;
     for(int16_t i = 0; i < send_packet_.size(); ++i) {
-        packet.set_packet(send_packet_[i]);
-        if(packet.packet->get_packet_number() == number)
+        // packet.set_packet(send_packet_[i]);
+        if(number == packet_analyzer.get_packet_number(send_packet_[i]))
             return i;
+        // packet.set_packet(send_packet_[i]);
+        // if(packet.packet->get_packet_number() == number)
+        //     return i;
+
     }
     return -1;
 }
@@ -754,16 +789,23 @@ uint8_t LoRa_contact_data::pop_num_packet(const std::vector<uint16_t>& number) {
 }
 // сортировка reciev_packet_
 void LoRa_contact_data::sort_num_packet() {
-    class Exchange_packet packet;
-    std::vector<uint8_t> buffer;
+    // class Exchange_packet packet;
+    // LoRa_packet buffer;
+
+
     uint16_t number1, number2;
     bool swap;
     for(int i = 0; i < (reciev_packet_.size() - 1);) {
         swap = false;
-        packet.set_packet(reciev_packet_[i]);
-        number1 = packet.packet->get_packet_number();
-        packet.set_packet(reciev_packet_[i+1]);
-        number2 = packet.packet->get_packet_number();
+
+        // packet.set_packet(reciev_packet_[i]);
+        // number1 = packet.packet->get_packet_number();
+        // packet.set_packet(reciev_packet_[i+1]);
+        // number2 = packet.packet->get_packet_number();
+
+        number1 = packet_analyzer.get_packet_number(reciev_packet_[i]);
+        number2 = packet_analyzer.get_packet_number(reciev_packet_[i+1]);
+
         if(number1 == 0) {
             if(0xFF00 <= number2)
                 swap = true;
@@ -777,9 +819,12 @@ void LoRa_contact_data::sort_num_packet() {
                 swap = true;
         }
         if(swap) {
-            buffer = reciev_packet_[i];
-            reciev_packet_[i] = reciev_packet_[i+1];
-            reciev_packet_[i+1] = buffer;
+
+            std::swap(reciev_packet_[i], reciev_packet_[i+1]);
+            // buffer = reciev_packet_[i];
+            // reciev_packet_[i] = reciev_packet_[i+1];
+            // reciev_packet_[i+1] = buffer;
+
             if(i != 0)
                 --i;
         }
@@ -860,13 +905,14 @@ uint16_t LoRa_contact_data::init_connection_expect() {
         }
         else {
             // Пришёл ответ на запрос
-            if(check_packet_type(PACKET_CONNECTION, {0x01})) {
+            if(check_packet_type(Packet_Type::CONNECTION, {0x01})) {
                 uint8_t data[2] = {0, 0}; 
                 uint8_t com = 0x01; 
                 uint8_t len = 1;
                 if(amt_packet_ == 0xFF)
                     len = 2;
-                if (static_cast<Packet_Connection*>(last_receive_packet_.packet)->get_packet_data(&com, data, &len) != 0) {
+                // if (static_cast<Packet_Connection*>(last_receive_packet_.packet)->get_packet_data(&com, data, &len) != 0) {
+                if (packet_connection.get_packet_data(last_receive_packet_.packet_data, &com, data, &len) != 0) {
                     Serial.print("err!!!");
                 }
                 if(data[0] == 0) {
@@ -951,7 +997,7 @@ uint16_t LoRa_contact_data::init_connection_wait() {
             }
         }
         else {
-            if(check_packet_type(PACKET_CONNECTION, {0x02})) {
+            if(check_packet_type(Packet_Type::CONNECTION, {0x02})) {
                 connection_ = C_EXPECTATION; // ??? (?) -----
             }
             else {
@@ -1082,12 +1128,13 @@ uint16_t LoRa_contact_data::init_exchange_wait_confirmation() {
         }
         else {
             // .. пришёл ответ на запрос
-            if(check_packet_type(PACKET_CONNECTION, {0x04})) {
+            if(check_packet_type(Packet_Type::CONNECTION, {0x04})) {
 
                 uint8_t data[1] = {0}; 
                 uint8_t com = 0x04; 
                 uint8_t len = 1;
-                if (static_cast<Packet_Connection*>(last_receive_packet_.packet)->get_packet_data(&com, data, &len) != 0) {
+                // if (static_cast<Packet_Connection*>(last_receive_packet_.packet)->get_packet_data(&com, data, &len) != 0) {
+                if (packet_connection.get_packet_data(last_receive_packet_.packet_data, &com, data, &len) != 0) {
                     Serial.print("err!!!");
                 }
                 if(data[0] == amt_packet_) {
@@ -1167,7 +1214,7 @@ uint16_t LoRa_contact_data::init_exchange_wait_numbers() {
         }
         else {
             // .. пришёл ответ на запрос
-            if(check_packet_type(PACKET_CONNECTION, {0x06})) {
+            if(check_packet_type(Packet_Type::CONNECTION, {0x06})) {
                                                             #ifdef SERIAL_PRINT_ON
                                                             Serial.println("I.E.W.!R!.N");
                                                             #endif // SERIAL_PRINT_ON
@@ -1175,11 +1222,13 @@ uint16_t LoRa_contact_data::init_exchange_wait_numbers() {
                 // выбор номеров в data на основе принятых пакетов (?) -----
                 // и исключение старых из списка, у оставшихся поднять флаги
                 uint8_t size = 0;
-                static_cast<Packet_Connection*>(last_receive_packet_.packet)->get_size_by_packet(&size);
+                // static_cast<Packet_Connection*>(last_receive_packet_.packet)->get_size_by_packet(&size);
+                packet_connection.get_size_by_packet(last_receive_packet_.packet_data, size);
                 uint8_t *data = new uint8_t[size];
                 uint8_t com = 0xFF;
                 uint8_t len = 0xFF;
-                static_cast<Packet_Connection*>(last_receive_packet_.packet)->get_packet_data(&com, data, &len);
+                // static_cast<Packet_Connection*>(last_receive_packet_.packet)->get_packet_data(&com, data, &len);
+                packet_connection.get_packet_data(last_receive_packet_.packet_data, &com, data, &len);
                 if (com != 0x06) {
                     if(data != nullptr)
                         delete[] data;
@@ -1342,9 +1391,10 @@ uint16_t LoRa_contact_data::recip_connection_wait_request() {
                 }
             }
             else {
-                if(check_packet_type(PACKET_CONNECTION, {0x00}) && wait_adr_.global()) {
+                if(check_packet_type(Packet_Type::CONNECTION, {0x00}) && wait_adr_.global()) {
                     // добавить в очередь _wait_connect (?) ----- ----- -----
-                    wait_connect_.push_back(last_receive_packet_.packet->get_dest_adr());
+                    // wait_connect_.push_back(last_receive_packet_.packet->get_dest_adr());
+                    wait_connect_.push_back(packet_analyzer.get_dest_adr(last_receive_packet_.packet_data));
                     // подготовка пакета
                     create_connect_packet(0xFF); // отложен
                     set_LoRa_mode_send();
@@ -1356,12 +1406,13 @@ uint16_t LoRa_contact_data::recip_connection_wait_request() {
         }
         else {
             // .. пришёл запрос
-            if(check_packet_type(PACKET_CONNECTION, {0x00})) {
+            if(check_packet_type(Packet_Type::CONNECTION, {0x00})) {
                 send_wait_reset_packet_ = false;
                 uint8_t data[1] = {0}; 
                 uint8_t com = 0x00; 
                 uint8_t len = 1;
-                if (static_cast<Packet_Connection*>(last_receive_packet_.packet)->get_packet_data(&com, data, &len) != 0) {
+                // if (static_cast<Packet_Connection*>(last_receive_packet_.packet)->get_packet_data(&com, data, &len) != 0) {
+                if (packet_connection.get_packet_data(last_receive_packet_.packet_data, &com, data, &len) != 0) {
                     Serial.print("err!!!");
                 }
                 if(data[0] == 0xFF) {
@@ -1372,7 +1423,8 @@ uint16_t LoRa_contact_data::recip_connection_wait_request() {
                     //   устройство должно ждать такого запроса и 
                     //   подготовить пакеты/реакцию на него)
                     // подготовка пакета
-                    connect_adr_ = last_receive_packet_.packet->get_sour_adr(); // (?) -----
+                    connect_adr_ = packet_analyzer.get_sour_adr(last_receive_packet_.packet_data); // (?) -----
+                    // connect_adr_ = last_receive_packet_.packet->get_sour_adr(); // (?) -----
                     create_connect_packet(send_packet_.size(), true);
                     set_LoRa_mode_send();
                     type_communication_ = TC_INITIATOR;
@@ -1460,7 +1512,7 @@ uint16_t LoRa_contact_data::recip_exchange_expect() {
             }
         }
         else {
-            if(check_packet_type(PACKET_CONNECTION, {0x03})) {
+            if(check_packet_type(Packet_Type::CONNECTION, {0x03})) {
                                                             #ifdef SERIAL_PRINT_ON
                                                             Serial.println("R.E.E.!R!.C.3");
                                                             #endif // SERIAL_PRINT_ON
@@ -1471,9 +1523,9 @@ uint16_t LoRa_contact_data::recip_exchange_expect() {
             }
             // (!) ----- заменить if ниже на "не пакеты контакта", кроме настроек и т.п.
             // (-) ----- пока только датчики, устройства и системные пакеты, а нужно сделать не пакеты контакта
-            else if(check_packet_type(PACKET_DEVICE) ||
-                    check_packet_type(PACKET_SENSOR) ||
-                    check_packet_type(PACKET_SYSTEM)) {
+            else if(check_packet_type(Packet_Type::DEVICE) ||
+                    check_packet_type(Packet_Type::SENSOR) ||
+                    check_packet_type(Packet_Type::SYSTEM)) {
                                                             #ifdef SERIAL_PRINT_ON
                                                             Serial.println("R.E.E.!R!.C.D");
                                                             #endif // SERIAL_PRINT_ON
@@ -1552,7 +1604,7 @@ uint16_t LoRa_contact_data::recip_exchange_wait_reaction() {
             }
         }
         else {
-            if(check_packet_type(PACKET_CONNECTION, {0x05})) {
+            if(check_packet_type(Packet_Type::CONNECTION, {0x05})) {
                                                             #ifdef SERIAL_PRINT_ON
                                                             Serial.println("R.E.W.!R!.C.1");
                                                             #endif // SERIAL_PRINT_ON
@@ -1562,7 +1614,7 @@ uint16_t LoRa_contact_data::recip_exchange_wait_reaction() {
                 amt_packet_ = 0;
                 exchange_ = E_EXPECTATION;
             }
-            else if(check_packet_type(PACKET_CONNECTION, {0x08})) {
+            else if(check_packet_type(Packet_Type::CONNECTION, {0x08})) {
                                                             #ifdef SERIAL_PRINT_ON
                                                             Serial.println("R.E.W.!R!.C.2");
                                                             #endif // SERIAL_PRINT_ON
@@ -1619,7 +1671,7 @@ uint16_t LoRa_contact_data::recip_disconnect() {
                 }
             }
             else {
-                if(check_packet_type(PACKET_CONNECTION, {0x08})) {
+                if(check_packet_type(Packet_Type::CONNECTION, {0x08})) {
                     //???//  // (!) ----- complete connect
                     sort_num_packet();
                     contact_complete();

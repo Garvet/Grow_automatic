@@ -67,7 +67,7 @@ public:
     // bool del_device(uint16_t adr);                        // (--) ----- (исключается)
 
     // Добавить модуль в список запросивших регистрацию
-    bool add_reg_module(const Exchange_packet &reg_packet);
+    bool add_reg_module(const LoRa_packet &reg_packet);
     // Очистка переменных регистрации
     void clear_regist_data();
 

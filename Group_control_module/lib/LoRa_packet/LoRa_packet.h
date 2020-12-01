@@ -30,9 +30,10 @@ public:
 #endif
 
     bool add_data(uint8_t data_byte);
-    bool add_data(uint8_t* data_byte, uint8_t amt_byte);
+    bool add_data(const uint8_t* data_byte, uint8_t amt_byte);
 
-    bool set_data(uint8_t* data, uint8_t len);
+    bool set_data(const uint8_t* data, uint8_t len);
+    bool set_data(const std::vector<uint8_t>& data);
     void set_data(const class LoRa_packet& lora_packet);
     void set_data(const class LoRa_packet_data& lora_packet);
     void set_data(class LoRa_packet_data&& lora_packet);
@@ -53,15 +54,17 @@ private:
     bool search_data();
 public:
     LoRa_packet();
-    LoRa_packet(uint8_t* data, uint8_t len, bool crc_err=false, uint8_t rssi=0);
+    LoRa_packet(const uint8_t* data, uint8_t len, bool crc_err=false, uint8_t rssi=0);
+    LoRa_packet(const std::vector<uint8_t>& data, bool crc_err=false, uint8_t rssi=0);
     LoRa_packet(const LoRa_packet& right);
     LoRa_packet(LoRa_packet&& right);
     ~LoRa_packet();
 
     // Функция заполенния объекта
     bool add_packet_data(uint8_t data);
-    bool add_packet_data(uint8_t* data, uint8_t len);
-    bool set_packet(uint8_t* data, uint8_t len, bool crc_err=false, uint8_t rssi=0);
+    bool add_packet_data(const uint8_t* data, uint8_t len);
+    bool set_packet(const uint8_t* data, uint8_t len, bool crc_err=false, uint8_t rssi=0);
+    bool set_packet(const std::vector<uint8_t>& data, bool crc_err=false, uint8_t rssi=0);
 
     // Очистка пакета
     void clear_packet();

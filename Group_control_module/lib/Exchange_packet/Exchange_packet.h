@@ -11,11 +11,11 @@
 class Exchange_packet {
     uint8_t setting_ = 0; // Настройки пакета
 public:
-    class Packet_analyzer *packet = nullptr; // указатель на класс обработчик пакетов
+    class Packet_analyzer *packet; // указатель на класс обработчик пакетов
     LoRa_packet packet_data;       // сам пакет
     // uint8_t *packet_data;       // указатель на сам пакет
     // uint8_t len = 0;            // длина пакета
-    uint8_t type_packet = 0xFF; // тип пакета
+    Packet_Type type_packet; // тип пакета
 
     // Конструкторы
     Exchange_packet();
@@ -34,6 +34,7 @@ public:
 
     // Создание пакета (-) ----- (убрать, использовалось из-за динамической памяти для работы с Packet_analyzer, т.к. небыло доступа при 0-й длине)
     void creat_packet(uint8_t len, uint8_t type_packet);
+    void creat_packet(uint8_t len, Packet_Type type_packet);
     // Создание пакета
     void clear_packet();
     // Оператор копирования

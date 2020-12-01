@@ -61,7 +61,7 @@ public:
 
 #if defined( ADD_LORA_PACKET_CODE )
     // получение значения поля: передаётся пакет в котором ищется значение
-    uint32_t get_value(class LoRa_packet& packet, uint8_t bias=0);
+    uint32_t get_value(const class LoRa_packet& packet, uint8_t bias=0);
     // установить значение:передаётся значение, пакет куда заносится объект
     bool set_value(uint32_t value, class LoRa_packet& packet, uint8_t bias=0);
 #endif
