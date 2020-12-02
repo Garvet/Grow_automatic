@@ -45,7 +45,8 @@ public:
 };
 
 class LoRa_packet {
-private:
+// private: (-) -----
+public:
     LoRa_packet_data* packet_data;
     uint8_t rssi_ = 0;  // RSSI соединения
     bool crc_error_   = false; // Ошибка контрольной суммы

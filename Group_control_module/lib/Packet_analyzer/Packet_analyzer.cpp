@@ -824,13 +824,19 @@ uint8_t Packet_System::set_packet_data(LoRa_packet& packet, uint8_t *com, uint8_
                 if (error)
                     return 4 + i;
             }
-            data = data + 4;
 
-            _len = *len - 1;
+            _len = *len;
             error = field_byte.set_value(_len, packet, last_filled_byte);
             ++last_filled_byte;
             if (error)
                 return 5;
+
+            error = field_byte.set_value(data[0], packet, last_filled_byte);
+            ++last_filled_byte;
+            if (error)
+                return 4;
+            data = data + 1;
+
             _len += 1;
             break;
         default:
@@ -878,9 +884,16 @@ uint8_t Packet_System::get_packet_data(const LoRa_packet& packet, uint8_t *com, 
             }
             data = data + 4;
 
-            _len = field_byte.get_value(packet) + 1;
+            // len
+            data[0] = field_byte.get_value(packet, last_read_byte);
             ++last_read_byte;
-            *len = _len;
+            *len = _len = data[0];
+            data = data + 1;
+            // type
+            data[0] = field_byte.get_value(packet, last_read_byte);
+            ++last_read_byte;
+            data = data + 1;
+
             break;
         default:
             return 4;
@@ -915,10 +928,10 @@ uint8_t Packet_System::get_size_by_data(const uint8_t *com, const uint8_t *len, 
         switch (command_)
         {
         case 0x00:
-            last_read_byte += 4; // смещение на ID
+            last_read_byte += 6; // смещение на ID
             ++last_read_byte;
-            _len = *len + 1;
-            size_data += 4;
+            _len = *len;
+            size_data += 6;
             break;
         default:
             return 5;
@@ -947,7 +960,9 @@ uint8_t Packet_System::get_size_by_packet(const LoRa_packet& packet, uint8_t &si
         case 0x00:
             last_read_byte += 4; // смещение на ID
             size_data = 4; // смещение на ID
-            size_data += field_byte.get_value(packet, last_read_byte) + 1;
+            size_data += field_byte.get_value(packet, last_read_byte);
+            last_read_byte += 2; // смещение на length и type 
+            size_data += 2; // смещение на length и type
             ++last_read_byte;
             break;
         default:

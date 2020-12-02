@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <iostream>
 #include <SPI.h>
+#include <array>
 #include <Address_field.h>
 #include <LoRa_register_data.h>
 // #include <LoRa.h>
@@ -27,19 +28,39 @@ public:
     void _write_register(uint8_t address, uint8_t value);
     uint8_t _single_transfer(uint8_t address, uint8_t value);
 
+    std::array<uint8_t, 80> result_field_registers_data;
+    uint8_t result_field_registers_len;
 
+    std::array<uint8_t, 80> result_check_missing_register_data;
+    uint8_t result_check_missing_register_len;
+
+
+    std::array<uint8_t, 80> reg_read;
+    uint8_t reg_read_len;
+    std::array<uint8_t, 80> reg_not_read;
+    uint8_t reg_not_read_len;
+
+    // // Выдаёт адреса регистров, относящихся к данному полю
+    // std::vector<uint8_t> field_registers(Address_field field);
+    // std::vector<uint8_t> field_registers(Address_field* fields, uint8_t amt_fields);
+    // std::vector<uint8_t> field_registers(const std::vector<Address_field>& fields);
+    // // Проверка получения номеров регистров, которые нужно считать для данного списка полей
+    // std::vector<uint8_t> check_missing_register(Address_field field);
+    // std::vector<uint8_t> check_missing_register(Address_field* fields, uint8_t amt_fields);
+    // std::vector<uint8_t> check_missing_register(const std::vector<Address_field>& fields);
     // Выдаёт адреса регистров, относящихся к данному полю
-    std::vector<uint8_t> field_registers(Address_field field);
-    std::vector<uint8_t> field_registers(Address_field* fields, uint8_t amt_fields);
-    std::vector<uint8_t> field_registers(const std::vector<Address_field>& fields);
+    uint8_t field_registers(Address_field field);
+    uint8_t field_registers(Address_field* fields, uint8_t amt_fields);
+    // uint8_t field_registers(const std::vector<Address_field>& fields);
     // Проверка получения номеров регистров, которые нужно считать для данного списка полей
-    std::vector<uint8_t> check_missing_register(Address_field field);
-    std::vector<uint8_t> check_missing_register(Address_field* fields, uint8_t amt_fields);
-    std::vector<uint8_t> check_missing_register(const std::vector<Address_field>& fields);
+    uint8_t check_missing_register(Address_field field);
+    uint8_t check_missing_register(Address_field* fields, uint8_t amt_fields);
+    // uint8_t check_missing_register(const std::vector<Address_field>& fields);
+
     // Проверка на необходимость считывания перед записью новых значений (т.е. занимают ли поля весь объём данных регистра)
     bool check_read(Address_field field);
-    bool check_read(Address_field* fields, uint8_t amt_fields, std::vector<uint8_t>* reg_read, std::vector<uint8_t>* reg_not_read);
-    bool check_read(const std::vector<Address_field>& fields, std::vector<uint8_t>* reg_read, std::vector<uint8_t>* reg_not_read);
+    bool check_read(Address_field* fields, uint8_t amt_fields);
+    // bool check_read(const std::vector<Address_field>& fields, std::vector<uint8_t>* reg_read, std::vector<uint8_t>* reg_not_read);
 
 public:
     LoRa_register();

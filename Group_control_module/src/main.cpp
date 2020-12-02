@@ -48,7 +48,7 @@
 #endif // ~(defined( WIFI_LoRa_32 ) || defined( WIFI_LoRa_32_V2 ))
 
 std::vector<uint8_t> packet = { 01, 00, 00, 01, 01, 01, 04, 11, 12, 00, 3, 1, 1, 2, 3};
-Exchange_packet reg_packet;
+LoRa_packet reg_packet;
 Group_control_module __GCM__;
 uint8_t data[100] = {0x00, 0x01, 0x00, 0x04, 0x0F, 0x00, 0x02, 0x00, 0x03, 0xD0, 
                      0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 

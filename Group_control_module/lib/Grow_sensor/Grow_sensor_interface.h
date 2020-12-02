@@ -3,7 +3,8 @@
 
 #include <Arduino.h>
 #include <Grow_sensor.h>
-#include <Exchange_packet.h>
+#include <Packet_analyzer.h>
+#include <LoRa_packet.h>
 
 #define GROUP_CONTROL_MODULE
 

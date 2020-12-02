@@ -9,7 +9,8 @@
 // #include <RtcDS3231.h>
 
 #include <Packet_analyzer.h>
-#include <Exchange_packet.h>
+// #include <Exchange_packet.h>
+#include <LoRa_packet.h>
 
 // #include <Grow_sensor.h>
 // #include <Grow_device.h>
@@ -91,8 +92,10 @@ private:
     enum exchange            exchange_;
     enum disconnect          disconnect_;
     /// пакеты
-    class Exchange_packet last_receive_packet_; // Принятый пакет
-    class Exchange_packet last_send_packet_;    // Пакет для отправки
+    LoRa_packet last_receive_packet_; // Принятый пакет
+    LoRa_packet last_send_packet_;    // Пакет для отправки
+    // class Exchange_packet last_receive_packet_; // Принятый пакет
+    // class Exchange_packet last_send_packet_;    // Пакет для отправки
     uint8_t amt_packet_ = 0;          // количество принятых пакетов
     uint8_t expected_amt_packet_ = 0; // ожидаемое количество принятых пакетов
 
@@ -174,31 +177,31 @@ private:
     /// --- функции контроля и обработки состояний при контакте ---
 
     // Инициализатор
-    uint16_t init_connection();
-    uint16_t init_connection_expect();
-    uint16_t init_connection_wait();
+    uint32_t init_connection();
+    uint32_t init_connection_expect();
+    uint32_t init_connection_wait();
 
-    uint16_t init_exchange();
-    uint16_t init_exchange_boardcast();
-    uint16_t init_exchange_wait_confirmation();
-    uint16_t init_exchange_wait_numbers();
+    uint32_t init_exchange();
+    uint32_t init_exchange_boardcast();
+    uint32_t init_exchange_wait_confirmation();
+    uint32_t init_exchange_wait_numbers();
 
-    uint16_t init_disconnect();
+    uint32_t init_disconnect();
 
     // Получатель
-    uint16_t recip_connection();
-    uint16_t recip_connection_queue_check();
-    uint16_t recip_connection_wait_request();
+    uint32_t recip_connection();
+    uint32_t recip_connection_queue_check();
+    uint32_t recip_connection_wait_request();
 
-    uint16_t recip_exchange();
-    uint16_t recip_exchange_expect();
-    uint16_t recip_exchange_wait_reaction();
+    uint32_t recip_exchange();
+    uint32_t recip_exchange_expect();
+    uint32_t recip_exchange_wait_reaction();
 
-    uint16_t recip_disconnect();
+    uint32_t recip_disconnect();
 
     /// --- функции контроля и обработки состояний при трансляции ---
-    uint16_t broadcast_wait_packet();
-    uint16_t broadcast_send_packet();
+    uint32_t broadcast_wait_packet();
+    uint32_t broadcast_send_packet();
 
     /// --- Функции общения с LoRa ---
     void contact_complete();
@@ -213,8 +216,10 @@ public:
     bool init_lora_module(uint8_t pin_reset, uint8_t spi_bus=VSPI, uint8_t spi_nss=0, 
                           uint8_t pin_dio0=0, uint8_t pin_dio1=0, uint8_t pin_dio3=0);
     // Функция запуска работы системы и LoRa-модуля
-    uint8_t begin_lora_module(ulong frequency, bool paboost=false, uint8_t signal_power=14, 
-                              uint8_t SF=11, ulong SBW=125E3, uint8_t sync_word=0x4A);
+    uint8_t begin_lora_module(ulong frequency, bool paboost=true, uint8_t signal_power=14, 
+                              uint8_t SF=8, ulong SBW=250E3, uint8_t sync_word=0x4A);
+    // uint8_t begin_lora_module(ulong frequency, bool paboost=false, uint8_t signal_power=14, 
+    //                           uint8_t SF=11, ulong SBW=125E3, uint8_t sync_word=0x4A);
 
     // Установка адреса этого модуля
     bool set_my_adr(LoRa_address adr);
@@ -263,7 +268,7 @@ public:
     
     // Функция работы системы (запускается прерываниями на DIO, 
     //   или в цикличной функции с предварительной проверкой DIO)
-    uint16_t work_contact_system();
+    uint32_t work_contact_system();
 
     // Выдаёт сигнал, если текущая стадия SC_COMPLETE 
     bool get_signal_complete();

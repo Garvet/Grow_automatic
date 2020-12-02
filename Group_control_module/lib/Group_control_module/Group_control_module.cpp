@@ -106,20 +106,20 @@ uint8_t Group_control_module::work_system() {
 void Group_control_module::LoRa_interrupt() { 
     // (контролирует каждый шаг передачи, по завершению запускает work_system, контролирует трансляцию, заносит запросы регистрации)
     // (-) -----
+    bool add_err = false;
     static bool in_interrupt = false;
     if(in_interrupt)
         return;
     in_interrupt = true;
-    uint16_t err = contact_data_.work_contact_system();
-    bool add_err = false;
-    if(err != 0) {
+    uint32_t error = contact_data_.work_contact_system();
+    if(error != 0) {
         if(mode_ == GT_SETTING) {
             LoRa_address adr = contact_data_.get_connect_adr();
             for(int i = 0; i < devices_.size(); ++i) {
                 if(devices_[i].get_address() == adr.branch) {
                     devices_[i].set_active(0);    
                     Serial.print("Add contact error = ");
-                    Serial.println(err);
+                    Serial.println(error);
                     add_err = true;
                     break;
                 }
@@ -128,7 +128,7 @@ void Group_control_module::LoRa_interrupt() {
                 if(sensors_[i].get_address() == adr.branch) {
                     sensors_[i].set_active(0);    
                     Serial.print("Add contact error = ");
-                    Serial.println(err);
+                    Serial.println(error);
                     add_err = true;
                     break;
                 }
@@ -136,11 +136,11 @@ void Group_control_module::LoRa_interrupt() {
         }
         else {
             Serial.print("Err: ");
-            Serial.println(err);
+            Serial.println(error);
         }
         // (-) ----- обработка ошибок, сохранение их для дальнейшей выдачи
     }
-    if((err == 0) || add_err) {
+    if((error == 0) || add_err) {
         switch (mode_) {
         case GT_SETTING: {
             // (-) ----- (?) -----
@@ -733,15 +733,14 @@ bool Group_control_module::add_reg_module(const LoRa_packet &reg_packet) {
     }
     if(err) {
         // Модуль не добавляется (или имеется или ошибка ID)
-        if(data != nullptr)
-            delete[] data;
+        delete[] data;
         return true;
     }
-
+    len = data[symbol++];
     switch (data[symbol++]) {
     case NUM_SENSOR: {
         // Добавление датчика
-        Grow_sensor new_sensor(len-1, &data[symbol++]);
+        Grow_sensor new_sensor(len, &data[symbol++]);
         new_sensor.set_system_id(module_id);
         reg_sensors_.push_back(new_sensor);
         break;
@@ -755,13 +754,11 @@ bool Group_control_module::add_reg_module(const LoRa_packet &reg_packet) {
     }
     default:
         // Неизвестный модуль
-        if(data != nullptr)
-            delete[] data;
+        delete[] data;
         return true;
     }
     // Успешное добавление модуля
-    if(data != nullptr)
-        delete[] data;
+    delete[] data;
     return false;
 
     // uint8_t size = 0;
