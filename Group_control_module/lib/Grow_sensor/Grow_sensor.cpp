@@ -124,31 +124,31 @@ bool Grow_sensor::read_signal(bool clear) {
 
 // --- Поля компонентов ---
 
-bool Grow_sensor::get_type(uint8_t num, enum Type_sensor &result) {
+bool Grow_sensor::get_type(uint8_t num, enum Type_sensor &result) const {
     if(get_count_component() <= num)
         return true;
     result = component_[num].get_type();
     return false;
 }
-bool Grow_sensor::get_type(uint8_t num, uint8_t &result) {
+bool Grow_sensor::get_type(uint8_t num, uint8_t &result) const {
     if(get_count_component() <= num)
         return true;
     result = component_[num].get_type();
     return false;
 }
-std::vector<enum Type_sensor> Grow_sensor::get_type() {
+std::vector<enum Type_sensor> Grow_sensor::get_type() const {
     std::vector<enum Type_sensor> type_sensor;
     for(int i = 0; i < get_count_component(); ++i)
         type_sensor.push_back(component_[i].get_type());
     return type_sensor;
 }
-bool Grow_sensor::get_id(uint8_t num, uint8_t &result) {
+bool Grow_sensor::get_id(uint8_t num, uint8_t &result) const {
     if(get_count_component() <= num)
         return true;
     result = component_[num].get_id();
     return false;
 }
-std::vector<uint8_t> Grow_sensor::get_id() {
+std::vector<uint8_t> Grow_sensor::get_id() const {
     std::vector<uint8_t> id;
     for(int i = 0; i < get_count_component(); ++i)
         id.push_back(component_[i].get_id());
@@ -162,7 +162,7 @@ bool Grow_sensor::set_value(uint8_t num, float value) {
     change_value_ = true;
     return false;
 }
-bool Grow_sensor::get_value(uint8_t num, float &result) {
+bool Grow_sensor::get_value(uint8_t num, float &result) const {
     if(get_count_component() <= num)
         return true;
     result = component_[num].get_value();
@@ -176,7 +176,7 @@ bool Grow_sensor::set_value(const std::vector<float>& value) {
     change_value_ = true;
     return false;
 }
-std::vector<float> Grow_sensor::get_value() {
+std::vector<float> Grow_sensor::get_value() const {
     std::vector<float> value;
     for(int i = 0; i < get_count_component(); ++i)
         value.push_back(component_[i].get_value());
@@ -185,14 +185,14 @@ std::vector<float> Grow_sensor::get_value() {
 
 // --- Информации о компонентах ---
 
-uint8_t Grow_sensor::get_count_component() {
+uint8_t Grow_sensor::get_count_component() const {
     return component_.size();
 }
 
-Grow_sensor_component Grow_sensor::get_component(uint8_t num) {
+Grow_sensor_component Grow_sensor::get_component(uint8_t num) const {
     return component_[num];
 }
-std::vector<Grow_sensor_component> Grow_sensor::get_component() {
+std::vector<Grow_sensor_component> Grow_sensor::get_component() const {
     return component_;
 } 
 

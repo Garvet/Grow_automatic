@@ -824,9 +824,11 @@ uint8_t Packet_System::set_packet_data(LoRa_packet& packet, uint8_t *com, uint8_
                 if (error)
                     return 4 + i;
             }
+            data = data + 4;
 
             _len = *len;
             error = field_byte.set_value(_len, packet, last_filled_byte);
+            data = data + 1;
             ++last_filled_byte;
             if (error)
                 return 5;
@@ -837,7 +839,6 @@ uint8_t Packet_System::set_packet_data(LoRa_packet& packet, uint8_t *com, uint8_
                 return 4;
             data = data + 1;
 
-            _len += 1;
             break;
         default:
             return 12;

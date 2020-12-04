@@ -56,8 +56,8 @@ enum class Packet_Type {
 
 class Packet_analyzer {
 protected:
-    Address_field **field_header_; // поля шапки
-    Address_field **field_packet_; // поля пакета
+    const Address_field **field_header_; // поля шапки
+    const Address_field **field_packet_; // поля пакета
     uint16_t amt_field_header_; // количество полей шапки
     uint16_t amt_field_packet_; // количество полей пакета
 

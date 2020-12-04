@@ -25,7 +25,7 @@ private:
     uint8_t _FifoTxBaseAddr; // Начальный адрес буфера отправки 
     uint8_t _packet_length;  // Текущая длина пакета (максимальная = 255)
     class LoRa_register _reg_field; // Регистры LoRa-модуля
-    class LoRa_packet packet; // Последний принятый пакет
+    // class LoRa_packet packet; // Последний принятый пакет
 
     bool _init = false; // Была ли LoRa проинициализированна
 

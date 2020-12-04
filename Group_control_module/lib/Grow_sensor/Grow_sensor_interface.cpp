@@ -54,7 +54,7 @@ size_t Grow_sensor_interface::set_data(Grow_sensor &grow_sensor, uint8_t *data, 
 // --- Обмен с телефоном ---
 
 // --- LoRa-соединение ---
-LoRa_packet Grow_sensor_interface::creat_regist_packet(Grow_sensor &grow_sensor) {
+LoRa_packet Grow_sensor_interface::creat_regist_packet(const Grow_sensor &grow_sensor, LoRa_contact_data& contact_data) {
     // Exchange_packet packet;
     // // packet.creat_packet(16 + grow_sensor.get_count_component(), Packet_Type::SYSTEM); 
     // // packet.packet->set_dest_adr(LORA_GLOBAL_ADDRESS);
@@ -120,25 +120,36 @@ Grow_sensor Grow_sensor_interface::read_regist_packet(LoRa_packet& packet) {
     delete[] data;
     return sensors;
 }
-uint8_t Grow_sensor_interface::creat_send_data_packet(Grow_sensor &grow_sensor, LoRa_packet* packet) {
+bool Grow_sensor_interface::check_regist_packet(LoRa_contact_data& contact_data) {
+
+}
+uint8_t Grow_sensor_interface::creat_send_data_packet(Grow_sensor &grow_sensor, LoRa_contact_data& contact_data) {
+    if(contact_data.get_signal_start_connect())
+        return 0;
+    LoRa_packet packet;
     uint8_t err = 0;
     uint8_t amt = grow_sensor.get_count_component();
     uint8_t param, id;
     uint32_t value;
     packet_sensor.set_setting(grow_sensor.get_setting());
+    contact_data.clear_send_packet();
     for(int i = 0; i < amt; ++i) {
-        // packet_sensor.set_dest_adr(packet[i], LORA_GLOBAL_ADDRESS); // адреса задаются при передаче в LoRa_contact_data
-        // packet_sensor.set_sour_adr(packet[i], LORA_GLOBAL_ADDRESS); // адреса задаются при передаче в LoRa_contact_data
+    // last_send_packet_.packet->set_dest_adr(connect_adr_);
+    // last_send_packet_.packet->set_sour_adr(my_adr_);
+        packet_sensor.set_dest_adr(packet, contact_data.get_connect_adr()); // адреса задаются при передаче в LoRa_contact_data LORA_GLOBAL_ADDRESS
+        packet_sensor.set_sour_adr(packet, contact_data.get_my_adr()); // адреса задаются при передаче в LoRa_contact_data LORA_GLOBAL_ADDRESS
         err = grow_sensor.get_type(i, param);
         if(err) return i;
         err = grow_sensor.get_id(i, id);
         if(err) return i;
         err = grow_sensor.get_value(i, *reinterpret_cast<float*>(&value));
         if(err) return i;
-        packet_sensor.set_packet_type(packet[i], Packet_Type::SENSOR);
-        err = packet_sensor.set_packet_data(packet[i], nullptr, &param, &id, &value);
+        packet_sensor.set_packet_type(packet, Packet_Type::SENSOR);
+        err = packet_sensor.set_packet_data(packet, nullptr, &param, &id, &value);
         if(err) return i;
+        contact_data.add_packet(std::move(packet));
     }
+    contact_data.wait_recipient();
     return amt;
 }
 uint8_t Grow_sensor_interface::read_send_data_packet(Grow_sensor &grow_sensor, LoRa_packet* packet, uint8_t amt) {

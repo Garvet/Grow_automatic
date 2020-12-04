@@ -88,6 +88,8 @@ bool LoRa_packet::search_data() {
                         [](const LoRa_packet_data &data){return data.free_object_;} );
     if(packet_data == lora_packet_data.end()) {
         packet_data = nullptr;
+        Serial.println("!lora_packet_data memory error!");
+        abort();
         return true;
     }
     packet_data->free_object_ = false;
@@ -192,6 +194,9 @@ class LoRa_packet& LoRa_packet::operator=(const class LoRa_packet& right) {
     // Проверка на самоприсваивание
     if (this == &right)
         return *this;
+    // Проверка на пустой объект
+    if(packet_data == nullptr)
+        search_data();
     // Перенос значений
     packet_data->len = right.packet_data->len;
     crc_error_ = right.crc_error_;
@@ -208,11 +213,10 @@ class LoRa_packet& LoRa_packet::operator=(class LoRa_packet&& right) {
     // Перенос значений
     if(packet_data != nullptr) {
         packet_data->free_object_=true;
-        packet_data = right.packet_data;
     }
+    packet_data = right.packet_data;
     crc_error_ = right.crc_error_;
     rssi_ = right.rssi_;
     right.packet_data = nullptr;
-    // search_data();
     return *this;
 }

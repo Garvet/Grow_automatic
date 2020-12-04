@@ -8,46 +8,46 @@
 const uint16_t LORA_ADDRESS_GROUP = 9;
 const uint16_t LORA_ADDRESS_BRANCH = 24 - LORA_ADDRESS_GROUP; 
 
-Register Hendler[11] = {Register(0, 8, 0), Register(1, 1, 7), Register(1, 7, 0), Register(2, 8, 0),
-                        Register(3, 8, 0), Register(4, 1, 7), Register(4, 7, 0), Register(5, 8, 0),
-                        Register(6, 8, 0),
-                        Register(7, 8, 0), Register(8, 8, 0)};
+const Register Hendler[11] = {Register(0, 8, 0), Register(1, 1, 7), Register(1, 7, 0), Register(2, 8, 0),
+                              Register(3, 8, 0), Register(4, 1, 7), Register(4, 7, 0), Register(5, 8, 0),
+                              Register(6, 8, 0),
+                              Register(7, 8, 0), Register(8, 8, 0)};
 
-Address_field field_dest_adr_group(&Hendler[0], 2, true),  // Destination Address group (адресс группы устройства назначения)
-              field_dest_adr_branch(&Hendler[2], 2, true), // Destination Address branch (адресс ветви устройства назначения)
-              field_sour_adr_group(&Hendler[4], 2, true),  // Source Address group (адресс группы отправляющего устройства)
-              field_sour_adr_branch(&Hendler[6], 2, true), // Source Address branch (адресс ветви отправляющего устройства)
-              field_type(&Hendler[8], 1, true),   // Packet Type (тип пакетп)
-              field_number(&Hendler[9], 2, true); // Packet Number (номер пакета)
+const Address_field field_dest_adr_group(&Hendler[0], 2, true),  // Destination Address group (адресс группы устройства назначения)
+                    field_dest_adr_branch(&Hendler[2], 2, true), // Destination Address branch (адресс ветви устройства назначения)
+                    field_sour_adr_group(&Hendler[4], 2, true),  // Source Address group (адресс группы отправляющего устройства)
+                    field_sour_adr_branch(&Hendler[6], 2, true), // Source Address branch (адресс ветви отправляющего устройства)
+                    field_type(&Hendler[8], 1, true),   // Packet Type (тип пакетп)
+                    field_number(&Hendler[9], 2, true); // Packet Number (номер пакета)
 
 
-uint8_t num_dest_adr_group = 0,  // Destination Address group
-        num_dest_adr_branch = 1, // Destination Address branch
-        num_sour_adr_group = 2,  // Source Address group
-        num_sour_adr_branch = 3, // Source Address branch
-        num_type = 4,   // Packet Type
-        num_number = 5; // Packet Number
+const uint8_t num_dest_adr_group = 0,  // Destination Address group
+              num_dest_adr_branch = 1, // Destination Address branch
+              num_sour_adr_group = 2,  // Source Address group
+              num_sour_adr_branch = 3, // Source Address branch
+              num_type = 4,   // Packet Type
+              num_number = 5; // Packet Number
 
-uint16_t count_field_packet_header = 6;
-Address_field *field_packet_header[6] = {&field_dest_adr_group, &field_dest_adr_branch, 
-                                         &field_sour_adr_group, &field_sour_adr_branch, 
-                                         &field_type, &field_number};
+const uint16_t count_field_packet_header = 6;
+const Address_field *field_packet_header[6] = {&field_dest_adr_group, &field_dest_adr_branch, 
+                                               &field_sour_adr_group, &field_sour_adr_branch, 
+                                               &field_type, &field_number};
 
 
 // Типы данных
-Register register_PWM[2]   = {Register(0, 4, 0), Register(1, 8, 0)},
-         register_byte[1]  = {Register(0, 8, 0)},
-         register_float[4] = {Register(0, 8, 0), Register(1, 8, 0), Register(2, 8, 0), Register(3, 8, 0)},
-         register_bit[8]   = {Register(0, 1, 0), Register(0, 1, 1), Register(0, 1, 2), Register(0, 1, 3),
-                              Register(0, 1, 4), Register(0, 1, 5), Register(0, 1, 6), Register(0, 1, 7)};
+const Register register_PWM[2]   = {Register(0, 4, 0), Register(1, 8, 0)},
+               register_byte[1]  = {Register(0, 8, 0)},
+               register_float[4] = {Register(0, 8, 0), Register(1, 8, 0), Register(2, 8, 0), Register(3, 8, 0)},
+               register_bit[8]   = {Register(0, 1, 0), Register(0, 1, 1), Register(0, 1, 2), Register(0, 1, 3),
+                                    Register(0, 1, 4), Register(0, 1, 5), Register(0, 1, 6), Register(0, 1, 7)};
 
-Address_field field_PWM(&register_PWM[0], 2, true),
-              field_byte(&register_byte[0]),
-              field_float(&register_float[0], 4, false),
-              field_bit[8] = {Address_field(&register_bit[0]), Address_field(&register_bit[1]), 
-                              Address_field(&register_bit[2]), Address_field(&register_bit[3]), 
-                              Address_field(&register_bit[4]), Address_field(&register_bit[5]), 
-                              Address_field(&register_bit[6]), Address_field(&register_bit[7])};
+const Address_field field_PWM(&register_PWM[0], 2, true),
+                    field_byte(&register_byte[0]),
+                    field_float(&register_float[0], 4, false),
+                    field_bit[8] = {Address_field(&register_bit[0]), Address_field(&register_bit[1]), 
+                                    Address_field(&register_bit[2]), Address_field(&register_bit[3]), 
+                                    Address_field(&register_bit[4]), Address_field(&register_bit[5]), 
+                                    Address_field(&register_bit[6]), Address_field(&register_bit[7])};
 
 
 // ----- connect (пакеты контакта) -----
@@ -67,12 +67,12 @@ enum class Connect_packet {
     TRANSMITTER_STATUS_REQUEST,               // состояние передатчика (запрос)
     TRANSMITTER_STATUS_RESPONSE               // состояние передатчика (ответ)
 };
-uint8_t connect_com_data[CONNECT_COMMAND_DATA] = {1, 0xFF, 0, 0, 1, 0, 0xFF, 0, 1, 0xFF, 0xFF, 0, 0xFF};
+const uint8_t connect_com_data[CONNECT_COMMAND_DATA] = {1, 0xFF, 0, 0, 1, 0, 0xFF, 0, 1, 0xFF, 0xFF, 0, 0xFF};
 
 // ----- sensor (пакеты датчиков) -----
 const uint8_t SENSOR_PARAM_DATA = 0x0C + 1;
 // типы датчиков находятся в "Grow_sensor_component.h"
-uint8_t sensor_param_data[SENSOR_PARAM_DATA] = {2, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
+const uint8_t sensor_param_data[SENSOR_PARAM_DATA] = {2, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4};
 
 // ----- device (пакеты устройств) -----
 const uint8_t DEVICE_OBJECT = 0x08 + 1;
@@ -100,23 +100,23 @@ enum class Command_code {
     // отправить данные о состоянии сигналов
 };
 const uint8_t DEVICE_COMMAND[DEVICE_OBJECT] = {0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x04, 0x04, 0x06};
-uint8_t device_com_data_0[0x02] = {0, 2},
-        device_com_data_1[0x02] = {0, 1},
-        device_com_data_2[0x02] = {0, 2},
-        device_com_data_3[0x02] = {0, 1},
-        device_com_data_4[0x02] = {0, 1},
-        device_com_data_5[0x02] = {0, 2},
-        device_com_data_6[0x04] = {0, 0, 3, 3},
-        device_com_data_7[0x04] = {0, 1, 1, 8},
-        device_com_data_8[0x06] = {0, 1, 1, 3, 0, 0xFF};
+const uint8_t device_com_data_0[0x02] = {0, 2},
+              device_com_data_1[0x02] = {0, 1},
+              device_com_data_2[0x02] = {0, 2},
+              device_com_data_3[0x02] = {0, 1},
+              device_com_data_4[0x02] = {0, 1},
+              device_com_data_5[0x02] = {0, 2},
+              device_com_data_6[0x04] = {0, 0, 3, 3},
+              device_com_data_7[0x04] = {0, 1, 1, 8},
+              device_com_data_8[0x06] = {0, 1, 1, 3, 0, 0xFF};
 
-uint8_t* device_object_data[DEVICE_OBJECT] = {device_com_data_0, device_com_data_1, device_com_data_2,
-                                              device_com_data_3, device_com_data_4, device_com_data_5,
-                                              device_com_data_6, device_com_data_7};
+const uint8_t* device_object_data[DEVICE_OBJECT] = {device_com_data_0, device_com_data_1, device_com_data_2,
+                                                    device_com_data_3, device_com_data_4, device_com_data_5,
+                                                    device_com_data_6, device_com_data_7};
 
 // ----- system (системные пакеты) -----
 const uint8_t SYSTEM_COMMAND_DATA = 0x06 + 1;
-uint8_t system_com_data[SYSTEM_COMMAND_DATA] = {0xFF, 9, 0, 5, 2, 3, 0xFF};
+const uint8_t system_com_data[SYSTEM_COMMAND_DATA] = {0xFF, 9, 0, 5, 2, 3, 0xFF};
 // const uint8_t SYSTEM_COMMAND_DATA = 0x11;
 // uint8_t system_com_data[SYSTEM_COMMAND_DATA] = {0xFF, 0, 0xFF, 3, 0, 3, 3, 2, 5, 0xFF, 3, 3, 0, 1, 2, 6, 6};
 

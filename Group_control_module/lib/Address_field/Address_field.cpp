@@ -26,7 +26,7 @@ uint8_t  value_range(uint8_t  value, uint8_t  min_value, uint8_t  max_value) {
 // ----- ----- ----- Register ----- ----- -----
 //   ----- ----- ----- ---- ----- ----- -----
 
-Register::Register(uint16_t address, uint8_t bit_count, uint8_t bit_bias) {
+Register::Register(uint16_t address, uint8_t bit_count, uint8_t bit_bias): address_(address), bit_count_(bit_count), bit_bias_(bit_bias) {
     uint8_t bit_in_reg = 8;
     bit_count = value_range(bit_count, 1, bit_in_reg);
     bit_bias = value_range(bit_bias, 0, (bit_in_reg - bit_count));
@@ -38,22 +38,19 @@ Register::Register(uint16_t address, uint8_t bit_count, uint8_t bit_bias) {
             if (i < (bit_count + bit_bias))
                 mask <<= 1;
     }
-    address_ = address;
-    bit_count_ = bit_count;
-    bit_bias_ = bit_bias;
     mask_ = mask;
 }
 
-uint16_t Register::address() {
+uint16_t Register::address() const {
     return address_;
 }
-uint8_t Register::bit_count() {
+uint8_t Register::bit_count() const {
     return bit_count_;
 }
-uint8_t Register::bit_bias() {
+uint8_t Register::bit_bias() const {
     return bit_bias_;
 }
-uint32_t Register::mask() {
+uint32_t Register::mask() const {
     return mask_;
 }
 
@@ -77,13 +74,13 @@ bool operator!=(const Register& left, const Register& right) {
 // ----- ----- -----  Address_field  ----- ----- -----
 //   ----- ----- ----- ----- ----- ----- ----- -----
 
-Address_field::Address_field(Register *registers, uint8_t reg_count, bool reg_revers, char mode, uint32_t min_value, 
-                             uint32_t max_value, uint32_t *reserved_value, uint32_t reserv_count) {
+Address_field::Address_field(const Register* registers, const uint8_t reg_count, const bool reg_revers, const char mode, const uint32_t min_value, 
+                             const uint32_t max_value, const uint32_t *reserved_value, const uint32_t reserv_count) {
     init_address_field(registers, reg_count, reg_revers, mode, min_value, max_value, reserved_value, reserv_count);
 }
 
-bool Address_field::init_address_field(Register *registers, uint8_t reg_count, bool reg_revers, char mode, uint32_t min_value, 
-                                       uint32_t max_value, uint32_t *reserved_value, uint32_t reserv_count) {
+bool Address_field::init_address_field(const Register *registers, const uint8_t reg_count, const bool reg_revers, const char mode, const uint32_t min_value, 
+                                       const uint32_t max_value, const uint32_t *reserved_value, const uint32_t reserv_count) {
     if ((mode != 'r') && (mode != 'w') && (mode != 'c'))
         return true;
     uint8_t bit_count = 0;
@@ -108,7 +105,7 @@ bool Address_field::init_address_field(Register *registers, uint8_t reg_count, b
 }
 
 
-uint32_t Address_field::get_value(uint8_t *register_value, int register_count) {
+uint32_t Address_field::get_value(const uint8_t *register_value, int register_count) const {
     if (register_count < (max_address_ + 1))
         return -1;
     uint32_t value = 0;
@@ -127,7 +124,7 @@ uint32_t Address_field::get_value(uint8_t *register_value, int register_count) {
     return value;
 }
 
-bool Address_field::set_value(uint32_t value, uint8_t *register_value, int register_count) {
+bool Address_field::set_value(uint32_t value, uint8_t *register_value, int register_count) const {
     if ((register_count < (max_address_ + 1)) || (mode_ == 'r') ||
                 (value < min_value_) || (value > max_value_))
         return true;
@@ -152,7 +149,7 @@ bool Address_field::set_value(uint32_t value, uint8_t *register_value, int regis
 }
 
 #if defined( ADD_LORA_PACKET_CODE )
-uint32_t Address_field::get_value(const class LoRa_packet& packet, uint8_t bias) {
+uint32_t Address_field::get_value(const class LoRa_packet& packet, uint8_t bias) const {
     if ((SIZE_LORA_PACKET_MAX_LEN - bias) < (max_address_ + 1))
         return -1;
     uint32_t value = 0;
@@ -170,7 +167,7 @@ uint32_t Address_field::get_value(const class LoRa_packet& packet, uint8_t bias)
     }
     return value;
 }
-bool Address_field::set_value(uint32_t value, class LoRa_packet& packet, uint8_t bias) {
+bool Address_field::set_value(uint32_t value, class LoRa_packet& packet, uint8_t bias) const {
     if (((SIZE_LORA_PACKET_MAX_LEN - bias) < (max_address_ + 1)) || (mode_ == 'r') ||
                 (value < min_value_) || (value > max_value_))
         return true;
@@ -200,7 +197,7 @@ bool Address_field::set_value(uint32_t value, class LoRa_packet& packet, uint8_t
 }
 #endif
 
-Register *Address_field::get_registers() const {
+const Register *Address_field::get_registers() const {
     return registers_;
 }
 uint8_t Address_field::get_reg_count() const {
@@ -215,7 +212,7 @@ uint32_t Address_field::get_min_value() const {
 uint32_t Address_field::get_max_value() const {
     return max_value_;
 }
-uint32_t *Address_field::get_reserved_value() const {
+const uint32_t *Address_field::get_reserved_value() const {
     return reserved_value_;
 }
 uint32_t Address_field::get_reserv_count() const {

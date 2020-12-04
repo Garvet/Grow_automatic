@@ -32,15 +32,15 @@ public:
     ~Grow_sensor_component() = default;
 
     // получение типа датчика
-    enum Type_sensor get_type();
+    enum Type_sensor get_type() const;
     
     // получение id
-    uint8_t get_id();
+    uint8_t get_id() const;
     // установка id
     void set_id(uint8_t id);
 
     // Получить значение считанного показателя
-    float get_value();
+    float get_value() const;
     // Установить значение считанного показателя
     bool set_value(float value);
 

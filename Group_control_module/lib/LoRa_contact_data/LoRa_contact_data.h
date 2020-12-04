@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <vector>
+#include <array>
 
 #include <Wire.h>
 #include <LoRa.h>
@@ -15,6 +16,7 @@
 // #include <Grow_sensor.h>
 // #include <Grow_device.h>
 
+// #define CONTACT_DATA_MAX_PACKET 15
 
 // Состояние модуля передачи
 enum module_state {
@@ -99,12 +101,18 @@ private:
     uint8_t amt_packet_ = 0;          // количество принятых пакетов
     uint8_t expected_amt_packet_ = 0; // ожидаемое количество принятых пакетов
 
-    // std::vector<std::vector<uint8_t>> send_packet_; // Отправляемые пакеты
-    // std::vector<bool> send_flag_;                   // Флаг был ли отправлен пакет
-    // std::vector<std::vector<uint8_t>> reciev_packet_; // Принятые пакеты
-    std::vector<LoRa_packet> send_packet_; // Отправляемые пакеты
-    std::vector<bool> send_flag_;                   // Флаг был ли отправлен пакет
+    std::vector<LoRa_packet> send_packet_;   // Отправляемые пакеты
+    std::vector<bool> send_flag_;            // Флаг был ли отправлен пакет
     std::vector<LoRa_packet> reciev_packet_; // Принятые пакеты
+
+    // std::array<LoRa_packet, CONTACT_DATA_MAX_PACKET> send_packet_;   // Отправляемые пакеты
+    // std::array<bool, CONTACT_DATA_MAX_PACKET> send_flag_;            // Флаг был ли отправлен пакет
+    // std::array<LoRa_packet, CONTACT_DATA_MAX_PACKET> reciev_packet_; // Принятые пакеты
+    // uint8_t send_packet_len = 0;
+    // uint8_t reciev_packet_len = 0;
+    // uint8_t send_flag_len = 0;
+
+    bool start_connect_ = false;
 
     bool init_ = false; // инициализирован старт для контакта
     
@@ -272,6 +280,7 @@ public:
 
     // Выдаёт сигнал, если текущая стадия SC_COMPLETE 
     bool get_signal_complete();
+    bool get_signal_start_connect();
 };
 
 

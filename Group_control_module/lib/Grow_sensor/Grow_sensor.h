@@ -77,33 +77,33 @@ public:
     /// --- Поля компонентов ---
 
     // получение типа компонента (передаётся в result), если ошибка возврат true
-    bool get_type(uint8_t num, enum Type_sensor &result);
-    bool get_type(uint8_t num, uint8_t &result);
+    bool get_type(uint8_t num, enum Type_sensor &result) const;
+    bool get_type(uint8_t num, uint8_t &result) const;
     // получение вектора типов компонентов
-    std::vector<enum Type_sensor> get_type();
+    std::vector<enum Type_sensor> get_type() const;
     // получение id компонента (передаётся в result | не путать с ID платы, этот номер для количества повторений), если ошибка возврат true
-    bool get_id(uint8_t num, uint8_t &result);
+    bool get_id(uint8_t num, uint8_t &result) const;
     // получение вектора id компонентов
-    std::vector<uint8_t> get_id();
+    std::vector<uint8_t> get_id() const;
 
     // Установить значение считанного показателя, если ошибка возврат true
     bool set_value(uint8_t num, float value);
     // Получить значение считанного показателя, если ошибка возврат true
-    bool get_value(uint8_t num, float &result);
+    bool get_value(uint8_t num, float &result) const;
     // Установить значения считанных показателей, если ошибка возврат true
     bool set_value(const std::vector<float>& value);
     // Получить вектор значений считанных показателей
-    std::vector<float> get_value();
+    std::vector<float> get_value() const;
 
     /// --- Информации о компонентах ---
 
     // Получить количество компонентов
-    uint8_t get_count_component();
+    uint8_t get_count_component() const;
 
     // Получить определённый компонент
-    Grow_sensor_component get_component(uint8_t num);
+    Grow_sensor_component get_component(uint8_t num) const;
     // Получить вектор компонентов
-    std::vector<Grow_sensor_component> get_component();
+    std::vector<Grow_sensor_component> get_component() const;
 
     /// --- Внешняя связь ---
 

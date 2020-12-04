@@ -75,8 +75,8 @@ uint8_t Group_control_module::work_system() {
     case GT_PROCESSING:
         // if(contact_data_.get_signal_complete()) {
         if(contact_data_.get_state_contact() == SC_DOWNTIME) {
-            if(!handler_devices())
-                break;
+            // if(!handler_devices())
+            //     break;
             if(!handler_sensors())
                 break;
             // формулы()   // --- if(формулы()) ---
@@ -146,6 +146,7 @@ void Group_control_module::LoRa_interrupt() {
             // (-) ----- (?) -----
             if(permission_regist_interrupt_) {
                 if(contact_data_.get_state_contact() == SC_PACKET_ACCEPTED) {
+                                                                                                    Serial.println("XXX");
                     std::vector<LoRa_packet> packets;
                     LoRa_packet reg_packet;
                     // Exchange_packet reg_packet;
@@ -162,6 +163,7 @@ void Group_control_module::LoRa_interrupt() {
                     }
                 }
                 else if (contact_data_.get_signal_complete()) {
+                                                                                                    Serial.println("YYY");
                     LoRa_address adr = contact_data_.get_connect_adr();
                     for(int i = 0; i < devices_.size(); ++i) {
                         if(devices_[i].get_address() == adr.branch)
@@ -186,6 +188,7 @@ void Group_control_module::LoRa_interrupt() {
                     if(!check_reg) {
                         for(int i = 0; i < sensors_.size(); ++i) {
                             if(sensors_[i].get_active() == 1) {
+                                                                                                    Serial.println("ZZZ");
                                 regist_adr.branch = sensors_[i].get_address();
                                 check_reg = true;
                                 break;
@@ -193,6 +196,7 @@ void Group_control_module::LoRa_interrupt() {
                         }
                     }
                     if(check_reg) {
+                                                                                                    Serial.println("ZZZ");
                                                         // (?) ----- (-) ----- проверка (должна выглядеть не так?, - settings), и не забудь settings в contact_data включить, пока там только датчики, устройства и системные пакеты
                                                         {
                                                             // Exchange_packet packet;
@@ -433,7 +437,7 @@ bool Group_control_module::filter_devices(Grow_device &devices) {
     disable_regist_interrupt();
     for(int i = 0; i < reg_devices_.size(); ++i) {
         if(reg_devices_[i].filter(devices)) {
-            filter_adr_.push_back(reg_devices_[i].get_address());
+            filter_adr_.push_back(reg_devices_[i].get_system_id());
             result = true;
         }
     }
@@ -448,7 +452,7 @@ bool Group_control_module::filter_sensors(Grow_sensor &sensor) {
     disable_regist_interrupt();
     for(int i = 0; i < reg_sensors_.size(); ++i) {
         if(reg_sensors_[i].filter(sensor)) {
-            filter_adr_.push_back(reg_sensors_[i].get_address());
+            filter_adr_.push_back(reg_sensors_[i].get_system_id());
             result = true;
         }
     }
@@ -456,7 +460,7 @@ bool Group_control_module::filter_sensors(Grow_sensor &sensor) {
     return result;
 }
 // [T] Регистрация модуля(ей)
-bool Group_control_module::regist_device(uint16_t old_adr, uint16_t new_adr) {
+bool Group_control_module::regist_device(uint32_t device_id, uint16_t new_adr) {
     bool err = true;
     if(mode_ != GT_SETTING)
         return err;
@@ -476,12 +480,12 @@ bool Group_control_module::regist_device(uint16_t old_adr, uint16_t new_adr) {
     err = true;
     disable_regist_interrupt();
     for(int i = 0; i < filter_adr_.size(); ++i) {
-        if(old_adr == filter_adr_[i]) {
-            err = false;
+        if(device_id == filter_adr_[i]) {
             filter_adr_.erase(filter_adr_.begin() + i);
             for(int j = 0; j < reg_devices_.size(); ++j) {
-                if(old_adr == reg_devices_[j].get_address()) {
+                if(device_id == reg_devices_[j].get_system_id()) {
                     reg_devices_.erase(reg_devices_.begin() + j);
+                    err = false;
                     break;
                 }
             }
@@ -489,49 +493,28 @@ bool Group_control_module::regist_device(uint16_t old_adr, uint16_t new_adr) {
         }
     }
     if(!err) {
-        // (+) -----
+        // (-) ----- (!) -----
         // Произвести обмен информацией
-                    // Exchange_packet packet;
+                    // LoRa_packet packet;
                     // uint8_t size = 0;
                     // uint8_t com = 0x03;
                     // uint8_t len = 0;
-                    // static_cast<Packet_System*>(packet.packet)->get_size_by_data(&size, &com, &len);
+                    // packet_system.get_size_by_data(&com, &len, size);
                     // uint8_t *data = new uint8_t[size];
-                    // packet.creat_packet(size + 10, Packet_Type::SYSTEM);
 
-                    // packet.packet->set_dest_adr({0, old_adr});
-                    // packet.packet->set_sour_adr(contact_data_.get_my_adr());
-                    // packet.packet->set_packet_type(Packet_Type::SYSTEM);
+                    // packet_system.set_dest_adr(packet, {0, old_adr});
+                    // packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
+                    // packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
 
                     // data[0] = (contact_data_.get_my_adr().group >> 1) & 0xFF;
                     // data[1] = (contact_data_.get_my_adr().group << 7) & 0x80;
                     // data[1] |= (new_adr >> 8) & 0x7F;
                     // data[2] = (new_adr) & 0xFF;
 
-                    // static_cast<Packet_System*>(packet.packet)->set_packet_data(&com, data, &len);
+                    // packet_system.set_packet_data(packet, &com, data, &len);
                     // delete[] data;
                     // contact_data_.add_packet(packet);
                     // contact_data_.broadcast_send(true);
-                    LoRa_packet packet;
-                    uint8_t size = 0;
-                    uint8_t com = 0x03;
-                    uint8_t len = 0;
-                    packet_system.get_size_by_data(&com, &len, size);
-                    uint8_t *data = new uint8_t[size];
-
-                    packet_system.set_dest_adr(packet, {0, old_adr});
-                    packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
-                    packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
-
-                    data[0] = (contact_data_.get_my_adr().group >> 1) & 0xFF;
-                    data[1] = (contact_data_.get_my_adr().group << 7) & 0x80;
-                    data[1] |= (new_adr >> 8) & 0x7F;
-                    data[2] = (new_adr) & 0xFF;
-
-                    packet_system.set_packet_data(packet, &com, data, &len);
-                    delete[] data;
-                    contact_data_.add_packet(packet);
-                    contact_data_.broadcast_send(true);
                     
         devices_[num_device].set_active(1);
     }   
@@ -539,7 +522,7 @@ bool Group_control_module::regist_device(uint16_t old_adr, uint16_t new_adr) {
     // save (-) -----
     return err;
 }
-bool Group_control_module::regist_sensor(uint16_t old_adr, uint16_t new_adr) {
+bool Group_control_module::regist_sensor(uint32_t sensor_id, uint16_t new_adr) {
     bool err = true;
     if(mode_ != GT_SETTING)
         return err;
@@ -559,12 +542,12 @@ bool Group_control_module::regist_sensor(uint16_t old_adr, uint16_t new_adr) {
     disable_regist_interrupt();
     err = true;
     for(int i = 0; i < filter_adr_.size(); ++i) {
-        if(old_adr == filter_adr_[i]) {
-            err = false;
+        if(sensor_id == filter_adr_[i]) {
             filter_adr_.erase(filter_adr_.begin() + i);
             for(int j = 0; j < reg_sensors_.size(); ++j) {
-                if(old_adr == reg_sensors_[j].get_address()) {
+                if(sensor_id == reg_sensors_[j].get_system_id()) {
                     reg_sensors_.erase(reg_sensors_.begin() + j);
+                    err = false;
                     break;
                 }
             }
@@ -574,42 +557,53 @@ bool Group_control_module::regist_sensor(uint16_t old_adr, uint16_t new_adr) {
     if(!err) {
         // (+) -----
         // Произвести обмен информацией
-                // Exchange_packet packet;
+
+                LoRa_packet packet;
+
+                uint8_t com = 0x01;
+                uint8_t len = 0;
+                uint8_t data[9];
+                uint8_t num_byte = 0;
+
+                data[num_byte++] = (sensor_id >> 24) & 0xFF;
+                data[num_byte++] = (sensor_id >> 16) & 0xFF;
+                data[num_byte++] = (sensor_id >>  8) & 0xFF;
+                data[num_byte++] = (sensor_id)       & 0xFF;
+
+                data[num_byte++] = (contact_data_.get_my_adr().group >> 1) & 0xFF;
+                data[num_byte++] = (contact_data_.get_my_adr().group << 7) & 0x80 
+                                 | (new_adr >> 8) & 0x7F;
+                data[num_byte++] = (new_adr) & 0xFF;
+
+                data[num_byte++] = (contact_data_.get_channel() >> 8) & 0xFF; // (-) ----- channel на STM!!!
+                data[num_byte++] = (contact_data_.get_channel()     ) & 0xFF;
+
+                packet_system.set_dest_adr(packet, LORA_GLOBAL_ADDRESS);
+                packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
+                packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
+                packet_system.set_packet_data(packet, &com, data, &len);
+
                 // uint8_t size = 0;
                 // uint8_t com = 0x03;
                 // uint8_t len = 0;
-                // static_cast<Packet_System*>(packet.packet)->get_size_by_data(&size, &com, &len);
+                // packet_system.get_size_by_data(&com, &len, size);
                 // uint8_t *data = new uint8_t[size];
-                // packet.creat_packet(size + 10, Packet_Type::SYSTEM);
-                // packet.packet->set_dest_adr({0, old_adr});
-                // packet.packet->set_sour_adr(contact_data_.get_my_adr());
-                // packet.packet->set_packet_type(Packet_Type::SYSTEM);
+                // packet_system.set_dest_adr(packet, LORA_GLOBAL_ADDRESS);
+                // packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
+                // packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
                 // data[0] = (contact_data_.get_my_adr().group >> 1) & 0xFF;
                 // data[1] = (contact_data_.get_my_adr().group << 7) & 0x80;
                 // data[1] |= (new_adr >> 8) & 0x7F;
                 // data[2] = (new_adr) & 0xFF;
-                // static_cast<Packet_System*>(packet.packet)->set_packet_data(&com, data, &len);
+                // packet_system.set_packet_data(packet, &com, data, &len);
                 // delete[] data;
-                // contact_data_.add_packet(packet);
-                // contact_data_.broadcast_send(true);
-                LoRa_packet packet;
-                uint8_t size = 0;
-                uint8_t com = 0x03;
-                uint8_t len = 0;
-                packet_system.get_size_by_data(&com, &len, size);
-                uint8_t *data = new uint8_t[size];
-                packet_system.set_dest_adr(packet, {0, old_adr});
-                packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
-                packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
-                data[0] = (contact_data_.get_my_adr().group >> 1) & 0xFF;
-                data[1] = (contact_data_.get_my_adr().group << 7) & 0x80;
-                data[1] |= (new_adr >> 8) & 0x7F;
-                data[2] = (new_adr) & 0xFF;
-                packet_system.set_packet_data(packet, &com, data, &len);
-                delete[] data;
-                contact_data_.add_packet(packet);
-                contact_data_.broadcast_send(true);
-        sensors_[num_sensor].set_active(1);
+
+                contact_data_.add_packet(std::move(packet));
+                                            // contact_data_.broadcast_send(true);
+                                                                    contact_data_.broadcast_send(false); // true!!!
+                                                                    set_mode(Mode::GT_PROCESSING);
+
+        sensors_[num_sensor].set_active(2);
     }
     enable_regist_interrupt();
     // save (-) -----
@@ -869,7 +863,7 @@ bool Group_control_module::check_sensor_read() {
 }
 
 bool Group_control_module::handler_devices() {
-    if(!check_sensor_read())
+    if(!check_sensor_read()) // (-) -----
         return true;
     // Произвести чтение с устройств
     for(int i = 0; i < devices_.size(); ++i) {
@@ -939,13 +933,22 @@ bool Group_control_module::handler_devices() {
 bool Group_control_module::handler_sensors() {
     if(!check_sensor_read())
         return true;
+                                                    Serial.println("check sensor = true");
     // Произвести чтение с датчиков
     for(int i = 0; i < sensors_.size(); ++i) {
+                                                                                            // Serial.println("1");
         if (sensors_[i].read_signal(true)) {
-            LoRa_address connect_adr = sensors_[i].get_address();
+                                                                                            // Serial.println("2");
+            LoRa_address connect_adr = contact_data_.get_my_adr();
+            connect_adr.branch = sensors_[i].get_address();
+                                                                                            // Serial.println("3");
             contact_data_.init_contact(connect_adr);
-            if(contact_data_.start_transfer())
+                                                                                            // Serial.println("4");
+            if(contact_data_.start_transfer()) {
+                                                                                            // Serial.println("5");
                 Serial.println("Error start sensor transfer");
+            }
+                                                                                            // Serial.println("6");
             break;
         }
     }
