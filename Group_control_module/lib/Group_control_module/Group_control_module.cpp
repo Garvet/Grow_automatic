@@ -68,6 +68,10 @@ uint8_t Group_control_module::begin() {
 // Работа класса
 uint8_t Group_control_module::work_system() { 
     // (проверяет систему, обрабатывает формулы (У|Д|Ф), гинерит пакеты, запускает передачу)
+    static bool in_work_system = false;
+    if(in_work_system)
+        return 0;
+    in_work_system = true;
     switch (mode_) {
     case GT_SETTING:
         // (?) ----- а есть ли здесь хоть что-то?
@@ -101,7 +105,8 @@ uint8_t Group_control_module::work_system() {
     default:
         break;
     }
-    return false;
+    in_work_system = false;
+    return 0;
 }
 void Group_control_module::LoRa_interrupt() { 
     // (контролирует каждый шаг передачи, по завершению запускает work_system, контролирует трансляцию, заносит запросы регистрации)
@@ -246,6 +251,7 @@ void Group_control_module::LoRa_interrupt() {
         }
         case GT_PROCESSING: {
             if(contact_data_.get_signal_complete()) {
+                                                    Serial.println("check sensor complete");
                 // (-) -----
                 // Обработать показания с датчиков 
                 LoRa_packet packet_processing;

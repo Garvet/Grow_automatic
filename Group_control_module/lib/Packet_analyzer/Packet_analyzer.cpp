@@ -257,17 +257,21 @@ uint8_t Packet_Connection::get_data(const LoRa_packet& packet, uint8_t *data, ui
     // Получение длины в соответствии с командой
     error = get_size_by_data(&command_, nullptr, len_data);
     if(error == 2) {
-        *len = field_byte.get_value(packet, last_read_byte);
-        ++last_read_byte;
-        // *len = field_byte.get_value(&(packet[last_read_byte]), (packet.get_len() - last_read_byte));
-        error = get_size_by_data(&command_, len, len_data);
-        if (command_ == 0x06) {
-            *len = len_data/2;
+        if(command_ == 0x01) {
+            error = get_size_by_data(&command_, len, len_data);
         }
         else {
-            *len = len_data;
-        }
-        
+            *len = field_byte.get_value(packet, last_read_byte);
+            ++last_read_byte;
+            // *len = field_byte.get_value(&(packet[last_read_byte]), (packet.get_len() - last_read_byte));
+            error = get_size_by_data(&command_, len, len_data);
+            if (command_ == 0x06) {
+                *len = len_data/2;
+            }
+            else {
+                *len = len_data;
+            }
+        }   
     }
     else if(error == 3) {
         if (((packet.get_len() - last_read_byte) == 1) || ((packet.get_len() - last_read_byte) == 2)) {

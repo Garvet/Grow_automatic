@@ -395,6 +395,8 @@ int8_t use_type() {
             Serial.println(r-'0');
             break;
         }
+        if(r == ' ')
+            return r;
     }
     r -= '0';
     return r;
@@ -539,47 +541,54 @@ uint32_t use_reg_dev_num() {
 void loop() {
     // int8_t result;
     // result = use_type();
-    switch (use_type()) {
-    case 0: {
-        use_print();
-        break;
-    }
-    case 1: {
-        uint32_t system_id; 
-        uint16_t adr_new;
-        adr_new = use_sen_num();
-        if(adr_new == 0)
+    static bool correct_regist = false;
+    while(!correct_regist) {
+        switch (use_type()) {
+        case 0: {
+            use_print();
             break;
-        system_id = use_reg_sen_num();
-        if(system_id == 0)
-            break;
-        if(!__GCM__.regist_sensor(system_id, adr_new))
-            Serial.println("Correct");
-        else
-            Serial.println("Error");
-        break;
-    }
-    case 2: {
-        uint32_t system_id; 
-        uint16_t adr_new;
-        adr_new = use_dev_num();
-        if(adr_new == 0)
-            break;
-        system_id = use_reg_dev_num();
-        if(system_id == 0)
-            break;
-        if(!__GCM__.regist_device(system_id, adr_new)) {
-            Serial.println("Correct");
         }
-        else
-            Serial.println("Error");
-        break;
-    }
-    default:
-        break;
+        case 1: {
+            uint32_t system_id; 
+            uint16_t adr_new;
+            adr_new = use_sen_num();
+            if(adr_new == 0)
+                break;
+            system_id = use_reg_sen_num();
+            if(system_id == 0)
+                break;
+            if(!__GCM__.regist_sensor(system_id, adr_new)) {
+                Serial.println("Correct");
+                correct_regist = true;
+            }
+            else
+                Serial.println("Error");
+            break;
+        }
+        case 2: {
+            uint32_t system_id; 
+            uint16_t adr_new;
+            adr_new = use_dev_num();
+            if(adr_new == 0)
+                break;
+            system_id = use_reg_dev_num();
+            if(system_id == 0)
+                break;
+            if(!__GCM__.regist_device(system_id, adr_new)) {
+                Serial.println("Correct");
+                correct_regist = true;
+            }
+            else
+                Serial.println("Error");
+            break;
+        }
+        default:
+            break;
+        }
     }
     // __GCM__.filter_sensors(__GCM__.sensors_[0]);
     // __GCM__.regist_sensor(__GCM__.filter_adr_[0]);
+    __GCM__.work_system();
 }
 
 
