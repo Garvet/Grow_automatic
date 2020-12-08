@@ -1,13 +1,16 @@
 #ifndef __LORA_REGISTER_H__
 #define __LORA_REGISTER_H__
 
+#if defined( ESP32 )
 #include <Arduino.h>
 #include <iostream>
 #include <SPI.h>
 #include <array>
+#else
+#include <main.h>
+#endif
 #include <Address_field.h>
 #include <LoRa_register_data.h>
-// #include <LoRa.h>
 
 #define AMT_FLAGS 8
 #define LORA_DATA_SIZE 0x70
@@ -15,9 +18,15 @@
 class LoRa_register {
 // private:
 public:
+#if defined( ESP32 )
     SPIClass* _spi;
     SPISettings* _setting;
     uint8_t _nss;
+#else
+	SPI_HandleTypeDef* _spi;
+    uint16_t _nss_pin;
+    GPIO_TypeDef* _nss_port;
+#endif
     uint8_t _registers_data[LORA_DATA_SIZE];
     bool   _registers_state[LORA_DATA_SIZE]; // 0 - неизвестно, 1 - считано
     bool _send; // = False
@@ -40,33 +49,27 @@ public:
     std::array<uint8_t, 80> reg_not_read;
     uint8_t reg_not_read_len;
 
-    // // Выдаёт адреса регистров, относящихся к данному полю
-    // std::vector<uint8_t> field_registers(Address_field field);
-    // std::vector<uint8_t> field_registers(Address_field* fields, uint8_t amt_fields);
-    // std::vector<uint8_t> field_registers(const std::vector<Address_field>& fields);
-    // // Проверка получения номеров регистров, которые нужно считать для данного списка полей
-    // std::vector<uint8_t> check_missing_register(Address_field field);
-    // std::vector<uint8_t> check_missing_register(Address_field* fields, uint8_t amt_fields);
-    // std::vector<uint8_t> check_missing_register(const std::vector<Address_field>& fields);
     // Выдаёт адреса регистров, относящихся к данному полю
     uint8_t field_registers(Address_field field);
     uint8_t field_registers(Address_field* fields, uint8_t amt_fields);
-    // uint8_t field_registers(const std::vector<Address_field>& fields);
     // Проверка получения номеров регистров, которые нужно считать для данного списка полей
     uint8_t check_missing_register(Address_field field);
     uint8_t check_missing_register(Address_field* fields, uint8_t amt_fields);
-    // uint8_t check_missing_register(const std::vector<Address_field>& fields);
 
     // Проверка на необходимость считывания перед записью новых значений (т.е. занимают ли поля весь объём данных регистра)
     bool check_read(Address_field field);
     bool check_read(Address_field* fields, uint8_t amt_fields);
-    // bool check_read(const std::vector<Address_field>& fields, std::vector<uint8_t>* reg_read, std::vector<uint8_t>* reg_not_read);
 
 public:
     LoRa_register();
-    LoRa_register(SPIClass* spi, SPISettings* setting, uint8_t nss);
     ~LoRa_register();
+#if defined( ESP32 )
+    LoRa_register(SPIClass* spi, SPISettings* setting, uint8_t nss);
     void init(SPIClass* spi, SPISettings* setting, uint8_t nss);
+#else
+    LoRa_register(SPI_HandleTypeDef* spi, GPIO_TypeDef* nss_port, uint16_t nss_pin);
+    void init(SPI_HandleTypeDef* spi, GPIO_TypeDef* nss_port, uint16_t nss_pin);
+#endif
 
     void clear();
     bool get_send();

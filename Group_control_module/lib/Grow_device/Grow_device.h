@@ -10,13 +10,15 @@
 #include <Wire.h>
 #include <RtcDateTime.h>
 
+#include <array>
+#include <Packet_analyzer.h>
+
 // (!) ----- (-) ----- перенести на статическую память
-// (-) ----- перенести работу модуля на удалёнку и добавить период опроса
+// (-) ----- перенести работу модуля на удалёнку
 
 class Grow_device {
 private:
-    // (-) ----- период добавь
-    uint32_t system_id_;
+    std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id_;
     uint16_t address_; // адрес устройства
     std::vector<Grow_device_component> component_; // вектор компонентов устройств (не как плата, а как механический модуль)
 
@@ -39,9 +41,9 @@ public:
     /// --- Поля класса-платы ---
 
     // установка индивидуального номера платы
-    void set_system_id(uint32_t system_id_);
+    void set_system_id(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id_);
     // получение индивидуального номера платы
-    uint32_t get_system_id();
+    std::array<uint8_t, AMT_BYTES_SYSTEM_ID> get_system_id();
 
     // установка состояния активности
     void set_active(uint8_t active);

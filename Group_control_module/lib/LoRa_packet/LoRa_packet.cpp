@@ -45,7 +45,7 @@ bool LoRa_packet_data::set_data(const std::vector<uint8_t>& set_data){
         len = 0;
     else {
         len = data.size();
-        for(int i = 0; i < data.size(); ++i)
+        for(size_t i = 0; i < data.size(); ++i)
             data[i] = set_data[i];
     }
     return false;
@@ -58,6 +58,9 @@ void LoRa_packet_data::set_data(const class LoRa_packet_data& lora_packet) {
 }
 void LoRa_packet_data::set_data(class LoRa_packet_data&& lora_packet) {
     *this = std::move(lora_packet);
+}
+bool LoRa_packet_data::free() {
+    return free_object_;
 }
 class LoRa_packet_data& LoRa_packet_data::operator=(const class LoRa_packet& right) {
     if((!(right.packet_data->free_object_)) && (right.packet_data->len != 0)){
@@ -84,11 +87,13 @@ class LoRa_packet_data& LoRa_packet_data::operator=(const class LoRa_packet_data
 // ----- LoRa_packet -----
 bool LoRa_packet::search_data() {
 #if defined( USE_STANDARD_ARRAY )
-    packet_data = std::find_if(lora_packet_data.begin(), lora_packet_data.end(), 
+    packet_data = std::find_if(lora_packet_data.begin(), lora_packet_data.end(),
                         [](const LoRa_packet_data &data){return data.free_object_;} );
     if(packet_data == lora_packet_data.end()) {
         packet_data = nullptr;
+#if defined( ESP32 )
         Serial.println("!lora_packet_data memory error!");
+#endif
         abort();
         return true;
     }
@@ -126,6 +131,7 @@ LoRa_packet::LoRa_packet(const LoRa_packet& right) {
     *this = right;
 }
 LoRa_packet::LoRa_packet(LoRa_packet&& right) {
+    packet_data = nullptr;
     *this = std::move(right);
 }
 
@@ -201,7 +207,7 @@ class LoRa_packet& LoRa_packet::operator=(const class LoRa_packet& right) {
     packet_data->len = right.packet_data->len;
     crc_error_ = right.crc_error_;
     rssi_ = right.rssi_;
-    for(int i = 0; i < packet_data->len; ++i) 
+    for(int i = 0; i < packet_data->len; ++i)
         packet_data->data[i] = right.packet_data->data[i];
     return *this;
 }

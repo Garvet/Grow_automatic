@@ -1,7 +1,10 @@
 #ifndef __ADDRESS_FIELD_H__
 #define __ADDRESS_FIELD_H__
 
+#if defined( ESP32 )
 #include <Arduino.h>
+#endif
+
 #define ADD_LORA_PACKET_CODE
 #if defined( ADD_LORA_PACKET_CODE )
 #include <LoRa_packet.h>

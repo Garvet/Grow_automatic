@@ -5,7 +5,8 @@ extern const uint16_t LORA_ADDRESS_BRANCH;
 uint8_t id_mas_sensors[COUNT_TYPE_SENSOR];
 
 Grow_sensor::Grow_sensor(uint8_t amt_component, enum Type_sensor* type_sensor) {
-    system_id_ = 0;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+        system_id_[i] = 0;
     address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
@@ -14,14 +15,15 @@ Grow_sensor::Grow_sensor(uint8_t amt_component, enum Type_sensor* type_sensor) {
         id_mas_sensors[i] = 0;
     for(int i = 0; i < amt_component; ++i)
         component_.push_back(Grow_sensor_component(type_sensor[i], (id_mas_sensors[type_sensor[i]]++)));
-    
+
     for (int i = 0; i < COUNT_TYPE_SENSOR; ++i)
         if(id_mas_sensors[i] > 1) {
             setting_ = 0x04; // 0000.0100 - бит индивидуального номера, в случае наличия повторов
         }
 }
 Grow_sensor::Grow_sensor(uint8_t amt_component, uint8_t* type_sensor) {
-    system_id_ = 0;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+        system_id_[i] = 0;
     address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
@@ -30,7 +32,7 @@ Grow_sensor::Grow_sensor(uint8_t amt_component, uint8_t* type_sensor) {
         id_mas_sensors[i] = 0;
     for(int i = 0; i < amt_component; ++i)
         component_.push_back(Grow_sensor_component((enum Type_sensor)(type_sensor[i]), (id_mas_sensors[type_sensor[i]]++)));
-    
+
     for (int i = 0; i < COUNT_TYPE_SENSOR; ++i)
         if(id_mas_sensors[i] > 1) {
             setting_ = 0x04;
@@ -38,7 +40,8 @@ Grow_sensor::Grow_sensor(uint8_t amt_component, uint8_t* type_sensor) {
 }
 
 Grow_sensor::Grow_sensor(const std::vector<enum Type_sensor>& type_sensor) {
-    system_id_ = 0;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+        system_id_[i] = 0;
     address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
@@ -47,7 +50,7 @@ Grow_sensor::Grow_sensor(const std::vector<enum Type_sensor>& type_sensor) {
         id_mas_sensors[i] = 0;
     for(int i = 0; i < type_sensor.size(); ++i)
         component_.push_back(Grow_sensor_component(type_sensor[i], (id_mas_sensors[type_sensor[i]]++)));
-    
+
     for (int i = 0; i < COUNT_TYPE_SENSOR; ++i)
         if(id_mas_sensors[i] > 1) {
             setting_ = 0x04;
@@ -56,10 +59,10 @@ Grow_sensor::Grow_sensor(const std::vector<enum Type_sensor>& type_sensor) {
 
 // --- Поля класса-платы ---
 
-void Grow_sensor::set_system_id(uint32_t system_id) {
+void Grow_sensor::set_system_id(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id) {
     system_id_ = system_id;
 }
-uint32_t Grow_sensor::get_system_id() const {
+std::array<uint8_t, AMT_BYTES_SYSTEM_ID> Grow_sensor::get_system_id() const {
     return system_id_;
 }
 
@@ -112,7 +115,7 @@ bool Grow_sensor::check_time(unsigned long time) {
     return readout_signal_;
 }
 void Grow_sensor::update() {
-    read_time_ = end_time_; 
+    read_time_ = end_time_;
 }
 bool Grow_sensor::read_signal(bool clear) {
     if (!clear)
@@ -194,7 +197,7 @@ Grow_sensor_component Grow_sensor::get_component(uint8_t num) const {
 }
 std::vector<Grow_sensor_component> Grow_sensor::get_component() const {
     return component_;
-} 
+}
 
 // --- Внешняя связь ---
 
@@ -209,15 +212,15 @@ bool Grow_sensor::filter(Grow_sensor &sensor) {
 }
 
 #if defined(SERIAL_LOG_OUTPUT)
-const char *sensor_component_name[] = 
-    {"Analog_signal", "Discrete_signal", "Battery_charge", "Air_humidity", "Air_temperature", 
+const char *sensor_component_name[] =
+    {"Analog_signal", "Discrete_signal", "Battery_charge", "Air_humidity", "Air_temperature",
     "Water_temperature", "Illumination_level", "Lamp_power", "Pump_power", "Indicator_pH",
     "Indicator_EC", "Indicator_eCO2", "Indicator_nYVOC"};
 
 void Grow_sensor::print() {
     Serial.print("System ID: ");
-    for(int i = 0; i < 4; ++i) {
-        uint8_t data = (system_id_ >> ((3 - i) * 8)) & 0xFF;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i) {
+        uint8_t data = system_id_[i];
         if(data < 16)
             Serial.print("0");
         Serial.print(data, 16);
@@ -239,7 +242,7 @@ void Grow_sensor::print() {
         Serial.println(" (?)");
     else
         Serial.println(" (+)");
-    
+
     Serial.print("  Period: ");
     Serial.println(get_period());
 

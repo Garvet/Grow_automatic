@@ -43,7 +43,7 @@ public:
     std::vector<uint16_t> del_adr_; // Список удалённых адресов  // (--) ----- (исключается)
     uint16_t end_adr_;  // последний адрес                       // (--) ----- (исключается)
 
-    /// Модули запросившие регистрацию (-) ---- интегрировать ID
+    /// Модули запросившие регистрацию (-) ---- интегрировать ID (-) ----- array
     std::vector<Grow_device> reg_devices_; // список устройств для регистрации
     std::vector<Grow_sensor> reg_sensors_; // список датчиков для регистрации
 
@@ -54,7 +54,7 @@ public:
 
     /// Регистрация модуля
     bool permission_regist_interrupt_ = true; // false когда идёт добавление/фильтрация модулей, чтобы список не мог измениться
-    std::vector<uint32_t> filter_adr_; // вектор отфильтрованных адресов (-) ---- изменить на ID
+    std::vector<std::array<uint8_t, AMT_BYTES_SYSTEM_ID>> filter_adr_; // вектор отфильтрованных адресов (-) ---- изменить на ID
     void enable_regist_interrupt();  // разрешается обработка LoRa
     void disable_regist_interrupt(); // запрещается обработка LoRa
     void interrupt_init(uint8_t pin_dio0, uint8_t pin_dio1, uint8_t pin_dio3); // функция прерывания для LoRa
@@ -117,8 +117,8 @@ public:
     bool filter_devices(Grow_device &devices);
     bool filter_sensors(Grow_sensor &sensor);
     // [T] Регистрация модуля (old_adr и new_adr задаются Bluetooth модулем)
-    bool regist_device(uint32_t device_id, uint16_t new_adr);
-    bool regist_sensor(uint32_t device_id, uint16_t new_adr);
+    bool regist_device(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> device_id, uint16_t new_adr);
+    bool regist_sensor(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> device_id, uint16_t new_adr);
     // [T] Сигнал модуля (?) ----- пока только в планах
     bool module_set_signal(uint16_t adr);
     // [C] Удаление модуля (?) ----- пока только в планах

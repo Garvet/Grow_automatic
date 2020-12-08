@@ -1,7 +1,9 @@
 #ifndef __LORA_REGISTER_DATA_H__
 #define __LORA_REGISTER_DATA_H__
 
+#if defined( ESP32 )
 #include <Arduino.h>
+#endif
 #include <Address_field.h>
 
 #define ECONOMICAL_VERSION
@@ -16,19 +18,19 @@ REG_FIFO, REG_OP_MODE, REG_FRF_MSB, REG_FRF_MID, REG_FRF_LSB, REG_PA_CONFIG,
 // REG_PA_RAMP, REG_LR_OCP, 
 REG_LNA, REG_FIFO_ADDR_PTR, REG_FIFO_TX_BASE_ADDR, REG_FIFO_RX_BASE_ADDR, REG_FIFO_RX_CURRENT_ADDR,
 // REG_IRQ_FLAGS_MASK,
-REG_IRQ_FLAGS, REG_RX_NB_BYTES, 
+REG_IRQ_FLAGS, REG_RX_NB_BYTES,
 // REG_RX_HEADER_CNT_VALUE_MSB, REG_RX_HEADER_CNT_VALUE_LSB, REG_RX_PACKET_CNT_VALUE_MSB, REG_RX_PACKET_CNT_VALUE_LSB, REG_MODEM_STAT, 
-REG_PKT_SNR_VALUE, REG_PKT_RSSI_VALUE, 
+REG_PKT_SNR_VALUE, REG_PKT_RSSI_VALUE,
 // REG_RSSI_VALUE, REG_HOP_CHANNEL, 
 REG_MODEM_CONFIG_1, REG_MODEM_CONFIG_2,
 // REG_SYMB_TIMEOUT_LSB, 
-REG_PREAMBLE_MSB, REG_PREAMBLE_LSB, REG_PAYLOAD_LENGTH, 
+REG_PREAMBLE_MSB, REG_PREAMBLE_LSB, REG_PAYLOAD_LENGTH,
 // REG_MAX_PAYLOAD_LENGTH, REG_HOP_PERIOD, REG_FIFI_RX_BYTE_ADDR, 
-REG_MODEM_CONFIG_3, 
+REG_MODEM_CONFIG_3,
 // REG_PPM_CORRECTION, REG_FEI_MSB, REG_FEI_MID, REG_FEI_LSB, REG_RSSI_WIDEBAND, 
-REG_DETECTION_OPTIMIZE, 
+REG_DETECTION_OPTIMIZE,
 // REG_INVERT_IQ,
-REG_DETECTION_THRESHOLD, REG_SYNC_WORD, REG_DIO_MAPPING_1, REG_DIO_MAPPING_2, REG_VERSION, 
+REG_DETECTION_THRESHOLD, REG_SYNC_WORD, REG_DIO_MAPPING_1, REG_DIO_MAPPING_2, REG_VERSION,
 // REG_PLL_HOP, REG_TCXO, 
 REG_PA_DAC//,
 // REG_FORMER_TEMP, REG_BITRATE_FRAC, REG_AGC_REF, REG_AGC_THRESH_1, REG_AGC_THRESH_2, REG_AGC_THRESH_3, REG_PLL_HF
@@ -38,33 +40,33 @@ REG_PA_DAC//,
 // ----- ----- ----- Поля и регистры ----- ----- -----
 //   ----- ----- ----- - - - - - - ----- ----- -----
 extern const Address_field
-Fifo, LongRangeMode, 
+Fifo, LongRangeMode,
 // AccessSharedReg, 
-LowFrequencyModeOn, Mode, Frf, PaSelect, MaxPower, OutputPower, 
+LowFrequencyModeOn, Mode, Frf, PaSelect, MaxPower, OutputPower,
 // PaRamp, OcpOn, OcpTrim, LnaGain, LnaBoostLf, 
-LnaBoostHf, FifoAddrPtr, FifoTxBaseAddr, FifoRxBaseAddr, FifoRxCurrentAddr, 
+LnaBoostHf, FifoAddrPtr, FifoTxBaseAddr, FifoRxBaseAddr, FifoRxCurrentAddr,
 // RxTimeoutMask, RxDoneMask, PayloadCrcErrorMask, ValidHeaderMask, TxDoneMask, CadDoneMask, FhssChangeChannelMask, CadDetectedMask, 
-RxTimeout, RxDone, PayloadCrcError, ValidHeader, TxDone, CadDone, FhssChangeChannel, CadDetected, FifoRxBytesNb, 
+RxTimeout, RxDone, PayloadCrcError, ValidHeader, TxDone, CadDone, FhssChangeChannel, CadDetected, FifoRxBytesNb,
 // ValidHeaderCnt, ValidPacketCnt, RxCodingRate, ModemStatus, 
-PacketSnr, PacketRssi, 
+PacketSnr, PacketRssi,
 // Rssi, PllTimeout, CrcOnPayload, FhssPresentChannel, 
-Bw, 
+Bw,
 // CodingRate, ImplicitHeaderModeOn, 
-SpreadingFactor, 
+SpreadingFactor,
 // TxContinuousMode, 
-RxPayloadCrcOn, 
+RxPayloadCrcOn,
 // SymbTimeout, 
-PreambleLength, PayloadLength, 
+PreambleLength, PayloadLength,
 // PayloadMaxLength, FreqHoppingPeriod, FifoRxByteAddrPtr, 
-LowDataRateOptimize, AgcAutoOn, 
+LowDataRateOptimize, AgcAutoOn,
 // PpmCorrection, FreqError, RssiWideband, 
-DetectionOptimize, 
+DetectionOptimize,
 // InvertIQ, 
-DetectionThreshold, SyncWord, Dio0Mapping, Dio1Mapping, 
+DetectionThreshold, SyncWord, Dio0Mapping, Dio1Mapping,
 // Dio2Mapping, Dio3Mapping, Dio4Mapping, Dio5Mapping, 
-Version, 
+Version,
 // FastHopOn, TcxoInputOn, 
-PaDac 
+PaDac
 // FormerTemp, BitRateFrac, AgcReferenceLevel, AgcStep1, AgcStep2, AgcStep3, AgcStep4, AgcStep5, PllBandwidth
 ;
 

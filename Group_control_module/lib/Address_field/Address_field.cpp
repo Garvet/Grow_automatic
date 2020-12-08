@@ -34,7 +34,7 @@ Register::Register(uint16_t address, uint8_t bit_count, uint8_t bit_bias): addre
     for (uint8_t i = 0; i < bit_in_reg; ++i) {
         if (i < bit_count)
             mask = (mask << 1) + 1;
-        else 
+        else
             if (i < (bit_count + bit_bias))
                 mask <<= 1;
     }
@@ -74,12 +74,12 @@ bool operator!=(const Register& left, const Register& right) {
 // ----- ----- -----  Address_field  ----- ----- -----
 //   ----- ----- ----- ----- ----- ----- ----- -----
 
-Address_field::Address_field(const Register* registers, const uint8_t reg_count, const bool reg_revers, const char mode, const uint32_t min_value, 
+Address_field::Address_field(const Register* registers, const uint8_t reg_count, const bool reg_revers, const char mode, const uint32_t min_value,
                              const uint32_t max_value, const uint32_t *reserved_value, const uint32_t reserv_count) {
     init_address_field(registers, reg_count, reg_revers, mode, min_value, max_value, reserved_value, reserv_count);
 }
 
-bool Address_field::init_address_field(const Register *registers, const uint8_t reg_count, const bool reg_revers, const char mode, const uint32_t min_value, 
+bool Address_field::init_address_field(const Register *registers, const uint8_t reg_count, const bool reg_revers, const char mode, const uint32_t min_value,
                                        const uint32_t max_value, const uint32_t *reserved_value, const uint32_t reserv_count) {
     if ((mode != 'r') && (mode != 'w') && (mode != 'c'))
         return true;
@@ -89,7 +89,7 @@ bool Address_field::init_address_field(const Register *registers, const uint8_t 
     registers_ = registers;
     reg_count_ = reg_count;
     reg_revers_ = reg_revers;
-    reserved_value_ = reserved_value; 
+    reserved_value_ = reserved_value;
     reserv_count_ = reserv_count;
     max_address_ = 0;
     for (int i = 0; i < reg_count_; ++i) {
@@ -128,7 +128,7 @@ bool Address_field::set_value(uint32_t value, uint8_t *register_value, int regis
     if ((register_count < (max_address_ + 1)) || (mode_ == 'r') ||
                 (value < min_value_) || (value > max_value_))
         return true;
-    for (int i = 0; i < reserv_count_; ++i)
+    for (uint32_t i = 0; i < reserv_count_; ++i)
         if (value == reserved_value_[i])
             return true;
     if(reg_revers_) {
@@ -150,7 +150,7 @@ bool Address_field::set_value(uint32_t value, uint8_t *register_value, int regis
 
 #if defined( ADD_LORA_PACKET_CODE )
 uint32_t Address_field::get_value(const class LoRa_packet& packet, uint8_t bias) const {
-    if ((SIZE_LORA_PACKET_MAX_LEN - bias) < (max_address_ + 1))
+    if ((SIZE_LORA_PACKET_MAX_LEN - bias) < ((uint32_t)max_address_ + 1))
         return -1;
     uint32_t value = 0;
     if(reg_revers_) {
@@ -168,10 +168,10 @@ uint32_t Address_field::get_value(const class LoRa_packet& packet, uint8_t bias)
     return value;
 }
 bool Address_field::set_value(uint32_t value, class LoRa_packet& packet, uint8_t bias) const {
-    if (((SIZE_LORA_PACKET_MAX_LEN - bias) < (max_address_ + 1)) || (mode_ == 'r') ||
+    if (((SIZE_LORA_PACKET_MAX_LEN - bias) < ((uint32_t)max_address_ + 1)) || (mode_ == 'r') ||
                 (value < min_value_) || (value > max_value_))
         return true;
-    for (int i = 0; i < reserv_count_; ++i)
+    for (uint32_t i = 0; i < reserv_count_; ++i)
         if (value == reserved_value_[i])
             return true;
 
@@ -239,7 +239,7 @@ bool operator==(const Address_field& left, const Address_field& right) {
         if(left.registers_[i] != right.registers_[i])
             return false;
     }
-    for(int i = 0; i < left.reserv_count_; ++i) {
+    for(uint32_t i = 0; i < left.reserv_count_; ++i) {
         if(left.reserved_value_[i] != right.reserved_value_[i])
             return false;
     }
@@ -263,7 +263,7 @@ bool operator!=(const Address_field& left, const Address_field& right) {
         if(left.registers_[i] != right.registers_[i])
             return true;
     }
-    for(int i = 0; i < left.reserv_count_; ++i) {
+    for(uint32_t i = 0; i < left.reserv_count_; ++i) {
         if(left.reserved_value_[i] != right.reserved_value_[i])
             return true;
     }
@@ -283,13 +283,13 @@ void Address_field::print() {
 
             Serial.print("  address: ");
             Serial.println(registers_[i].address());
-            
+
             Serial.print("  bit_count: ");
             Serial.println(registers_[i].bit_count());
-            
+
             Serial.print("  bit_bias: ");
             Serial.println(registers_[i].bit_bias());
-            
+
             Serial.print("  mask: ");
             Serial.println(registers_[i].mask(), 2);
         }

@@ -4,11 +4,10 @@
 #include <Arduino.h>
 #include <iostream>
 #include <SPI.h>
-// #include <Address_field.h>
-// #include <LoRa_register_data.h>
+#define HELTEC_LORA 4
+
 #include <LoRa_register.h>
 #include <LoRa_packet.h>
-#define HELTEC_LORA 4
 
 class LoRa {
 private:

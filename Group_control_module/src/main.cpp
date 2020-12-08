@@ -5,7 +5,6 @@
 
 #include <Arduino.h>
 
-#include <Exchange_packet.h>
 #include <Group_control_module.h>
 // #include <Grow_sensor.h>
 
@@ -78,17 +77,17 @@ Group_control_module __GCM__;
 uint8_t data[100] = {0x00, 0x01, // Address
                      0x00, 0x04, // Channel
                      0x0F,       // Name.size()
-                     0x00, 0x01, // Sensors.size() //  0x00, 0x03, // Sensors.size()
+                     0x00, 0x02, // Sensors.size() //  0x00, 0x03, // Sensors.size()
                      0x00, 0x00, // Devices.size()
                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
                      // Sensor[0]
-                     0x00, 0x00, 0x10, 0x00, // period
+                     0x00, 0x00, 0x20, 0x00, // period
                      0x01,                   // component.size()
                      0x06,                   // component.type[0-1]
-                    //  // Sensor[1]
-                    //  0x00, 0x00, 0x00, 0x10, // period
-                    //  0x01,                   // component.size()
-                    //  0x06,                   // component.type[0-1]
+                     // Sensor[1]
+                     0x00, 0x00, 0x2F, 0x10, // period
+                     0x01,                   // component.size()
+                     0x06,                   // component.type[0-1]
                     //  // Sensor[2]
                     //  0x00, 0x00, 0x00, 0x20, // period
                     //  0x01,                   // component.size()
@@ -174,7 +173,7 @@ void GT_print() {
     int amt = 0;
     int num[SIZE_LORA_PACKET_BUFFER];
     for(int i = 0; i < SIZE_LORA_PACKET_BUFFER; ++i) {
-        if(!lora_packet_data[i].free_object_) {
+        if(!lora_packet_data[i].free()) {
             num[amt] = i;
             ++amt;
         }
@@ -198,10 +197,10 @@ void GT_print_f() {
         __GCM__.filter_sensors(__GCM__.sensors_[i]);
         for(int j = 0; j < __GCM__.filter_adr_.size(); ++j) {
             Serial.print("{");
-            for(int k = 0; k < 4; ++k) {
-                if(((__GCM__.filter_adr_[j] >> (24 - 8 * k)) & 0xFF) < 16)
+            for(int k = 0; k < AMT_BYTES_SYSTEM_ID; ++k) {
+                if((__GCM__.filter_adr_[j])[k] < 16)
                     Serial.print("0");
-                Serial.print(((__GCM__.filter_adr_[j] >> (24 - 8 * k)) & 0xFF), 16);
+                Serial.print((__GCM__.filter_adr_[j])[k], 16);
                 if(k < 3)
                     Serial.print(" ");
             }
@@ -220,10 +219,10 @@ void GT_print_f() {
         __GCM__.filter_devices(__GCM__.devices_[i]);
         for(int j = 0; j < __GCM__.filter_adr_.size(); ++j) {
             Serial.print("{");
-            for(int k = 0; k < 4; ++k) {
-                if(((__GCM__.filter_adr_[j] >> (24 - 8 * k)) & 0xFF) < 16)
+            for(int k = 0; k < AMT_BYTES_SYSTEM_ID; ++k) {
+                if((__GCM__.filter_adr_[j])[k] < 16)
                     Serial.print("0");
-                Serial.print(((__GCM__.filter_adr_[j] >> (24 - 8 * k)) & 0xFF), 16);
+                Serial.print((__GCM__.filter_adr_[j])[k], 16);
                 if(k < 3)
                     Serial.print(" ");
             }
@@ -455,10 +454,10 @@ uint16_t use_sen_num() {
             Serial.print("F = [");
             for(int j = 0; j < __GCM__.filter_adr_.size(); ++j) {
                 Serial.print("{");
-                for(int k = 0; k < 4; ++k) {
-                    if(((__GCM__.filter_adr_[j] >> (24 - 8 * k)) & 0xFF) < 16)
+                for(int k = 0; k < AMT_BYTES_SYSTEM_ID; ++k) {
+                    if((__GCM__.filter_adr_[j])[k] < 16)
                         Serial.print("0");
-                    Serial.print(((__GCM__.filter_adr_[j] >> (24 - 8 * k)) & 0xFF), 16);
+                    Serial.print((__GCM__.filter_adr_[j])[k], 16);
                     if(k < 3)
                         Serial.print(" ");
                 }
@@ -490,10 +489,10 @@ uint16_t use_dev_num() {
             Serial.print("F = [");
             for(int j = 0; j < __GCM__.filter_adr_.size(); ++j) {
                 Serial.print("{");
-                for(int k = 0; k < 4; ++k) {
-                    if(((__GCM__.filter_adr_[j] >> (24 - 8 * k)) & 0xFF) < 16)
+                for(int k = 0; k < AMT_BYTES_SYSTEM_ID; ++k) {
+                    if((__GCM__.filter_adr_[j])[k] < 16)
                         Serial.print("0");
-                    Serial.print(((__GCM__.filter_adr_[j] >> (24 - 8 * k)) & 0xFF), 16);
+                    Serial.print((__GCM__.filter_adr_[j])[k], 16);
                     if(k < 3)
                         Serial.print(" ");
                 }
@@ -511,7 +510,7 @@ uint16_t use_dev_num() {
     }
     return __GCM__.devices_[r].get_address();
 }
-uint32_t use_reg_sen_num() {
+std::array<uint8_t, AMT_BYTES_SYSTEM_ID> use_reg_sen_num() {
     uint8_t r = -1;
     Serial.print("Write num reg sensor:");
     while(1) {
@@ -524,7 +523,7 @@ uint32_t use_reg_sen_num() {
     }
     return __GCM__.filter_adr_[r];
 }
-uint32_t use_reg_dev_num() {
+std::array<uint8_t, AMT_BYTES_SYSTEM_ID> use_reg_dev_num() {
     uint8_t r = -1;
     Serial.print("Write num reg device:");
     while(1) {
@@ -538,45 +537,58 @@ uint32_t use_reg_dev_num() {
     return __GCM__.filter_adr_[r];
 }
 
+#define MAX_MODUL 2
 void loop() {
     // int8_t result;
     // result = use_type();
-    static bool correct_regist = false;
-    while(!correct_regist) {
+    static uint8_t correct_regist = 0;
+    while(correct_regist != MAX_MODUL) {
         switch (use_type()) {
         case 0: {
             use_print();
             break;
         }
         case 1: {
-            uint32_t system_id; 
+            bool err = true;
+            std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id; 
             uint16_t adr_new;
             adr_new = use_sen_num();
             if(adr_new == 0)
                 break;
             system_id = use_reg_sen_num();
-            if(system_id == 0)
+            for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+                if(system_id[i] != 0) {
+                    err = false;
+                    break;
+                }
+            if(err)
                 break;
             if(!__GCM__.regist_sensor(system_id, adr_new)) {
                 Serial.println("Correct");
-                correct_regist = true;
+                ++correct_regist;
             }
             else
                 Serial.println("Error");
             break;
         }
         case 2: {
-            uint32_t system_id; 
+            bool err = true;
+            std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id; 
             uint16_t adr_new;
             adr_new = use_dev_num();
             if(adr_new == 0)
                 break;
             system_id = use_reg_dev_num();
-            if(system_id == 0)
+            for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+                if(system_id[i] != 0) {
+                    err = false;
+                    break;
+                }
+            if(err)
                 break;
             if(!__GCM__.regist_device(system_id, adr_new)) {
                 Serial.println("Correct");
-                correct_regist = true;
+                ++correct_regist;
             }
             else
                 Serial.println("Error");
@@ -588,7 +600,8 @@ void loop() {
     }
     // __GCM__.filter_sensors(__GCM__.sensors_[0]);
     // __GCM__.regist_sensor(__GCM__.filter_adr_[0]);
-    __GCM__.work_system();
+    if(correct_regist == MAX_MODUL)
+        __GCM__.work_system();
 }
 
 

@@ -7,6 +7,11 @@ Packet_Sensor packet_sensor;
 Packet_Device packet_device;
 Packet_System packet_system;
 
+LoRa_address::LoRa_address(const uint8_t* bytes, const uint8_t len) {
+	group = field_dest_adr_group.get_value(bytes, len);
+	branch = field_dest_adr_branch.get_value(bytes, len);
+}
+
 LoRa_address::LoRa_address(const uint16_t group, const uint16_t branch):group(group),branch(branch){}
 
 LoRa_address::LoRa_address(const uint32_t adr):group((uint16_t)(adr >> 16)),branch((uint16_t)(adr)){}
@@ -34,8 +39,8 @@ bool operator!=(const uint32_t& left, const LoRa_address& right) {
 }
 
 //   ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
-// ----- ----- ----- ----- ----- Packet_analyzer ----- ----- ----- ----- ----- 
-//   ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -----   
+// ----- ----- ----- ----- ----- Packet_analyzer ----- ----- ----- ----- -----
+//   ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- ----- -----
 
 Packet_analyzer::Packet_analyzer() {
     field_packet_ = nullptr;
@@ -70,7 +75,7 @@ uint16_t Packet_analyzer::get_sour_adr_branch(const LoRa_packet& packet) {
 }
 // Адрес отправителя
 LoRa_address Packet_analyzer::get_sour_adr(const LoRa_packet& packet) {
-    return {get_sour_adr_group(packet), get_sour_adr_branch(packet)};    
+    return {get_sour_adr_group(packet), get_sour_adr_branch(packet)};
 }
 // Тип пакета
 Packet_Type Packet_analyzer::get_packet_type(const LoRa_packet& packet) {
@@ -271,7 +276,7 @@ uint8_t Packet_Connection::get_data(const LoRa_packet& packet, uint8_t *data, ui
             else {
                 *len = len_data;
             }
-        }   
+        }
     }
     else if(error == 3) {
         if (((packet.get_len() - last_read_byte) == 1) || ((packet.get_len() - last_read_byte) == 2)) {
@@ -313,7 +318,7 @@ uint8_t Packet_Connection::get_packet_data(const LoRa_packet& packet, uint8_t *c
 // Узнать объём поля данных по параметрам
 uint8_t Packet_Connection::get_size_by_data(const uint8_t *com, const uint8_t *len, uint8_t &size_data) {
     size_data = 0;
-    // Комманда, проверка на выход за границы 
+    // Комманда, проверка на выход за границы
     if (!(*com < CONNECT_COMMAND_DATA)) {
         return 1;
     }
@@ -409,7 +414,7 @@ uint8_t Packet_Sensor::set_packet_data(LoRa_packet& packet, uint8_t* amt, uint8_
         }
         if (error)
             return 3;
-        
+
         // индивидуальный номер
         if (field_bit[2].get_value(&setting_) != 0) {
             error = field_byte.set_value(id[i], packet, last_filled_byte);
@@ -461,14 +466,14 @@ uint8_t Packet_Sensor::get_packet_data(const LoRa_packet& packet, uint8_t* amt, 
         else {
             param_ = param[i];
         }
-        
+
         if (!(param_ < SENSOR_PARAM_DATA)) {
             param_ = 0xFF;
             return 2;
         }
         param[i] = param_;
-        
-        
+
+
         // индивидуальный номер
         if (field_bit[2].get_value(&setting_) != 0) {
             id[i] = field_byte.get_value(packet, last_read_byte);
@@ -519,7 +524,7 @@ uint8_t Packet_Sensor::get_size_by_data(const uint8_t *amt, const uint8_t *param
         if (field_bit[1].get_value(&setting_) != 1) {
             ++last_read_byte;
         }
-        
+
         // индивидуальный номер
         if (field_bit[2].get_value(&setting_) != 0) {
             ++last_read_byte;
@@ -570,8 +575,8 @@ uint8_t Packet_Sensor::get_size_by_packet(const LoRa_packet& packet, uint8_t *am
             param_ = 0xFF;
             return 2;
         }
-        
-        
+
+
         // индивидуальный номер
         if (field_bit[2].get_value(&setting_) != 0) {
             ++last_read_byte;
@@ -703,7 +708,7 @@ uint8_t Packet_Device::get_packet_data(const LoRa_packet& packet, uint8_t *obj, 
             ++*len;
         ++last_read_byte;
     }
-    
+
     return 0;
 }
 
@@ -723,7 +728,7 @@ uint8_t Packet_Device::get_size_by_data(const uint8_t *obj, const uint8_t *com, 
     if (field_bit[0].get_value(&setting_) != 1) {
         ++last_read_byte;
     }
-    
+
     // индивидуальный номер
     if (field_bit[1].get_value(&setting_) != 0) {
         ++last_read_byte;
@@ -740,7 +745,7 @@ uint8_t Packet_Device::get_size_by_data(const uint8_t *obj, const uint8_t *com, 
     // данные
     last_read_byte += device_object_data[object_][command_];
     size_data += device_object_data[object_][command_];
-    
+
     return 0;
 }
 
@@ -822,13 +827,13 @@ uint8_t Packet_System::set_packet_data(LoRa_packet& packet, uint8_t *com, uint8_
         {
         case 0x00:
             // запись ID до длины поля с данными
-            for(int i = 0; i < 4; ++i) {
+            for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i) {
                 error = field_byte.set_value(data[i], packet, last_filled_byte);
                 ++last_filled_byte;
                 if (error)
-                    return 4 + i;
+                    return 4;
             }
-            data = data + 4;
+            data = data + AMT_BYTES_SYSTEM_ID;
 
             _len = *len;
             error = field_byte.set_value(_len, packet, last_filled_byte);
@@ -840,12 +845,12 @@ uint8_t Packet_System::set_packet_data(LoRa_packet& packet, uint8_t *com, uint8_
             error = field_byte.set_value(data[0], packet, last_filled_byte);
             ++last_filled_byte;
             if (error)
-                return 4;
+                return 6;
             data = data + 1;
 
             break;
         default:
-            return 12;
+            return 7;
         }
     }
 
@@ -853,7 +858,7 @@ uint8_t Packet_System::set_packet_data(LoRa_packet& packet, uint8_t *com, uint8_
         error = field_byte.set_value(data[i], packet, last_filled_byte);
         ++last_filled_byte;
         if (error)
-            return 13;
+            return 8;
     }
 
     return 0;
@@ -883,11 +888,11 @@ uint8_t Packet_System::get_packet_data(const LoRa_packet& packet, uint8_t *com, 
         {
         case 0x00:
             // получение ID до длины поля с данными
-            for (int i = 0; i < 4; ++i) {
+            for (int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i) {
                 data[i] = field_byte.get_value(packet, last_read_byte);
                 ++last_read_byte;
             }
-            data = data + 4;
+            data = data + AMT_BYTES_SYSTEM_ID;
 
             // len
             data[0] = field_byte.get_value(packet, last_read_byte);
@@ -933,10 +938,10 @@ uint8_t Packet_System::get_size_by_data(const uint8_t *com, const uint8_t *len, 
         switch (command_)
         {
         case 0x00:
-            last_read_byte += 6; // смещение на ID
+            last_read_byte += AMT_BYTES_SYSTEM_ID + 2; // смещение на ID
+            size_data += AMT_BYTES_SYSTEM_ID + 2;
             ++last_read_byte;
             _len = *len;
-            size_data += 6;
             break;
         default:
             return 5;
@@ -963,10 +968,10 @@ uint8_t Packet_System::get_size_by_packet(const LoRa_packet& packet, uint8_t &si
         switch (command_)
         {
         case 0x00:
-            last_read_byte += 4; // смещение на ID
-            size_data = 4; // смещение на ID
+            last_read_byte += AMT_BYTES_SYSTEM_ID; // смещение на ID
+            size_data = AMT_BYTES_SYSTEM_ID; // смещение на ID
             size_data += field_byte.get_value(packet, last_read_byte);
-            last_read_byte += 2; // смещение на length и type 
+            last_read_byte += 2; // смещение на length и type
             size_data += 2; // смещение на length и type
             ++last_read_byte;
             break;

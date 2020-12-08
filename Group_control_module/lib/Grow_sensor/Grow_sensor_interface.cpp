@@ -72,12 +72,16 @@ LoRa_packet Grow_sensor_interface::creat_regist_packet(const Grow_sensor &grow_s
     // uint8_t sensor_type = 0;
     uint8_t len = grow_sensor.get_count_component();
     uint8_t num_byte = 0;
-    uint8_t* data = new uint8_t[len + 6]; // ID, Type, Length
+    uint8_t* data = new uint8_t[len + AMT_BYTES_SYSTEM_ID + 2]; // ID, Type, Length
 
-    data[num_byte++] = (grow_sensor.get_system_id() >> 24) & 0xFF;
-    data[num_byte++] = (grow_sensor.get_system_id() >> 16) & 0xFF;
-    data[num_byte++] = (grow_sensor.get_system_id() >> 8) & 0xFF;
-    data[num_byte++] = grow_sensor.get_system_id() & 0xFF;
+    std::array<uint8_t, AMT_BYTES_SYSTEM_ID> id = grow_sensor.get_system_id();
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+        data[num_byte++] = id[i];
+    
+    // data[num_byte++] = (grow_sensor.get_system_id() >> 24) & 0xFF;
+    // data[num_byte++] = (grow_sensor.get_system_id() >> 16) & 0xFF;
+    // data[num_byte++] = (grow_sensor.get_system_id() >> 8) & 0xFF;
+    // data[num_byte++] = grow_sensor.get_system_id() & 0xFF;
 
     data[num_byte++] = 0x01; // Type = sensors
 
@@ -110,10 +114,14 @@ Grow_sensor Grow_sensor_interface::read_regist_packet(LoRa_packet& packet) {
     }
     // Расшифровка содержимого
     uint8_t num_byte = 0;
-    uint32_t sensor_id = data[num_byte++];
-    sensor_id = (sensor_id << 8) | data[num_byte++];
-    sensor_id = (sensor_id << 8) | data[num_byte++];
-    sensor_id = (sensor_id << 8) | data[num_byte++];
+    
+    std::array<uint8_t, AMT_BYTES_SYSTEM_ID> sensor_id;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+        sensor_id[i] = data[num_byte++];
+    // uint32_t sensor_id = data[num_byte++];
+    // sensor_id = (sensor_id << 8) | data[num_byte++];
+    // sensor_id = (sensor_id << 8) | data[num_byte++];
+    // sensor_id = (sensor_id << 8) | data[num_byte++];
     // Генерация объекта
     Grow_sensor sensors(len, &(data[num_byte]));
     sensors.set_system_id(sensor_id);
@@ -163,12 +171,16 @@ uint16_t Grow_sensor_interface::report_to_server(Grow_sensor &grow_sensor, uint8
         return save_size;
     uint8_t save_byte = 0;
     float save_value = 0;
-    uint32_t save_component = grow_sensor.get_system_id(); 
+    uint32_t save_component;
     // ID
-    buf[save_size++] = (save_component >> 24) & 0xFF;
-    buf[save_size++] = (save_component >> 16) & 0xFF;
-    buf[save_size++] = (save_component >>  8) & 0xFF;
-    buf[save_size++] =  save_component        & 0xFF;
+    std::array<uint8_t, AMT_BYTES_SYSTEM_ID> sensor_id;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+        buf[save_size++] = sensor_id[i];
+    // save_component = grow_sensor.get_system_id(); 
+    // buf[save_size++] = (save_component >> 24) & 0xFF;
+    // buf[save_size++] = (save_component >> 16) & 0xFF;
+    // buf[save_size++] = (save_component >>  8) & 0xFF;
+    // buf[save_size++] =  save_component        & 0xFF;
     // количество компонентов
     buf[save_size++] = grow_sensor.get_count_component();
     // состав компонентов

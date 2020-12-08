@@ -5,7 +5,8 @@ extern const uint16_t LORA_ADDRESS_BRANCH;
 static uint8_t id_mas[COUNT_TYPE_DEVICE];
 
 Grow_device::Grow_device(uint8_t amt_component, enum Type_device* type_device) {
-    system_id_ = 0;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+        system_id_[i] = 0;
     address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
@@ -21,7 +22,8 @@ Grow_device::Grow_device(uint8_t amt_component, enum Type_device* type_device) {
         }
 }
 Grow_device::Grow_device(uint8_t amt_component, uint8_t* type_device) {
-    system_id_ = 0;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+        system_id_[i] = 0;
     address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
@@ -37,7 +39,8 @@ Grow_device::Grow_device(uint8_t amt_component, uint8_t* type_device) {
         }
 }
 Grow_device::Grow_device(const std::vector<enum Type_device>& type_device) {
-    system_id_ = 0;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+        system_id_[i] = 0;
     address_ = 0xFFFF;
     setting_ = 0;
     active_ = false;
@@ -55,10 +58,10 @@ Grow_device::Grow_device(const std::vector<enum Type_device>& type_device) {
 
 // --- Поля класса-платы ---
 
-void Grow_device::set_system_id(uint32_t system_id) {
+void Grow_device::set_system_id(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id) {
     system_id_ = system_id;
 }
-uint32_t Grow_device::get_system_id() {
+std::array<uint8_t, AMT_BYTES_SYSTEM_ID> Grow_device::get_system_id() {
     return system_id_;
 }
 
@@ -302,8 +305,8 @@ const char *device_period_type_name[] = {"SEC", "MIN", "HOUR"};
 
 void Grow_device::print() {
     Serial.print("System ID: ");
-    for(int i = 0; i < 4; ++i) {
-        uint8_t data = (system_id_ >> ((3 - i) * 8)) & 0xFF;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i) {
+        uint8_t data = system_id_[i];
         if(data < 16)
             Serial.print("0");
         Serial.print(data, 16);

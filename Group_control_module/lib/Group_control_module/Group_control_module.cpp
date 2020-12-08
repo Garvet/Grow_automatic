@@ -466,7 +466,7 @@ bool Group_control_module::filter_sensors(Grow_sensor &sensor) {
     return result;
 }
 // [T] Регистрация модуля(ей)
-bool Group_control_module::regist_device(uint32_t device_id, uint16_t new_adr) {
+bool Group_control_module::regist_device(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> device_id, uint16_t new_adr) {
     bool err = true;
     if(mode_ != GT_SETTING)
         return err;
@@ -528,7 +528,7 @@ bool Group_control_module::regist_device(uint32_t device_id, uint16_t new_adr) {
     // save (-) -----
     return err;
 }
-bool Group_control_module::regist_sensor(uint32_t sensor_id, uint16_t new_adr) {
+bool Group_control_module::regist_sensor(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> sensor_id, uint16_t new_adr) {
     bool err = true;
     if(mode_ != GT_SETTING)
         return err;
@@ -568,20 +568,22 @@ bool Group_control_module::regist_sensor(uint32_t sensor_id, uint16_t new_adr) {
 
                 uint8_t com = 0x01;
                 uint8_t len = 0;
-                uint8_t data[9];
+                uint8_t data[5 + AMT_BYTES_SYSTEM_ID];
                 uint8_t num_byte = 0;
 
-                data[num_byte++] = (sensor_id >> 24) & 0xFF;
-                data[num_byte++] = (sensor_id >> 16) & 0xFF;
-                data[num_byte++] = (sensor_id >>  8) & 0xFF;
-                data[num_byte++] = (sensor_id)       & 0xFF;
+                for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
+                    data[num_byte++] = sensor_id[i];
+                // data[num_byte++] = (sensor_id >> 24) & 0xFF;
+                // data[num_byte++] = (sensor_id >> 16) & 0xFF;
+                // data[num_byte++] = (sensor_id >>  8) & 0xFF;
+                // data[num_byte++] = (sensor_id)       & 0xFF;
 
                 data[num_byte++] = (contact_data_.get_my_adr().group >> 1) & 0xFF;
                 data[num_byte++] = (contact_data_.get_my_adr().group << 7) & 0x80 
                                  | (new_adr >> 8) & 0x7F;
                 data[num_byte++] = (new_adr) & 0xFF;
 
-                data[num_byte++] = (contact_data_.get_channel() >> 8) & 0xFF; // (-) ----- channel на STM!!!
+                data[num_byte++] = (contact_data_.get_channel() >> 8) & 0xFF; // (-) ----- channel со стороны STM!!!
                 data[num_byte++] = (contact_data_.get_channel()     ) & 0xFF;
 
                 packet_system.set_dest_adr(packet, LORA_GLOBAL_ADDRESS);
@@ -607,7 +609,11 @@ bool Group_control_module::regist_sensor(uint32_t sensor_id, uint16_t new_adr) {
                 contact_data_.add_packet(std::move(packet));
                                             // contact_data_.broadcast_send(true);
                                                                     contact_data_.broadcast_send(false); // true!!!
-                                                                    set_mode(Mode::GT_PROCESSING);
+                                                                    static bool test_2_sensor = false;
+                                                                    if(test_2_sensor)
+                                                                        set_mode(Mode::GT_PROCESSING);
+                                                                    else
+                                                                        test_2_sensor = true;
 
         sensors_[num_sensor].set_active(2);
     }
@@ -708,12 +714,14 @@ bool Group_control_module::add_reg_module(const LoRa_packet &reg_packet) {
     uint8_t symbol = 0;
     // Проверка ID
     // (-) ----- превратить в get_id()
-    uint32_t module_id = data[symbol++];
-    module_id = (module_id << 8) | data[symbol++];
-    module_id = (module_id << 8) | data[symbol++];
-    module_id = (module_id << 8) | data[symbol++];
-    if(module_id == 0)  
-        err = true;
+    std::array<uint8_t, AMT_BYTES_SYSTEM_ID> module_id;
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i) 
+        module_id[i] = data[symbol++];
+    // module_id = (module_id << 8) | data[symbol++];
+    // module_id = (module_id << 8) | data[symbol++];
+    // module_id = (module_id << 8) | data[symbol++];
+    // if(module_id == 0)  
+    //     err = true;
     
     if(!err) {
         for(int i = 0; i < reg_devices_.size(); ++i) {

@@ -1,12 +1,14 @@
 #ifndef __PACKET_FIELD_H__
 #define __PACKET_FIELD_H__
 
+#if defined ( ESP32 )
 #include <Arduino.h>
+#endif
 #include <Address_field.h>
 
 // Шапка пакетов, адресация, номера и типы
 const uint16_t LORA_ADDRESS_GROUP = 9;
-const uint16_t LORA_ADDRESS_BRANCH = 24 - LORA_ADDRESS_GROUP; 
+const uint16_t LORA_ADDRESS_BRANCH = 24 - LORA_ADDRESS_GROUP;
 
 const Register Hendler[11] = {Register(0, 8, 0), Register(1, 1, 7), Register(1, 7, 0), Register(2, 8, 0),
                               Register(3, 8, 0), Register(4, 1, 7), Register(4, 7, 0), Register(5, 8, 0),
@@ -29,8 +31,8 @@ const uint8_t num_dest_adr_group = 0,  // Destination Address group
               num_number = 5; // Packet Number
 
 const uint16_t count_field_packet_header = 6;
-const Address_field *field_packet_header[6] = {&field_dest_adr_group, &field_dest_adr_branch, 
-                                               &field_sour_adr_group, &field_sour_adr_branch, 
+const Address_field *field_packet_header[6] = {&field_dest_adr_group, &field_dest_adr_branch,
+                                               &field_sour_adr_group, &field_sour_adr_branch,
                                                &field_type, &field_number};
 
 
@@ -44,9 +46,9 @@ const Register register_PWM[2]   = {Register(0, 4, 0), Register(1, 8, 0)},
 const Address_field field_PWM(&register_PWM[0], 2, true),
                     field_byte(&register_byte[0]),
                     field_float(&register_float[0], 4, false),
-                    field_bit[8] = {Address_field(&register_bit[0]), Address_field(&register_bit[1]), 
-                                    Address_field(&register_bit[2]), Address_field(&register_bit[3]), 
-                                    Address_field(&register_bit[4]), Address_field(&register_bit[5]), 
+                    field_bit[8] = {Address_field(&register_bit[0]), Address_field(&register_bit[1]),
+                                    Address_field(&register_bit[2]), Address_field(&register_bit[3]),
+                                    Address_field(&register_bit[4]), Address_field(&register_bit[5]),
                                     Address_field(&register_bit[6]), Address_field(&register_bit[7])};
 
 
@@ -100,15 +102,15 @@ enum class Command_code {
     // отправить данные о состоянии сигналов
 };
 const uint8_t DEVICE_COMMAND[DEVICE_OBJECT] = {0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x04, 0x04, 0x06};
-const uint8_t device_com_data_0[0x02] = {0, 2},
-              device_com_data_1[0x02] = {0, 1},
-              device_com_data_2[0x02] = {0, 2},
-              device_com_data_3[0x02] = {0, 1},
-              device_com_data_4[0x02] = {0, 1},
-              device_com_data_5[0x02] = {0, 2},
-              device_com_data_6[0x04] = {0, 0, 3, 3},
-              device_com_data_7[0x04] = {0, 1, 1, 8},
-              device_com_data_8[0x06] = {0, 1, 1, 3, 0, 0xFF};
+const uint8_t device_com_data_0[0x02] = {0, 2},                // ШИМ сигнал
+              device_com_data_1[0x02] = {0, 1},                // Цифровой сигнал
+              device_com_data_2[0x02] = {0, 2},                // Вентилятор
+              device_com_data_3[0x02] = {0, 1},                // Насосная система
+              device_com_data_4[0x02] = {0, 1},                // Фитолампа (0|1)
+              device_com_data_5[0x02] = {0, 2},                // Фитолампа (ШИМ)
+              device_com_data_6[0x04] = {0, 0, 3, 3},          // RTC
+              device_com_data_7[0x04] = {0, 1, 1, 8},          // TimeChannel
+              device_com_data_8[0x06] = {0, 1, 1, 3, 0, 0xFF}; // Grow_timer | Day_management
 
 const uint8_t* device_object_data[DEVICE_OBJECT] = {device_com_data_0, device_com_data_1, device_com_data_2,
                                                     device_com_data_3, device_com_data_4, device_com_data_5,

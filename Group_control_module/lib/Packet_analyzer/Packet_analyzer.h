@@ -1,14 +1,14 @@
-// #define __PACKET_ANALYZER_H__ // (-) -----
 #ifndef __PACKET_ANALYZER_H__
 #define __PACKET_ANALYZER_H__
-#define __PACKET_ANALYZER_H__OLD // (-) -----
 
 
+#if defined ( ESP32 )
 #include <Arduino.h>
+#endif
 #include <Address_field.h>
 #include <LoRa_packet.h>
 
-#define MINIMAL_PACKET_SIZE 9 //
+#define AMT_BYTES_SYSTEM_ID 12
 #define PACKET_HEADER_SIZE 9
 extern const uint16_t LORA_ADDRESS_BRANCH;
 
@@ -30,6 +30,7 @@ public:
     uint16_t branch = 0xFFFF; // Адрес ветви
 public:
     LoRa_address() = default;
+    LoRa_address(const uint8_t* bytes, const uint8_t len=3); // массив из 3-х
     LoRa_address(const uint16_t group, const uint16_t branch);
     LoRa_address(const uint32_t adr);
     LoRa_address(const LoRa_address &adr) = default;
@@ -82,7 +83,7 @@ public:
     // bool select_packet(LoRa_packet* packet);
     // uint8_t get_receiv_lenght();
     // uint8_t get_send_lenght();
-    
+
     uint16_t     get_dest_adr_group (const LoRa_packet& packet);  // Адрес группы адресанта
     uint16_t     get_dest_adr_branch(const LoRa_packet& packet);  // Адрес ветви  адресанта
     LoRa_address get_dest_adr       (const LoRa_packet& packet);  // Адрес адресанта
@@ -119,7 +120,7 @@ public:
     // Установить данные
     uint8_t set_data(LoRa_packet& packet, uint8_t *data, uint8_t len);
     // Занести в пакет параметры и данные
-    uint8_t set_packet_data(LoRa_packet& packet, uint8_t *com, uint8_t *data, uint8_t *len); 
+    uint8_t set_packet_data(LoRa_packet& packet, uint8_t *com, uint8_t *data, uint8_t *len);
 
     /// --- Чтение из пакета ---
     // Получить команду
@@ -127,13 +128,13 @@ public:
     // Получить данные
     uint8_t get_data(const LoRa_packet& packet, uint8_t *data, uint8_t *len);
     // Получить из пакета параметры и данные
-    uint8_t get_packet_data(const LoRa_packet& packet, uint8_t *com, uint8_t *data, uint8_t *len); 
-    
+    uint8_t get_packet_data(const LoRa_packet& packet, uint8_t *com, uint8_t *data, uint8_t *len);
+
     /// --- Расчёты ---
     // Узнать объём поля данных по параметрам
-    uint8_t get_size_by_data(const uint8_t *com, const uint8_t *len, uint8_t &size_data); 
+    uint8_t get_size_by_data(const uint8_t *com, const uint8_t *len, uint8_t &size_data);
     // Узнать объём поля данных по содержимому пакета
-    uint8_t get_size_by_packet(const LoRa_packet& packet, uint8_t &size_data); 
+    uint8_t get_size_by_packet(const LoRa_packet& packet, uint8_t &size_data);
 };
 
 class Packet_Sensor: public Packet_analyzer {
@@ -164,7 +165,7 @@ public:
     uint8_t set_packet_data(LoRa_packet& packet, uint8_t *obj, uint8_t *num, uint8_t *com, uint8_t *data, uint8_t *len);
     // получить из пакета параметры и данные
     uint8_t get_packet_data(const LoRa_packet& packet, uint8_t *obj, uint8_t *num, uint8_t *com, uint8_t *data, uint8_t *len);
-    
+
     // узнать объём поля данных по параметрам
     uint8_t get_size_by_data(const uint8_t *obj, const uint8_t *com, uint8_t &size_data);
     // узнать объём поля данных по содержимому пакета
