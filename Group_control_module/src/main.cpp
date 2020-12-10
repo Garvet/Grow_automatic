@@ -201,7 +201,7 @@ void GT_print_f() {
                 if((__GCM__.filter_adr_[j])[k] < 16)
                     Serial.print("0");
                 Serial.print((__GCM__.filter_adr_[j])[k], 16);
-                if(k < 3)
+                if(k < AMT_BYTES_SYSTEM_ID - 1)
                     Serial.print(" ");
             }
             Serial.print("}");
@@ -223,7 +223,7 @@ void GT_print_f() {
                 if((__GCM__.filter_adr_[j])[k] < 16)
                     Serial.print("0");
                 Serial.print((__GCM__.filter_adr_[j])[k], 16);
-                if(k < 3)
+                if(k < AMT_BYTES_SYSTEM_ID - 1)
                     Serial.print(" ");
             }
             Serial.print("}");
@@ -385,7 +385,7 @@ void setup() {
 }
 
 
-int8_t use_type() {
+uint8_t use_type() {
     uint8_t r = -1;
     Serial.print("Write type (0-print, 1-sen, 2-dev): ");
     while(1) {
@@ -393,6 +393,18 @@ int8_t use_type() {
         if((r == '0') || (r == '1')  || (r == '2')) {
             Serial.println(r-'0');
             break;
+        }
+        if((r == 'S') || (r == 's') || (r == 'Ы') || (r == 'ы')) {
+            Serial.println((char)r);
+            return 0xFD;
+        }
+        if((r == 'M') || (r == 'm') || (r == 'Ь') || (r == 'ь')) {
+            Serial.println((char)r);
+            return 0xFC;
+        }
+        if((r == 'E') || (r == 'e') || (r == 'У') || (r == 'у')) {
+            Serial.println((char)r);
+            return 0xFE;
         }
         if(r == ' ')
             return r;
@@ -458,7 +470,7 @@ uint16_t use_sen_num() {
                     if((__GCM__.filter_adr_[j])[k] < 16)
                         Serial.print("0");
                     Serial.print((__GCM__.filter_adr_[j])[k], 16);
-                    if(k < 3)
+                    if(k < AMT_BYTES_SYSTEM_ID - 1)
                         Serial.print(" ");
                 }
                 Serial.print("}");
@@ -493,7 +505,7 @@ uint16_t use_dev_num() {
                     if((__GCM__.filter_adr_[j])[k] < 16)
                         Serial.print("0");
                     Serial.print((__GCM__.filter_adr_[j])[k], 16);
-                    if(k < 3)
+                    if(k < AMT_BYTES_SYSTEM_ID - 1)
                         Serial.print(" ");
                 }
                 Serial.print("}");
@@ -537,12 +549,11 @@ std::array<uint8_t, AMT_BYTES_SYSTEM_ID> use_reg_dev_num() {
     return __GCM__.filter_adr_[r];
 }
 
-#define MAX_MODUL 2
+bool end_serial = false;
 void loop() {
     // int8_t result;
     // result = use_type();
-    static uint8_t correct_regist = 0;
-    while(correct_regist != MAX_MODUL) {
+    while(!end_serial) {
         switch (use_type()) {
         case 0: {
             use_print();
@@ -565,7 +576,6 @@ void loop() {
                 break;
             if(!__GCM__.regist_sensor(system_id, adr_new)) {
                 Serial.println("Correct");
-                ++correct_regist;
             }
             else
                 Serial.println("Error");
@@ -588,10 +598,60 @@ void loop() {
                 break;
             if(!__GCM__.regist_device(system_id, adr_new)) {
                 Serial.println("Correct");
-                ++correct_regist;
             }
             else
                 Serial.println("Error");
+            break;
+        }
+        case 0xFD: {
+            Serial.print("Stady = ");
+            switch (__GCM__.contact_data_.get_state_contact())
+            {
+            case SC_DOWNTIME:
+                Serial.println("SC_DOWNTIME");
+                break;
+            case SC_CONNECTION:
+                Serial.println("SC_CONNECTION");
+                break;
+            case SC_EXCHANGE:
+                Serial.println("SC_EXCHANGE");
+                break;
+            case SC_DISCONNECT:
+                Serial.println("SC_DISCONNECT");
+                break;
+            case SC_COMPLETE:
+                Serial.println("SC_COMPLETE");
+                break;
+
+            case SC_BROADCASTING:
+                Serial.println("SC_BROADCASTING");
+                break;
+            case SC_WAITING:
+                Serial.println("SC_WAITING");
+                break;
+            case SC_PACKET_ACCEPTED:
+                Serial.println("SC_PACKET_ACCEPTED");
+                break;
+            case SC_REPLY_BROADCAST:
+                Serial.println("SC_REPLY_BROADCAST");
+                break;
+            default:
+                break;
+            }
+            break;
+        }
+        case 0xFE:
+            end_serial = true;
+        case 0xFC: {
+            if(__GCM__.mode_ == Group_control_module::GT_SETTING) {
+                Serial.println("Mode = GT_SETTING");
+            }
+            else if(__GCM__.mode_ == Group_control_module::GT_PROCESSING) {
+                Serial.println("Mode = GT_PROCESSING");
+            }
+            else {
+                Serial.println("Mode = ERROR!");
+            }
             break;
         }
         default:
@@ -600,7 +660,7 @@ void loop() {
     }
     // __GCM__.filter_sensors(__GCM__.sensors_[0]);
     // __GCM__.regist_sensor(__GCM__.filter_adr_[0]);
-    if(correct_regist == MAX_MODUL)
+    if(end_serial)
         __GCM__.work_system();
 }
 

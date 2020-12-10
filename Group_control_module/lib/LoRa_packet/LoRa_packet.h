@@ -19,7 +19,7 @@ constexpr size_t SIZE_LORA_PACKET_MAX_LEN = 250; // - 254 max
 constexpr size_t SIZE_LORA_PACKET_BUFFER = 100;
 #else
 constexpr size_t SIZE_LORA_PACKET_MAX_LEN = 50; // - 254 max
-constexpr size_t SIZE_LORA_PACKET_BUFFER = 80;
+constexpr size_t SIZE_LORA_PACKET_BUFFER = 100;
 #endif
  
 class LoRa_packet_data;
@@ -47,7 +47,7 @@ public:
     void set_data(const class LoRa_packet_data& lora_packet);
     void set_data(class LoRa_packet_data&& lora_packet);
 
-    bool free();
+    bool free() const;
 
     class LoRa_packet_data& operator=(const class LoRa_packet& right);
     class LoRa_packet_data& operator=(const class LoRa_packet_data& right);

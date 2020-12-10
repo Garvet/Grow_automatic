@@ -59,7 +59,7 @@ void LoRa_packet_data::set_data(const class LoRa_packet_data& lora_packet) {
 void LoRa_packet_data::set_data(class LoRa_packet_data&& lora_packet) {
     *this = std::move(lora_packet);
 }
-bool LoRa_packet_data::free() {
+bool LoRa_packet_data::free() const {
     return free_object_;
 }
 class LoRa_packet_data& LoRa_packet_data::operator=(const class LoRa_packet& right) {
@@ -88,13 +88,13 @@ class LoRa_packet_data& LoRa_packet_data::operator=(const class LoRa_packet_data
 bool LoRa_packet::search_data() {
 #if defined( USE_STANDARD_ARRAY )
     packet_data = std::find_if(lora_packet_data.begin(), lora_packet_data.end(),
-                        [](const LoRa_packet_data &data){return data.free_object_;} );
+                        [](const LoRa_packet_data &data){return data.free();} );
     if(packet_data == lora_packet_data.end()) {
         packet_data = nullptr;
 #if defined( ESP32 )
         Serial.println("!lora_packet_data memory error!");
-#endif
         abort();
+#endif
         return true;
     }
     packet_data->free_object_ = false;

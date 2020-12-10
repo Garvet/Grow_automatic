@@ -264,14 +264,14 @@ public:
     // Установка адреса этого модуля
     bool set_my_adr(LoRa_address adr);
     // Получаение адреса этого модуля
-    LoRa_address get_my_adr();
+    LoRa_address get_my_adr() const;
     // Получаение адреса устройства соединения
-    LoRa_address get_connect_adr();
+    LoRa_address get_connect_adr() const;
 
     // Установка канала связи
     bool set_channel(uint16_t channel);
     // Получаение канала связи
-    uint16_t get_channel();
+    uint16_t get_channel() const;
 
     // --- Создание пакетов для обмена информацией ---
     bool add_packet(uint8_t len, uint8_t* packet);

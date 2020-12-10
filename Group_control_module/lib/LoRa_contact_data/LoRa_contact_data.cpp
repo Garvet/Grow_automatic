@@ -48,23 +48,23 @@ LoRa_contact_data::LoRa_contact_data() {
     // Преобразовать к нормальному виду (!) ----- (-) -----
     /// Время
     // Инициатор
-    time_constraints_.I_connect  = 1500;    // Ответа на запрос об установке соединения
+    time_constraints_.I_connect  = 1000;    // Ответа на запрос об установке соединения
     time_constraints_.I_wait_connect = -1;  // Отложенного соединения
-    time_constraints_.I_amt_pack = 1500;    // Ответа с количеством принятых пакетов
+    time_constraints_.I_amt_pack = 1000;    // Ответа с количеством принятых пакетов
     time_constraints_.I_num_pack = 1000;    // Ответа с номерами принятых пакетов
     // Получатель
-    time_constraints_.R_connect    = 2500; // Запроса после сброса ожидания (отложенного соединения)
-    time_constraints_.R_data_pack  = 3500; // Пакетов данных (после отправляется пакет с количеством пришедших пакетов)
+    time_constraints_.R_connect    = 2500;  // Запроса после сброса ожидания (отложенного соединения)
+    time_constraints_.R_data_pack  = 3500;  // Пакетов данных (после отправляется пакет с количеством пришедших пакетов)
     time_constraints_.R_correct_pack = 3500;// Результатов подтверждения
     time_constraints_.R_disconnect = 1500;  // Разрыва соединения
     /// Количество
     // Инициатор
-    packet_constraints_.I_connect  = 10;     // Запрос на установку соединения
+    packet_constraints_.I_connect  =  5;     // Запрос на установку соединения
     packet_constraints_.I_amt_pack = 10;     // Запрос о количестве принятых пакетов
     packet_constraints_.I_num_pack = 15;     // Запрос номеров принятых пакетов
     // Получатель
-    packet_constraints_.R_wait_connect = 10; // Сбросов ожидания (отложенного соединения)
-    packet_constraints_.R_correct_pack = 10; // Ответов с количеством принятых пакетов
+    packet_constraints_.R_wait_connect = 3;  // Сбросов ожидания (отложенного соединения)
+    packet_constraints_.R_correct_pack = 3;  // Результатов подтверждения
 
 }
 LoRa_contact_data::LoRa_contact_data(LoRa_address adr) {
@@ -114,11 +114,11 @@ bool LoRa_contact_data::set_my_adr(LoRa_address adr) {
     return false;
 }
 // Получаение адреса этого модуля
-LoRa_address LoRa_contact_data::get_my_adr() {
+LoRa_address LoRa_contact_data::get_my_adr() const {
     return my_adr_;
 }
     // Получаение адреса устройства соединения
-LoRa_address LoRa_contact_data::get_connect_adr() {
+LoRa_address LoRa_contact_data::get_connect_adr() const {
     return connect_adr_;
 }
 
@@ -131,7 +131,7 @@ bool LoRa_contact_data::set_channel(uint16_t channel) {
     return false;
 }
 // Получаение канала связи
-uint16_t LoRa_contact_data::get_channel() {
+uint16_t LoRa_contact_data::get_channel() const {
     return channel_;
 }
 
@@ -275,9 +275,11 @@ bool LoRa_contact_data::end_contact() {
     if((current_stage_.stade_communication != SC_DOWNTIME) &&
       ((current_stage_.stade_communication != SC_CONNECTION) || (current_stage_.type_communication != TC_RECIPIENT))) {
         clear();
+        current_stage_.stade_communication = SC_DOWNTIME;
         past_stage_ = current_stage_;
         return true;
     }
+    current_stage_.stade_communication = SC_DOWNTIME;
     past_stage_ = current_stage_;
     return false;
 }
@@ -2250,11 +2252,11 @@ void LoRa_contact_data::set_LoRa_mode_receive() {
     module_state_ = MS_LoRa_RECIEVE;
 #if defined ( ESP32 )
     lora_.mode_sleep();
-    delay(1);
+    // delay(1);
     lora_.receiver_packet(1, 0);
 #else
     LoRa.mode_sleep();
-    //HAL_Delay(5);
+    //HAL_Delay(1);
     LoRa.receiver_packet(1, 0);
 #endif
 }
@@ -2269,9 +2271,9 @@ void LoRa_contact_data::set_LoRa_mode_send(bool first) {
         time_first_packet_ = time_last_packet_;
 #if defined ( ESP32 )
     lora_.mode_sleep();
-    delay(3);
+    delay(7);
     lora_.mode_FSTX();
-    delay(3);
+    delay(7);
                                                             #if defined( SERIAL_PRINT_ON ) || defined( SERIAL_PRINT_ON_1)
                                                             LoRa_packet out;
                                                             out = last_send_packet_;
@@ -2295,9 +2297,9 @@ void LoRa_contact_data::set_LoRa_mode_send(bool first) {
                                                             #endif
 #else
     LoRa.mode_sleep();
-    //HAL_Delay(7);
+    for(int i = 0; i < 125000; i++) __NOP(); // HAL_Delay(3);
     LoRa.mode_FSTX();
-    //HAL_Delay(7);
+    for(int i = 0; i < 125000; i++) __NOP(); // HAL_Delay(3);
     LoRa.sender_packet(&last_send_packet_[0], last_send_packet_.get_len(), false);
 #endif
 }

@@ -117,8 +117,8 @@ const uint8_t* device_object_data[DEVICE_OBJECT] = {device_com_data_0, device_co
                                                     device_com_data_6, device_com_data_7};
 
 // ----- system (системные пакеты) -----
-const uint8_t SYSTEM_COMMAND_DATA = 0x06 + 1;
-const uint8_t system_com_data[SYSTEM_COMMAND_DATA] = {0xFF, 9, 0, 5, 2, 3, 0xFF};
+const uint8_t SYSTEM_COMMAND_DATA = 0x07 + 1;
+const uint8_t system_com_data[SYSTEM_COMMAND_DATA] = {0xFF, 3+AMT_BYTES_SYSTEM_ID, 2, 0, 5, 2, 3, 0xFF};
 // const uint8_t SYSTEM_COMMAND_DATA = 0x11;
 // uint8_t system_com_data[SYSTEM_COMMAND_DATA] = {0xFF, 0, 0xFF, 3, 0, 3, 3, 2, 5, 0xFF, 3, 3, 0, 1, 2, 6, 6};
 
