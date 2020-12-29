@@ -5,6 +5,7 @@
 
 #include <Arduino.h>
 
+#include <GCM_interface.h>
 #include <Group_control_module.h>
 // #include <Grow_sensor.h>
 
@@ -74,25 +75,102 @@ Group_control_module __GCM__;
 //                      0x01,                         // component.size()
 //                      0x05, 0x02, 0x01, 0x10, 0x07  // component[0]
 //                      };
+
+// uint8_t data[100] = {0x00, 0x01, // Address
+//                      0x00, 0x04, // Channel
+//                      0x0F,       // Name.size()
+//                      0x00, 0x02, // Sensors.size() //  0x00, 0x03, // Sensors.size()
+//                      0x00, 0x00, // Devices.size()
+//                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
+//                      // Sensor[0]
+//                      0x00, 0x00, 0x20, 0x00, // period
+//                      0x01,                   // component.size()
+//                      0x06,                   // component.type[0-1]
+//                      // Sensor[1]
+//                      0x00, 0x00, 0x2F, 0x10, // period
+//                      0x01,                   // component.size()
+//                      0x06,                   // component.type[0-1]
+//                     //  // Sensor[2]
+//                     //  0x00, 0x00, 0x00, 0x20, // period
+//                     //  0x01,                   // component.size()
+//                     //  0x06,                   // component.type[0-1]
+//                      };
+
+// uint8_t data[100] = {0x00, 0x01, // Address
+//                      0x00, 0x04, // Channel
+//                      0x0F,       // Name.size()
+//                      0x00, 0x01, // Sensors.size() //  0x00, 0x03, // Sensors.size()
+//                      0x00, 0x00, // Devices.size()
+//                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
+//                      // Sensor[0]
+//                      0x00, 0x00, 0x75, 0x30, // period
+//                      0x03,                   // component.size()
+//                      0x03, 0x04, 0x06,                   // component.type[0-1]
+//                      //  Sensor[1]
+//                      //  0x00, 0x00, 0x2F, 0x10, // period
+//                      //  0x01,                   // component.size()
+//                      //  0x06,                   // component.type[0-1]
+//                      //  // Sensor[2]
+//                      //  0x00, 0x00, 0x00, 0x20, // period
+//                      //  0x01,                   // component.size()
+//                      //  0x06,                   // component.type[0-1]
+//                     };
+
+// uint8_t data[100] = {0x00, 0x01, // Address
+//                      0x00, 0x04, // Channel
+//                      0x0F,       // Name.size()
+//                      0x00, 0x01, // Sensors.size() //  0x00, 0x03, // Sensors.size()
+//                      0x00, 0x00, // Devices.size()
+//                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
+//                      // Sensor[0]
+//                      0x00, 0x00, 0x20, 0x30, // period
+//                      0x03,                   // component.size()
+//                      0x03, 0x04, 0x06,                   // component.type[0-1]
+//                      //  Sensor[1]
+//                      //  0x00, 0x00, 0x2F, 0x10, // period
+//                      //  0x01,                   // component.size()
+//                      //  0x06,                   // component.type[0-1]
+//                      //  // Sensor[2]
+//                      //  0x00, 0x00, 0x00, 0x20, // period
+//                      //  0x01,                   // component.size()
+//                      //  0x06,                   // component.type[0-1]
+//                     };
+
 uint8_t data[100] = {0x00, 0x01, // Address
                      0x00, 0x04, // Channel
                      0x0F,       // Name.size()
-                     0x00, 0x02, // Sensors.size() //  0x00, 0x03, // Sensors.size()
+                     0x00, 0x06, // Sensors.size() //  0x00, 0x03, // Sensors.size()
                      0x00, 0x00, // Devices.size()
                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
                      // Sensor[0]
-                     0x00, 0x00, 0x20, 0x00, // period
-                     0x01,                   // component.size()
-                     0x06,                   // component.type[0-1]
+                     0x00, 0x00, 0xEA, 0x60, // period
+                     0x03,                   // component.size()
+                     0x03, 0x04, 0x06,       // component.type[0-1]
                      // Sensor[1]
-                     0x00, 0x00, 0x2F, 0x10, // period
-                     0x01,                   // component.size()
-                     0x06,                   // component.type[0-1]
-                    //  // Sensor[2]
-                    //  0x00, 0x00, 0x00, 0x20, // period
-                    //  0x01,                   // component.size()
-                    //  0x06,                   // component.type[0-1]
-                     };
+                     0x00, 0x00, 0xEA, 0x60, // period
+                     0x03,                   // component.size()
+                     0x03, 0x04, 0x06,       // component.type[0-1]
+                     // Sensor[2]
+                     0x00, 0x00, 0xEA, 0x60, // period
+                     0x03,                   // component.size()
+                     0x03, 0x04, 0x06,       // component.type[0-1]
+                     // Sensor[3]
+                     0x00, 0x00, 0xEA, 0x60, // period
+                     0x03,                   // component.size()
+                     0x03, 0x04, 0x06,       // component.type[0-1]
+                     // Sensor[4]
+                     0x00, 0x00, 0xEA, 0x60, // period
+                     0x03,                   // component.size()
+                     0x03, 0x04, 0x06,       // component.type[0-1]
+                     // Sensor[5]
+                     0x00, 0x00, 0xEA, 0x60, // period
+                     0x03,                   // component.size()
+                     0x03, 0x04, 0x06,       // component.type[0-1]
+                    //  // Sensor[6]
+                    //  0x00, 0x00, 0xEA, 0x60, // period
+                    //  0x03,                   // component.size()
+                    //  0x03, 0x04, 0x06,       // component.type[0-1]
+                    };
 
 extern std::array<LoRa_packet_data, SIZE_LORA_PACKET_BUFFER> lora_packet_data;
 void GT_print_NR_S() {
@@ -236,6 +314,7 @@ void GT_print_f() {
     Serial.println();
 }
 
+bool end_serial = false;
 
 void setup() {
     Serial.begin(115200);
@@ -244,6 +323,7 @@ void setup() {
     Serial.println("Start!");
     Serial.println();
     uint8_t result;
+    gcm_interface.set_group_control_module(&__GCM__);
     __GCM__.LoRa_init(PIN_RESET, SPI_BUS, SPI_NSS, PIN_DIO0, PIN_DIO1);
     result = __GCM__.begin(); // 0 - correct, other - num LoRa_error
     if(result != 0) {
@@ -288,11 +368,45 @@ void setup() {
     if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
 #endif
-    GT_print();
-    GT_print_f();
     
+    if(1) {
+        std::array<uint8_t, AMT_BYTES_SYSTEM_ID> sensors_id[6] = {
+            {0x5f, 0xdc, 0xbd, 0xcb, 0x5f, 0x25, 0x97, 0x30, 0x86, 0x17, 0x08, 0x9c},
+            {0x5f, 0xdc, 0xbe, 0xc9, 0x5f, 0x25, 0x97, 0x30, 0x86, 0x17, 0x08, 0x9d},
+            {0x5f, 0xdc, 0xbe, 0xce, 0x5f, 0x25, 0x97, 0x30, 0x86, 0x17, 0x08, 0x9e},
+            {0x5f, 0xdc, 0xbe, 0xd7, 0x5f, 0x25, 0x97, 0x30, 0x86, 0x17, 0x08, 0x9f},
+            {0x5f, 0xdc, 0xbe, 0xd9, 0x5f, 0x25, 0x97, 0x30, 0x86, 0x17, 0x08, 0xa0},
+            {0x5f, 0xdc, 0xbe, 0xda, 0x5f, 0x25, 0x97, 0x30, 0x86, 0x17, 0x08, 0xa1}
+            // {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01},
+            // {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02},
+            // {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x03},
+            // {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x04},
+            // {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x05},
+            // {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x06},
+            // {0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x07}
+        };
+        for(int i = 0; i < __GCM__.sensors_.size(); ++i) {
+            __GCM__.sensors_[i].set_active(2);
+            __GCM__.sensors_[i].set_system_id(sensors_id[i]);
+        }
+        __GCM__.contact_data_.end_contact();
+        __GCM__.set_mode(Group_control_module::GT_PROCESSING);
+        end_serial = true;
+        GT_print();
 
 
+        std::array<char, AMT_BYTES_NETWORK_NAME> networkName = {"213_Guest"};
+        std::array<char, AMT_BYTES_NETWORK_PASSWORD> networkPswd = {"11081975"};
+        std::array<char, AMT_BYTES_NETWORK_ADDRESS> udpAddress = {"95.181.230.220"}; //"192.168.1.56"; //"192.168.0.255"; 0123456789
+        const int udpPort = 3333;
+        // gcm_interface.init_server_connect(networkName, 10, networkPswd, 9, udpAddress, AMT_BYTES_NETWORK_ADDRESS, udpPort);
+        // delay(2500);
+        // gcm_interface.report_to_server_regist_data();
+    }
+    else {
+        GT_print();
+        GT_print_f();
+    }
     /*
     {
         uint8_t size = 0;
@@ -549,10 +663,10 @@ std::array<uint8_t, AMT_BYTES_SYSTEM_ID> use_reg_dev_num() {
     return __GCM__.filter_adr_[r];
 }
 
-bool end_serial = false;
+ulong time_interval = 3600000;
 void loop() {
-    // int8_t result;
-    // result = use_type();
+    static ulong time_data = millis();
+    
     while(!end_serial) {
         switch (use_type()) {
         case 0: {
@@ -658,10 +772,17 @@ void loop() {
             break;
         }
     }
-    // __GCM__.filter_sensors(__GCM__.sensors_[0]);
-    // __GCM__.regist_sensor(__GCM__.filter_adr_[0]);
-    if(end_serial)
+    
+    if(end_serial) {
         __GCM__.work_system();
+        gcm_interface.report_to_server_read_data();
+
+
+        // if(millis() - time_data > time_interval) {
+        //     gcm_interface.report_to_server_regist_data();
+        //     time_data += time_interval;
+        // }
+    }
 }
 
 

@@ -22,9 +22,12 @@
 #define MAX_AMT_SENSOR 0x3FF5 // максимальное число датчиков (условно)
 #define MAX_AMT_DEVICE 0x3FF5 // максимальное число устройств (условно)
 
+#define SYSTEM_ID_GCM std::array<uint8_t, AMT_BYTES_SYSTEM_ID>({0x5f, 0xdc, 0xbd, 0xcb, 0x5f, 0x25, 0x97, 0x30, 0x86, 0x17, 0x08, 0x9b})
+
 class Group_control_module {
 // private: // (-) ----- верни приватность полей и некоторых функций
 public:
+    const std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id_ = SYSTEM_ID_GCM; // id модуля
     std::vector<char> name_; // Имя модуля (в т.ч. Bluetooth)
     enum Mode {
         GT_SETTING = 0, // Режим настройки (установка конфигурации и регистрация моделей)
@@ -125,6 +128,8 @@ public:
     bool remove_module(uint16_t adr);
     // Установка режима работы системы
     bool set_mode(Group_control_module::Mode mode);
+    // установка индивидуального номера платы
+    std::array<uint8_t, AMT_BYTES_SYSTEM_ID> get_system_id() const;
 
     // --- Байтовая строка обмена ---
     // (-) ----- сделать функции обмена с Денисом, возможно ещё в set_configuration(std::vector<uint8_t> data);

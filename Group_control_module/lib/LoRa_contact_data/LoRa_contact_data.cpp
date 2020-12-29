@@ -978,7 +978,7 @@ void LoRa_contact_data::sort_num_packet() {
 #if defined ( USE_VECTOR )
     for(unsigned int i = 0; (i < (reciev_packet_.size() - 1)) && (reciev_packet_.size() != 0);)
 #else
-    for(unsigned int i = 0; (i < (reciev_packet_len - 1)) && (reciev_packet_len != 0);)
+    for(uint8_t i = 0; (i < (reciev_packet_len - 1)) && (reciev_packet_len != 0);)
 #endif
     {
         swap = false;
@@ -1184,7 +1184,6 @@ uint32_t LoRa_contact_data::init_connection_expect(Stage_control& use_stage) {
     }
     return error;
 }
-
 uint32_t LoRa_contact_data::init_connection_wait(Stage_control& use_stage) {
     uint32_t error = 0;
     // ----- Пути -----
@@ -1330,7 +1329,6 @@ uint32_t LoRa_contact_data::init_exchange_boardcast(Stage_control& use_stage) {
     }
     return error;
 }
-
 uint32_t LoRa_contact_data::init_exchange_wait_confirmation(Stage_control& use_stage) {
     uint32_t error = 0;
     // ----- Пути -----
@@ -1619,6 +1617,7 @@ uint32_t LoRa_contact_data::recip_connection(Stage_control& use_stage) {
     }
     return error;
 }
+
 uint32_t LoRa_contact_data::recip_connection_queue_check(Stage_control& use_stage) {
     uint32_t error = 0;
     // ----- Пути -----
@@ -1849,6 +1848,7 @@ uint32_t LoRa_contact_data::recip_exchange(Stage_control& use_stage) {
     }
     return error;
 }
+
 uint32_t LoRa_contact_data::recip_exchange_expect(Stage_control& use_stage) {
     uint32_t error = 0;
     // ----- Пути -----
@@ -1884,14 +1884,17 @@ uint32_t LoRa_contact_data::recip_exchange_expect(Stage_control& use_stage) {
             }
 #endif
             else {
-                // подготовка пакета подтверждения о принятии N пакетов
-                create_amt_packet();
-                set_LoRa_mode_send();
+                // подготовка пакета подтверждения о принятии N пакетов (-) ----- текущая реализация (что в комментариях) приводит к зацикливанию
                 if(!use_past_stage)
                     past_stage_ = current_stage_;
                 else
                     current_stage_ = past_stage_;
-                current_stage_.exchange = E_WAITING_REACTION;
+                                                                        // current_stage_.exchange = E_WAITING_REACTION;
+                                                                        // create_amt_packet();
+                                                                        // set_LoRa_mode_send();
+                current_stage_.stade_communication = SC_DOWNTIME;
+                create_disconnet_packet(true);
+                set_LoRa_mode_send(true);
             }
         }
         else {
@@ -1933,13 +1936,18 @@ uint32_t LoRa_contact_data::recip_exchange_expect(Stage_control& use_stage) {
                                                             #ifdef SERIAL_PRINT_ON
                                                             Serial.println("R.E.E.!R!.C.X");
                                                             #endif // SERIAL_PRINT_ON
-                if(!use_past_stage) {
-                    use_past_stage = true;
-                    error = work_contact_system();
-                    use_past_stage = false;
+                if(past_stage_.type_communication == TC_INITIATOR) {
+                    set_LoRa_mode_send();
                 }
-                else
-                    set_LoRa_mode_receive(); // -+-+-
+                else {
+                    if(!use_past_stage) {
+                        use_past_stage = true;
+                        error = work_contact_system();
+                        use_past_stage = false;
+                    }
+                    else
+                        set_LoRa_mode_receive(); // -+-+-
+                }
             }
         }
         break;

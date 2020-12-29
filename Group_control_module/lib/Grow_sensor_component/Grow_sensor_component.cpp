@@ -3,7 +3,7 @@
 Grow_sensor_component::Grow_sensor_component(Type_sensor type_sensor, uint8_t id) {
     type_sensor_ = type_sensor;
     id_ = id;
-    value_ = 0;
+    value_.f_val = 0;
 }
 
 enum Type_sensor Grow_sensor_component::get_type() const {
@@ -16,12 +16,21 @@ void Grow_sensor_component::set_id(uint8_t id) {
     id_ = id;
 }
 float Grow_sensor_component::get_value() const {
-    return value_;
+    return value_.f_val;
+}
+uint32_t Grow_sensor_component::get_value_uint() const {
+    return value_.u_val;
 }
 bool Grow_sensor_component::set_value(float value) {
-    if(value_ == value)
+    if(value_.f_val == value)
         return false;
-    value_ = value;
+    value_.f_val = value;
+    return true;
+}
+bool Grow_sensor_component::set_value(uint32_t value) {
+    if(value_.u_val == value)
+        return false;
+    value_.u_val = value;
     return true;
 }
 

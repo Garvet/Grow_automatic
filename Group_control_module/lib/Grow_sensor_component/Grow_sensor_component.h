@@ -26,7 +26,12 @@ class Grow_sensor_component {
 private:
     enum Type_sensor type_sensor_; // тип датчика
     uint8_t id_;  // номер датчика данного типа
-    float value_; // показатель датчика
+    union {
+        float f_val;
+        uint32_t u_val;
+    } value_;
+    
+    // float value_; // показатель датчика
 public:
     Grow_sensor_component(Type_sensor type_sensor=Analog_signal, uint8_t id=0);
     ~Grow_sensor_component() = default;
@@ -41,8 +46,10 @@ public:
 
     // Получить значение считанного показателя
     float get_value() const;
+    uint32_t get_value_uint() const;
     // Установить значение считанного показателя
     bool set_value(float value);
+    bool set_value(uint32_t value);
 
     // Проверка совпадения неизменяемых программно частей модуля
     bool filter(Grow_sensor_component &component);

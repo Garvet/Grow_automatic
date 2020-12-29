@@ -10,6 +10,11 @@ enum Time_type {
     HOUR
 };
 
+enum class Type_time_control {
+    TIMER_CHANNEL=0, 
+    GROW_TIMER
+};
+
 class Time_control {
 private:
     // Варианты временного контроля:
@@ -18,6 +23,8 @@ private:
 public:
     Time_control(/* args */);
     ~Time_control();
+    
+    
 };
 
 

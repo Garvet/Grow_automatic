@@ -3,6 +3,9 @@
 #define NUM_SENSOR 0x01
 #define NUM_DEVICE 0x02
 
+uint32_t amt_error_connect = 0;
+uint32_t amt_error_connect_num[6] = {0, 0, 0, 0, 0, 0};
+
 // (!) ----- Переделать в нормальный вид (pin -> тот или иной GT)
 static Group_control_module* group_control_module_interrupt;
 void lora_interrupt() {
@@ -108,6 +111,8 @@ uint8_t Group_control_module::work_system() {
     in_work_system = false;
     return 0;
 }
+static float value = 0.0;
+static float* p_value = nullptr;
 void Group_control_module::LoRa_interrupt() { 
     // (контролирует каждый шаг передачи, по завершению запускает work_system, контролирует трансляцию, заносит запросы регистрации)
     // (-) -----
@@ -140,6 +145,16 @@ void Group_control_module::LoRa_interrupt() {
             }
         }
         else {
+            ++amt_error_connect; // (?) -----
+            LoRa_address adr = contact_data_.get_connect_adr();
+            for(int i = 0; i < sensors_.size(); ++i) {
+                if(sensors_[i].get_address() == adr.branch) {
+                    amt_error_connect_num[i] += 1;
+                    break;
+                }
+            }
+            
+
             Serial.print("Err: ");
             Serial.println(error);
         }
@@ -277,15 +292,27 @@ void Group_control_module::LoRa_interrupt() {
         }
         case GT_PROCESSING: {
             if(contact_data_.get_signal_complete()) {
-                                                    Serial.println("check sensor complete");
+                                                                                                                    Serial.print("check sensor complete (amt error = ");
+                                                                                                                    Serial.print(amt_error_connect);
+                                                                                                                    Serial.print(") [");
+                                                                                                                    for(int i = 0; i < sensors_.size(); ++i) {
+                                                                                                                        Serial.print("err№");
+                                                                                                                        Serial.print(i+1);
+                                                                                                                        Serial.print(" = ");
+                                                                                                                        Serial.print(amt_error_connect_num[i]);
+                                                                                                                        if(i < sensors_.size() - 1)
+                                                                                                                            Serial.print(";  ");
+                                                                                                                    }
+                                                                                                                    Serial.println("]");
                 // (-) -----
                 // Обработать показания с датчиков 
                 LoRa_packet packet_processing;
                 std::vector<LoRa_packet> packets = contact_data_.get_all_packet();
                 uint16_t num_sensor;
                 for(num_sensor = 0; num_sensor < sensors_.size(); ++num_sensor) {
-                    if(sensors_[num_sensor].get_address() == contact_data_.get_connect_adr())
+                    if(sensors_[num_sensor].get_address() == contact_data_.get_connect_adr().branch) {
                         break;
+                    }
                 }
                 if(num_sensor < sensors_.size()) {
                     for(int i = 0; i < packets.size(); ++i) {
@@ -293,7 +320,51 @@ void Group_control_module::LoRa_interrupt() {
                         // if(packet_processing.packet->get_sour_adr() != contact_data_.get_connect_adr())
                         if(packet_analyzer.get_sour_adr(packets[i]) != contact_data_.get_connect_adr())
                             continue; // (-) ----- неправильная обработка (?) ----- возврат пакета обратно, можно запомнить i
+
                         //                           (!) ----- (-) ----- (-) ----- (-) ----- (!) ----- interface
+                        if(packet_analyzer.get_packet_type(packets[i]) == Packet_Type::SENSOR) {
+                            uint8_t amt = 0;
+                            uint8_t size = 0;
+                            uint8_t id[3];
+                            uint8_t param[3];
+                            uint32_t data[3]; 
+                            for(int j = 0; j < 3; ++j)
+                                id[j] = param[j] = data[j] = 0;
+
+                            packet_sensor.set_setting(sensors_[num_sensor].get_setting());
+                            packet_sensor.get_size_by_packet(packets[i], &amt, nullptr, size);
+                            if(amt == 0)
+                                continue;
+
+
+                            packet_sensor.get_packet_data(packets[i], &amt, param, id, data);
+                            for(int j = 0; j < amt; ++j) {
+                                for(int k = 0; k < sensors_[num_sensor].get_count_component(); ++k) {
+                                    if(sensors_[num_sensor].get_component(k).get_type() == param[j])
+                                        if(sensors_[num_sensor].get_component(k).get_id() == id[j]) {
+                                            // у 0x00 тип uint16_t = 0-4095, у 0x01 тип bool
+                                            if(param[j] == 0x00 || (param[j] == 0x01)) { 
+                                                value = data[j];
+                                                sensors_[num_sensor].set_value(k, value);
+                                            }
+                                            else {
+                                                sensors_[num_sensor].set_value(k, data[j]);
+                                                                                                                    // float g_value;
+                                                                                                                    // Serial.print("Sensor data T[");
+                                                                                                                    // Serial.print(param[j]);
+                                                                                                                    // Serial.print("] id№");
+                                                                                                                    // Serial.print(id[j]);
+                                                                                                                    // Serial.print(" : ");
+                                                                                                                    // sensors_[num_sensor].get_value(k, g_value);
+                                                                                                                    // Serial.println(g_value);
+                                            }
+                                            break;
+                                        }
+                                }
+                            }
+
+                        }
+
                         // if(packet_processing.type_packet == PACKET_SENSOR) {
                         //     float value = 0.0;
                         //     uint8_t amt = 0;
@@ -682,7 +753,10 @@ bool Group_control_module::set_mode(Group_control_module::Mode mode) {
     // save (-) -----
     return true;
 }
-
+// получение индивидуального номера платы
+std::array<uint8_t, AMT_BYTES_SYSTEM_ID> Group_control_module::get_system_id() const {
+    return system_id_;
+}
 
 
 //   ----- ----- ----- ----- ----- ----- -----
@@ -725,7 +799,7 @@ bool Group_control_module::add_reg_module(const LoRa_packet &reg_packet) {
     if(packet_analyzer.get_packet_type(reg_packet) != Packet_Type::SYSTEM)
         return true;
 
-    if(packet_system.get_size_by_packet(reg_packet, size) || (size < 4))
+    if(packet_system.get_size_by_packet(reg_packet, size) || (size < AMT_BYTES_SYSTEM_ID))
         return true;
 
 

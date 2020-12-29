@@ -91,8 +91,10 @@ public:
 
     // Установить значение считанного показателя, если ошибка возврат true
     bool set_value(uint8_t num, float value);
+    bool set_value(uint8_t num, uint32_t value);
     // Получить значение считанного показателя, если ошибка возврат true
     bool get_value(uint8_t num, float &result) const;
+    bool get_value(uint8_t num, uint32_t &result) const;
     // Установить значения считанных показателей, если ошибка возврат true
     bool set_value(const std::vector<float>& value);
     // Получить вектор значений считанных показателей

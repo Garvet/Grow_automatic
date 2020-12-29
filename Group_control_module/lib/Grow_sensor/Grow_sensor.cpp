@@ -165,10 +165,23 @@ bool Grow_sensor::set_value(uint8_t num, float value) {
     change_value_ = true;
     return false;
 }
+bool Grow_sensor::set_value(uint8_t num, uint32_t value) {
+    if(get_count_component() <= num)
+        return true;
+    component_[num].set_value(value);
+    change_value_ = true;
+    return false;
+}
 bool Grow_sensor::get_value(uint8_t num, float &result) const {
     if(get_count_component() <= num)
         return true;
     result = component_[num].get_value();
+    return false;
+}
+bool Grow_sensor::get_value(uint8_t num, uint32_t &result) const {
+    if(get_count_component() <= num)
+        return true;
+    result = component_[num].get_value_uint();
     return false;
 }
 bool Grow_sensor::set_value(const std::vector<float>& value) {

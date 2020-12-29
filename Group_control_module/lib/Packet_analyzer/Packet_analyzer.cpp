@@ -338,7 +338,7 @@ uint8_t Packet_Connection::get_size_by_data(const uint8_t *com, const uint8_t *l
             size_data = *len;
             break;
         case 0x06:
-            size_data = *len * 2;
+            size_data = *len;
             break;
         case 0x09:
             size_data = 0; // (!) ----- ----- ----- ----- -----
@@ -565,7 +565,8 @@ uint8_t Packet_Sensor::get_size_by_packet(const LoRa_packet& packet, uint8_t *am
     for (int i = 0; i < *amt; ++i) {
         if (field_bit[1].get_value(&setting_) != 1) {
             param_ = field_byte.get_value(packet, last_read_byte);
-            param[i] = param_;
+            if(param != nullptr)
+                param[i] = param_;
             ++last_read_byte;
         }
         else {
