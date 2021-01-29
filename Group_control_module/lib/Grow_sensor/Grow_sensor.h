@@ -1,9 +1,13 @@
 #ifndef __GROW_SENSOR_H__
 #define __GROW_SENSOR_H__
 
-#define SERIAL_LOG_OUTPUT
-
+#if defined( ESP32 )
 #include <Arduino.h>
+#define SERIAL_LOG_OUTPUT
+#else
+#include <main.h>
+#endif
+
 #include <vector>
 #include <Grow_sensor_component.h>
 
@@ -17,6 +21,10 @@ private:
     std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id_;
     uint16_t address_; // адрес датчика
     std::vector<Grow_sensor_component> component_; // вектор компонентов датчиков (не как плата, а как механический модуль)
+
+#if !defined( ESP32 )
+    LoRa_address address_control_module_;
+#endif
 
     unsigned long read_time_; // время последнего считывания
     unsigned long end_time_; // время последней проверки для считывания
@@ -38,7 +46,7 @@ public:
     /// --- Поля класса-платы ---
 
     // установка индивидуального номера платы
-    void set_system_id(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id_);
+    void set_system_id(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id);
     // получение индивидуального номера платы
     std::array<uint8_t, AMT_BYTES_SYSTEM_ID> get_system_id() const;
 
@@ -56,6 +64,13 @@ public:
     bool set_address(uint16_t address);
     // получение адреса модуля (ветви, без группы)
     uint16_t get_address() const;
+
+#if !defined( ESP32 )
+    // установка адреса МУГа ()
+    bool set_address_control_module(LoRa_address address);
+    // получение адреса МУГа
+    LoRa_address get_address_control_module() const;
+#endif
 
     // Установка настроек LoRa-передачи
     void set_setting(uint8_t setting);

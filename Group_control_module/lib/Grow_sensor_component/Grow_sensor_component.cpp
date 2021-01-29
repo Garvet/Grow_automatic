@@ -55,5 +55,5 @@ size_t Grow_sensor_component::set_data(uint8_t *data, size_t available_size) {
         return 0;
     size_t size = 0;
     type_sensor_ = (enum Type_sensor)(data[size++]);
-    return size;    
+    return size;
 }

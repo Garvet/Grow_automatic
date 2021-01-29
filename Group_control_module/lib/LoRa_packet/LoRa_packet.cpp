@@ -93,7 +93,6 @@ bool LoRa_packet::search_data() {
         packet_data = nullptr;
 #if defined( ESP32 )
         Serial.println("!lora_packet_data memory error!");
-        abort();
 #endif
         return true;
     }

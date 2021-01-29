@@ -9,7 +9,7 @@ Grow_device_component::Grow_device_component(enum Type_device type_device, uint8
 }
 
 enum Type_device Grow_device_component::get_type() {
-    return type_device_;    
+    return type_device_;
 }
 
 uint8_t Grow_device_component::get_id() {
@@ -54,7 +54,7 @@ size_t Grow_device_component::get_size() {
     // enum Period_type _period_type; << 255
     // uint8_t _frequency;
     // uint8_t _period;
-    // uint8_t _bias; 
+    // uint8_t _bias;
     return (5);
 }
 size_t Grow_device_component::get_data(uint8_t *data) {
@@ -89,5 +89,3 @@ size_t Grow_device_component::set_data(uint8_t *data, size_t available_size) {
     // period_ = Period_adjuster(period, bias, max_period, (max_period / frequency));
     return size;
 }
-
-

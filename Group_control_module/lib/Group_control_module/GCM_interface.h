@@ -5,8 +5,10 @@
 #include <Group_control_module.h>
 // WiFi
 #include <WiFi.h>
-#include <FS.h>
-#include <WiFiUdp.h>
+#include <WiFiMulti.h>
+// #include <FS.h>
+#include <WiFiClient.h>
+// #include <WiFiUdp.h>
 // Bluetooth
 #include <BluetoothSerial.h>
 
@@ -37,9 +39,10 @@ private:
     BluetoothSerial SerialBT_;
     int command_code_ = 0;
 
+    
     friend void WiFiEvent(WiFiEvent_t event);
     friend void connectToWiFi();
-    friend void WiFisend();
+    friend bool WiFisend();
     
 public:
     GCM_interface() = default;

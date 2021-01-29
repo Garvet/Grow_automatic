@@ -9,14 +9,16 @@ static uint8_t  len_network_name_ = 0;
 static uint8_t  len_network_pswd_ = 0;
 static uint8_t  len_network_adr_  = 0;
 static uint32_t network_port_ = 0;
-static WiFiUDP udp_;
-static bool connected_ = false;
+static WiFiMulti wifiMulti;
+// static WiFiUDP udp_;
+WiFiClient client;
+static bool connected = false;
 
 static uint8_t buffer[AMT_BYTES_BUFFER];
 static uint16_t buf_len = 0;
 void WiFiEvent(WiFiEvent_t event);
 void connectToWiFi();
-void WiFisend();
+bool WiFisend();
 
 extern const uint16_t LORA_ADDRESS_BRANCH;
 
@@ -217,15 +219,42 @@ size_t GCM_interface::set_data(uint8_t *data, size_t available_size) {
 void connectToWiFi() {
                                                                                                         // Serial.println("Connecting to WiFi network: " + String(ssid));
 
-  // delete old config
-  WiFi.disconnect(true);
-  //register event handler
-  WiFi.onEvent(WiFiEvent);
+//   // delete old config
+//   WiFi.disconnect(true);
+//   //register event handler
+//   WiFi.onEvent(WiFiEvent);
   
-  //Initiate connection
-  WiFi.begin(network_name_, network_pswd_);
+//   //Initiate connection
+//   WiFi.begin(network_name_, network_pswd_);
 
-                                                                                                        Serial.println("Waiting for WIFI connection...");
+//                                                                                                         Serial.println("Waiting for WIFI connection...");
+
+
+
+
+
+    wifiMulti.addAP(network_name_, network_pswd_);
+                                                                                                        Serial.print("Waiting for WIFI connection...");
+    uint8_t wait_time = 10;
+    connected = true;
+    while (wifiMulti.run() != WL_CONNECTED) {
+        if(wait_time == 0) {
+                                                                                                        Serial.println("\nWiFi lost connection");
+            connected = false;
+            break;
+        }
+        delay(500);
+        Serial.print(".");
+        --wait_time;
+    }
+    if(connected)
+                                                                                                        Serial.println("\nWiFi connection");
+
+
+
+
+
+                                                                                                        
 }
 void WiFiEvent(WiFiEvent_t event) {
     switch(event) {
@@ -235,30 +264,64 @@ void WiFiEvent(WiFiEvent_t event) {
                                                                                                         Serial.println(WiFi.localIP());  
           //initializes the UDP state
           //This initializes the transfer buffer
-          udp_.begin(WiFi.localIP(), network_port_);
-          connected_ = true;
+        //   udp_.begin(WiFi.localIP(), network_port_);
+          connected = true;
           break;
       case SYSTEM_EVENT_STA_DISCONNECTED:
                                                                                                         Serial.println("WiFi lost connection");
-          connected_ = false;
+          connected = false;
           break;
       default: break;
     }
-                                                                                                        if(connected_) {
+                                                                                                        if(connected) {
                                                                                                             Serial.println("True connection");
                                                                                                         }
                                                                                                         else {
                                                                                                             Serial.println("False connection");
                                                                                                         }
 }
-void WiFisend() {
-    // udp_.begin(WiFi.localIP(), network_port_);
-    udp_.beginPacket(network_adr_, network_port_);
-    for(int i = 0; i < buf_len; ++i) {
-        udp_.write(buffer[i]);
+
+#define SEND_WAIT_ERROR 5000u
+bool WiFisend() {
+    static uint32_t send_wait_error = millis() - SEND_WAIT_ERROR;
+    uint8_t wait_connect = 10;
+    bool client_connect = true;
+    bool err_send_data = true;
+    if(!connected || (millis() - send_wait_error < SEND_WAIT_ERROR))
+        return err_send_data;
+    while (!client.connect(network_adr_, network_port_)) { // adr!!!
+        if(wait_connect == 0) {
+            client_connect = false;
+            break;
+        }
+        --wait_connect;
+        delay(1000);
     }
-    udp_.endPacket();
-    // udp_.stop();
+    if(client_connect) {
+        client.write(buffer, buf_len);
+
+        uint maxloops = 0;
+        while (!client.available() && maxloops < 10000) {
+            maxloops++;
+            delay(1); //delay 1 msec
+        }
+        if (client.available() > 0) {
+            buf_len = client.readBytesUntil('\r', buffer, AMT_BYTES_BUFFER);
+            for(int i = 0; i < buf_len; ++i)
+                Serial.print((char)buffer[i]);
+            // String line = client.readStringUntil('\r');
+            // Serial.print(line);
+            Serial.print("\nTime send to server = ");
+            Serial.print(maxloops);
+            Serial.println("ms");
+            send_wait_error = millis() - SEND_WAIT_ERROR;
+            err_send_data = false;
+        }
+        else {
+            Serial.println("client.available() timed out ");
+        }
+    }
+    client.stop(); 
                                                                                                         // Serial.println();
                                                                                                         // Serial.print("|>-{");
                                                                                                         // for(int i = 0; i < buf_len; ++i) {
@@ -270,6 +333,7 @@ void WiFisend() {
                                                                                                         // }
                                                                                                         // Serial.println("}-<|\n");
     // Serial.printf("Seconds since boot: %lu\n", millis()/1000);
+    return err_send_data;
 }
 
 
@@ -302,7 +366,7 @@ uint16_t GCM_interface::report_to_server_regist_data() {
     buffer[buf_len++] = rdt.Minute();
     buffer[buf_len++] = rdt.Second();
 
-    if(init_server)
+    // if(init_server)
         WiFisend();
                                                                                                         // Serial.println();
                                                                                                         // Serial.print("|>-{");
@@ -376,7 +440,7 @@ uint16_t GCM_interface::report_to_server_read_data() {
         buffer[buf_len++] = rdt.Hour();
         buffer[buf_len++] = rdt.Minute();
         buffer[buf_len++] = rdt.Second();
-        if(init_server)
+        // if(init_server)
             WiFisend();
         // mas = [0x02, 0x06, 0x11, 0x21, 0x0b, 0x0c, 0xc1, 0xd1, 0x4b, 0x00, 0xc3, 0x01,  # ID
         //        1,                     # type report (0 - registration, 1 - sensor, 2 - device)

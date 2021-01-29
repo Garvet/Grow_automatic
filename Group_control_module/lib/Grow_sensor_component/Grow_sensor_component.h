@@ -1,7 +1,11 @@
 #ifndef __GROW_SENSOR_COMPONENT_H__
 #define __GROW_SENSOR_COMPONENT_H__
 
+#if defined( ESP32 )
 #include <Arduino.h>
+#else
+#include <main.h>
+#endif
 
 // Количество всех типов датчиков
 #define COUNT_TYPE_SENSOR 13
@@ -30,7 +34,7 @@ private:
         float f_val;
         uint32_t u_val;
     } value_;
-    
+
     // float value_; // показатель датчика
 public:
     Grow_sensor_component(Type_sensor type_sensor=Analog_signal, uint8_t id=0);
@@ -38,7 +42,7 @@ public:
 
     // получение типа датчика
     enum Type_sensor get_type() const;
-    
+
     // получение id
     uint8_t get_id() const;
     // установка id

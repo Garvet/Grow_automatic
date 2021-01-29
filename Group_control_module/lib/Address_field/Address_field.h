@@ -48,14 +48,14 @@ private:
     char     mode_;            // Режим работы ('r' - чтение,'w' - чтение/запись,'c' - чтение/обнуление)
 public:
     Address_field() = default;
-    Address_field(const Register* registers, const uint8_t reg_count=1, const bool reg_revers=false, const char mode='w', const uint32_t min_value=0, 
+    Address_field(const Register* registers, const uint8_t reg_count=1, const bool reg_revers=false, const char mode='w', const uint32_t min_value=0,
                   const uint32_t max_value=(-1), const uint32_t *reserved_value=nullptr, const uint32_t reserv_count=0);
     ~Address_field() = default;
-    
+
     // функция инициализации класса, используется автоматически в конструкторе с параметром
-    bool init_address_field(const Register *registers, const uint8_t reg_count=1, const bool reg_revers=false, const char mode='w', const uint32_t min_value=0, 
+    bool init_address_field(const Register *registers, const uint8_t reg_count=1, const bool reg_revers=false, const char mode='w', const uint32_t min_value=0,
                   const uint32_t max_value=(-1), const uint32_t *reserved_value=nullptr, const uint32_t reserv_count=0);
-    
+
     /// Обработка поля
     // получение значения поля: передаётся адрес массива в котором ищется значение и длина массива (вернёт 0xFFFFFFFFFFFFFFFF в случае ошибки или значение в случае увспеха)
     uint32_t get_value(const uint8_t *register_value, int register_count=(uint16_t(-1))) const;
@@ -76,14 +76,14 @@ public:
     uint16_t get_max_address()  const;
     uint32_t get_min_value()    const;
     uint32_t get_max_value()    const;
-    const uint32_t* get_reserved_value() const; 
+    const uint32_t* get_reserved_value() const;
     uint32_t get_reserv_count() const;
     char get_mode() const;
-    
+
     /// Операторы сравнения
     friend bool operator==(const Address_field& left, const Address_field& right);
     friend bool operator!=(const Address_field& left, const Address_field& right);
-    
+
 #if defined (SERIAL_LOG_OUTPUT)
     /// вывод класса в Serial
     void print();

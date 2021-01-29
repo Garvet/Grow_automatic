@@ -19,9 +19,9 @@ constexpr size_t SIZE_LORA_PACKET_MAX_LEN = 250; // - 254 max
 constexpr size_t SIZE_LORA_PACKET_BUFFER = 100;
 #else
 constexpr size_t SIZE_LORA_PACKET_MAX_LEN = 50; // - 254 max
-constexpr size_t SIZE_LORA_PACKET_BUFFER = 100;
+constexpr size_t SIZE_LORA_PACKET_BUFFER = 80;
 #endif
- 
+
 class LoRa_packet_data;
 class LoRa_packet;
 
