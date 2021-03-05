@@ -15,19 +15,19 @@ const Register Hendler[11] = {Register(0, 8, 0), Register(1, 1, 7), Register(1, 
                               Register(6, 8, 0),
                               Register(7, 8, 0), Register(8, 8, 0)};
 
-const Address_field field_dest_adr_group(&Hendler[0], 2, true),  // Destination Address group (адресс группы устройства назначения)
+const Address_field field_dest_adr_group (&Hendler[0], 2, true), // Destination Address group (адресс группы устройства назначения)
                     field_dest_adr_branch(&Hendler[2], 2, true), // Destination Address branch (адресс ветви устройства назначения)
-                    field_sour_adr_group(&Hendler[4], 2, true),  // Source Address group (адресс группы отправляющего устройства)
+                    field_sour_adr_group (&Hendler[4], 2, true), // Source Address group (адресс группы отправляющего устройства)
                     field_sour_adr_branch(&Hendler[6], 2, true), // Source Address branch (адресс ветви отправляющего устройства)
-                    field_type(&Hendler[8], 1, true),   // Packet Type (тип пакетп)
+                    field_type  (&Hendler[8], 1, true), // Packet Type (тип пакетп)
                     field_number(&Hendler[9], 2, true); // Packet Number (номер пакета)
 
 
-const uint8_t num_dest_adr_group = 0,  // Destination Address group
+const uint8_t num_dest_adr_group  = 0, // Destination Address group
               num_dest_adr_branch = 1, // Destination Address branch
-              num_sour_adr_group = 2,  // Source Address group
+              num_sour_adr_group  = 2, // Source Address group
               num_sour_adr_branch = 3, // Source Address branch
-              num_type = 4,   // Packet Type
+              num_type   = 4, // Packet Type
               num_number = 5; // Packet Number
 
 const uint16_t count_field_packet_header = 6;

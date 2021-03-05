@@ -2,7 +2,6 @@
 #define __LORA_H__
 
 #include <Arduino.h>
-#include <iostream>
 #include <SPI.h>
 #define HELTEC_LORA 4
 
@@ -94,12 +93,13 @@ public:
 
     // --- Приём данных --- 
     // Отправка пакета (wait - ожидание завершение отправки)
-    bool sender_packet(uint8_t* packet, uint8_t len, bool wait=true);
+    bool sender_packet(const uint8_t* packet, uint8_t len, bool wait=true);
     bool sender_packet(const std::vector<uint8_t>& packet, bool wait=true);
+    bool sender_packet(const std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN>& data, uint8_t len, bool wait=true);
     // Подготовиться к отправке пакета
     bool packet_begin();
     // Добавить данные в пакет (суммарное ограничение 255 байт)
-    bool packet_write(uint8_t* packet, uint8_t len);
+    bool packet_write(const uint8_t* packet, uint8_t len);
     bool packet_write(const std::vector<uint8_t>& packet);
     // Завершить и отправить пакет
     bool packet_end(ulong wait=2000, bool sleep=false);

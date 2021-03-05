@@ -465,7 +465,7 @@ float LoRa::packet_snr() {
     return (snr * 0.25);
 }
 // Отправка пакета
-bool LoRa::sender_packet(uint8_t* packet, uint8_t len, bool wait) {
+bool LoRa::sender_packet(const uint8_t* packet, uint8_t len, bool wait) {
     packet_begin();
     if (packet_write(packet, len))
         return true;
@@ -473,13 +473,11 @@ bool LoRa::sender_packet(uint8_t* packet, uint8_t len, bool wait) {
         return true;
     return false;
 }
-bool LoRa::sender_packet(const std::vector<uint8_t>& packet, bool wait) {
-    packet_begin();
-    if (packet_write(packet))
-        return true;
-    if (packet_end(wait))
-        return true;
-    return false;
+bool LoRa::sender_packet(const std::vector<uint8_t>& add_packet, bool wait) {
+    return sender_packet(&add_packet[0], add_packet.size(), wait);
+}
+bool LoRa::sender_packet(const std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN>& add_packet, uint8_t len, bool wait) {
+    return sender_packet(&add_packet[0], len, wait);
 }
 // Объявление пакета
 bool LoRa::packet_begin() {
@@ -489,7 +487,7 @@ bool LoRa::packet_begin() {
     return true;
 }
 // Отправка данных в пакет buffer, size=None? (len)
-bool LoRa::packet_write(uint8_t* packet, uint8_t len) {
+bool LoRa::packet_write(const uint8_t* packet, uint8_t len) {
     if (len + _packet_length > 255)
         return true;
     _packet_length += len;

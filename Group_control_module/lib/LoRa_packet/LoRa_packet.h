@@ -1,107 +1,81 @@
 #ifndef __LORA_PACKET_H__
 #define __LORA_PACKET_H__
 
-#if defined( ESP32)
-#include <Arduino.h>
-#else
-#include <main.h>
-#endif
-#include <vector>
-
-#define USE_STANDARD_ARRAY
-#if defined( USE_STANDARD_ARRAY )
-#include <array>
-#include <algorithm>
-#endif
-
-#if defined( ESP32 )
-constexpr size_t SIZE_LORA_PACKET_MAX_LEN = 250; // - 254 max
-constexpr size_t SIZE_LORA_PACKET_BUFFER = 100;
-#else
-constexpr size_t SIZE_LORA_PACKET_MAX_LEN = 50; // - 254 max
-constexpr size_t SIZE_LORA_PACKET_BUFFER = 80;
-#endif
-
-class LoRa_packet_data;
-class LoRa_packet;
-
-class LoRa_packet_data {
-private:
-    bool free_object_ = true; // Свободный объект
-public:
-    uint8_t len = 0; // Количество байт
-#if defined( USE_STANDARD_ARRAY )
-    std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN> data;
-#else
-    uint8_t data[SIZE_LORA_PACKET_MAX_LEN]; // Байты
-#endif
-
-    LoRa_packet_data() = default;
-
-    bool add_data(uint8_t data_byte);
-    bool add_data(const uint8_t* data_byte, uint8_t amt_byte);
-
-    bool set_data(const uint8_t* data, uint8_t len);
-    bool set_data(const std::vector<uint8_t>& data);
-    void set_data(const class LoRa_packet& lora_packet);
-    void set_data(const class LoRa_packet_data& lora_packet);
-    void set_data(class LoRa_packet_data&& lora_packet);
-
-    bool free() const;
-
-    class LoRa_packet_data& operator=(const class LoRa_packet& right);
-    class LoRa_packet_data& operator=(const class LoRa_packet_data& right);
-
-    friend class LoRa_packet;
-};
+#include "LoRa_packet_config.h"
+#include "LoRa_packet_data.h"
 
 class LoRa_packet {
-// private: (-) -----
-public:
-    LoRa_packet_data* packet_data;
-    uint8_t rssi_ = 0;  // RSSI соединения
-    bool crc_error_   = false; // Ошибка контрольной суммы
+private:
+    LoRa_packet_data* packet_data{}; // Указатель на данные пакета
+    uint8_t rssi_ = 0; // RSSI соединения
+    bool crc_error_ = false; // Ошибка контрольной суммы
 
-    friend class LoRa_packet_data;
+    // Функция поиска свободного места для пакета
     bool search_data();
+
+    // Прямой допуск к полям для класса LoRa_packet_data
+    friend class LoRa_packet_data;
 public:
     LoRa_packet();
     LoRa_packet(const uint8_t* data, uint8_t len, bool crc_err=false, uint8_t rssi=0);
+#if defined( USE_VECTOR )
     LoRa_packet(const std::vector<uint8_t>& data, bool crc_err=false, uint8_t rssi=0);
+#endif
+#if defined( USE_STANDARD_ARRAY )
+    LoRa_packet(const std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN>& data, uint8_t len, bool crc_err=false, uint8_t rssi=0);
+#endif
     LoRa_packet(const LoRa_packet& right);
-    LoRa_packet(LoRa_packet&& right);
+    LoRa_packet(LoRa_packet&& right) noexcept;
     ~LoRa_packet();
 
-    // Функция заполенния объекта
+    // Установить параметры и данные в пакете
+    bool set_packet(const uint8_t* data, uint8_t len, bool crc_error=false, uint8_t rssi=0);
+    bool set_packet(const LoRa_packet_data& data, bool crc_error=false, uint8_t rssi=0);
+#if defined( USE_VECTOR )
+    bool set_packet(const std::vector<uint8_t>& data, bool crc_error=false, uint8_t rssi=0);
+#endif
+#if defined( USE_STANDARD_ARRAY )
+    bool set_packet(const std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN>& data, uint8_t len, bool crc_error=false, uint8_t rssi=0);
+#endif
+
+    // Дополнить данные в конец пакета
     bool add_packet_data(uint8_t data);
     bool add_packet_data(const uint8_t* data, uint8_t len);
-    bool set_packet(const uint8_t* data, uint8_t len, bool crc_err=false, uint8_t rssi=0);
-    bool set_packet(const std::vector<uint8_t>& data, bool crc_err=false, uint8_t rssi=0);
+#if defined( USE_VECTOR )
+    bool add_packet_data(const std::vector<uint8_t>& data);
+#endif
+#if defined( USE_STANDARD_ARRAY )
+    bool add_packet_data(const std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN>& data, uint8_t len);
+
+    // Получить данные из пакета
+    std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN> get_data();
+    std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN> const & get_data() const;
+#elif defined( USE_VECTOR )
+    std::vector<uint8_t> get_data() const;
+#endif
+    LoRa_packet_data* get_packet();
+    LoRa_packet_data const * get_packet() const;
+    bool    get_crc_error() const; // получение ошибки передачи пакета
+    uint8_t get_rssi() const; // получение RSSI пакета
+
+    // получение одного байта
+    uint8_t get_len() const;
+    uint8_t get_data(int num) const;
+    uint8_t& operator[](int index);
+    const uint8_t& operator[](int index) const;
 
     // Очистка пакета
     void clear_packet();
 
-    // получение содержимого пакета
-    LoRa_packet_data* get_packet() const;
-    std::vector<uint8_t> get_data() const; // (-) -----
-    // получение одного байта
-    uint8_t get_data(int num) const;
-    // получение длины пакета
-    uint8_t get_len() const;
-    // получение ошибки передачи пакета
-    bool    get_crc_error() const;
-    // получение RSSI пакета
-    uint8_t get_rssi() const;
-
-    // получение одного байта
-    uint8_t& operator[](const int index);
-    const uint8_t& operator[](const int index) const;
-    // перегрузка оператора копирования
+    // Присваивание
     LoRa_packet& operator=(const LoRa_packet& right);
-    // перегрузка оператора перемещения
-    LoRa_packet& operator=(LoRa_packet&& right);
+    LoRa_packet& operator=(LoRa_packet&& right) noexcept;
 
-}typedef LoRa_packet;
+} typedef LoRa_packet;
+
+
+
+
 
 
 #endif // __LORA_PACKET_H__

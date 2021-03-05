@@ -2285,7 +2285,8 @@ void LoRa_contact_data::set_LoRa_mode_send(bool first) {
                                                             #if defined( SERIAL_PRINT_ON ) || defined( SERIAL_PRINT_ON_1)
                                                             LoRa_packet out;
                                                             out = last_send_packet_;
-                                                            lora_.sender_packet(out.get_data(), false);
+                                                            lora_.sender_packet(out.get_data(), out.get_len(), false);
+                                                            // lora_.sender_packet(out.get_data(), false);
                                                             Serial.print("\t\t\t--> [");
                                                             for(int i = 0; i < out.get_len(); ++i) {
                                                                 if(out[i] < 16)

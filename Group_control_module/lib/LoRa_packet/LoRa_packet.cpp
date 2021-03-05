@@ -1,94 +1,20 @@
+//
+// Created by garvet on 05.02.2021.
+//
+
 #include "LoRa_packet.h"
 
-
-// ----- LoRa_packet_data -----
-
-
 #if defined( USE_STANDARD_ARRAY )
-std::array<LoRa_packet_data, SIZE_LORA_PACKET_BUFFER> lora_packet_data;
+extern std::array<LoRa_packet_data, SIZE_LORA_PACKET_BUFFER> lora_packet_data;
 #else
-LoRa_packet_data lora_packet_data[SIZE_LORA_PACKET_BUFFER];
+extern LoRa_packet_data lora_packet_data[SIZE_LORA_PACKET_BUFFER];
 #endif
 
-
-bool LoRa_packet_data::add_data(uint8_t data_byte) {
-    if(len >= SIZE_LORA_PACKET_MAX_LEN)
-        return true;
-    data[len++] = data_byte;
-    return false;
-}
-bool LoRa_packet_data::add_data(const uint8_t* data_byte, uint8_t amt_byte) {
-    if((len + amt_byte) > SIZE_LORA_PACKET_MAX_LEN)
-        return true;
-    for(size_t i = 0; i < amt_byte; ++i)
-        data[i+len] = data_byte[i];
-    len += amt_byte;
-    return false;
-}
-
-bool LoRa_packet_data::set_data(const uint8_t* set_data, uint8_t set_len) {
-    if(set_len > SIZE_LORA_PACKET_MAX_LEN)
-        return true;
-    if((set_data != nullptr) && (set_len != 0)){
-        len = set_len;
-        for(int i = 0; i < set_len; ++i)
-            data[i] = set_data[i];
-    }
-    else
-        len = 0;
-    return false;
-}
-bool LoRa_packet_data::set_data(const std::vector<uint8_t>& set_data){
-    if(set_data.size() > SIZE_LORA_PACKET_MAX_LEN)
-        return true;
-    if(set_data.empty())
-        len = 0;
-    else {
-        len = data.size();
-        for(size_t i = 0; i < data.size(); ++i)
-            data[i] = set_data[i];
-    }
-    return false;
-}
-void LoRa_packet_data::set_data(const class LoRa_packet& lora_packet) {
-    *this = lora_packet;
-}
-void LoRa_packet_data::set_data(const class LoRa_packet_data& lora_packet) {
-    *this = lora_packet;
-}
-void LoRa_packet_data::set_data(class LoRa_packet_data&& lora_packet) {
-    *this = std::move(lora_packet);
-}
-bool LoRa_packet_data::free() const {
-    return free_object_;
-}
-class LoRa_packet_data& LoRa_packet_data::operator=(const class LoRa_packet& right) {
-    if((!(right.packet_data->free_object_)) && (right.packet_data->len != 0)){
-        len = right.packet_data->len;
-        for(int i = 0; i < right.packet_data->len; ++i)
-            data[i] = right.packet_data->data[i];
-    }
-    else
-        len = 0;
-    return *this;
-}
-class LoRa_packet_data& LoRa_packet_data::operator=(const class LoRa_packet_data& right) {
-    if((!(right.free_object_)) && (right.len != 0)){
-        len = right.len;
-        for(int i = 0; i < right.len; ++i)
-            data[i] = right.data[i];
-    }
-    else
-        len = 0;
-    return *this;
-}
-
-
-// ----- LoRa_packet -----
+/// Private
 bool LoRa_packet::search_data() {
 #if defined( USE_STANDARD_ARRAY )
     packet_data = std::find_if(lora_packet_data.begin(), lora_packet_data.end(),
-                        [](const LoRa_packet_data &data){return data.free();} );
+                               [](const LoRa_packet_data &data){return data.free();} );
     if(packet_data == lora_packet_data.end()) {
         packet_data = nullptr;
 #if defined( ESP32 )
@@ -97,13 +23,13 @@ bool LoRa_packet::search_data() {
         return true;
     }
     packet_data->free_object_ = false;
-    packet_data->len = 0;
+    packet_data->len_ = 0;
     return false;
 #else
     for(int i = 0; i < SIZE_LORA_PACKET_BUFFER; ++i) {
         if(lora_packet_data[i].free_object_) {
             lora_packet_data[i].free_object_ = false;
-            lora_packet_data[i].len = 0;
+            lora_packet_data[i].len_ = 0;
             packet_data = &lora_packet_data[i];
             return false;
         }
@@ -113,38 +39,41 @@ bool LoRa_packet::search_data() {
 #endif
 }
 
-
-LoRa_packet::LoRa_packet() {
+/// Public
+LoRa_packet::LoRa_packet(): packet_data(nullptr) {
     search_data();
 }
-LoRa_packet::LoRa_packet(const uint8_t* data, uint8_t len, bool crc_error, uint8_t rssi) {
+LoRa_packet::LoRa_packet(const uint8_t* data, uint8_t len, bool crc_error, uint8_t rssi): packet_data(nullptr) {
     search_data();
     set_packet(data, len, crc_error, rssi);
 }
-LoRa_packet::LoRa_packet(const std::vector<uint8_t>& data, bool crc_error, uint8_t rssi) {
+#if defined( USE_VECTOR )
+LoRa_packet::LoRa_packet(const std::vector<uint8_t>& data, bool crc_error, uint8_t rssi): packet_data(nullptr) {
     search_data();
     set_packet(data, crc_error, rssi);
 }
-LoRa_packet::LoRa_packet(const LoRa_packet& right) {
+#endif
+#if defined( USE_STANDARD_ARRAY )
+LoRa_packet::LoRa_packet(const std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN>& data, uint8_t len,
+                         bool crc_error, uint8_t rssi): packet_data(nullptr) {
+    search_data();
+    set_packet(data, len, crc_error, rssi);
+}
+#endif
+LoRa_packet::LoRa_packet(const LoRa_packet& right): packet_data(nullptr) {
     search_data();
     *this = right;
 }
-LoRa_packet::LoRa_packet(LoRa_packet&& right) {
-    packet_data = nullptr;
+LoRa_packet::LoRa_packet(LoRa_packet&& right) noexcept : packet_data(nullptr) {
     *this = std::move(right);
 }
-
 LoRa_packet::~LoRa_packet() {
     if(packet_data != nullptr)
         packet_data->free_object_ = true;
 }
 
-bool LoRa_packet::add_packet_data(uint8_t data) {
-    return packet_data->add_data(data);
-}
-bool LoRa_packet::add_packet_data(const  uint8_t* data, uint8_t len) {
-    return packet_data->add_data(data, len);
-}
+
+// Установить параметры и данные в пакете
 bool LoRa_packet::set_packet(const uint8_t* data, uint8_t len, bool crc_error, uint8_t rssi) {
     if(packet_data->set_data(data, len))
         return true;
@@ -152,36 +81,59 @@ bool LoRa_packet::set_packet(const uint8_t* data, uint8_t len, bool crc_error, u
     rssi_ = rssi;
     return false;
 }
-bool LoRa_packet::set_packet(const std::vector<uint8_t>& data, bool crc_error, uint8_t rssi) {
-    if(packet_data->set_data(data))
-        return true;
+bool LoRa_packet::set_packet(const LoRa_packet_data& data, bool crc_error, uint8_t rssi) {
+    *packet_data = data;
     crc_error_ = crc_error;
     rssi_ = rssi;
     return false;
 }
+#if defined( USE_VECTOR )
+bool LoRa_packet::set_packet(const std::vector<uint8_t>& data, bool crc_err, uint8_t rssi) {
+    return set_packet(&data[0], data.size(), crc_err, rssi);
+}
+#endif
+#if defined( USE_STANDARD_ARRAY )
+bool LoRa_packet::set_packet(const std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN>& data, uint8_t len, bool crc_err, uint8_t rssi) {
+    return set_packet(&data[0], len, crc_err, rssi);
+}
+#endif
 
-void LoRa_packet::clear_packet() {
-    if(packet_data == nullptr)
-        search_data();
-    else
-        packet_data->len = 0;
-    rssi_ = 0;
-    crc_error_  = false;
+
+// Дополнить данные в конец пакета
+bool LoRa_packet::add_packet_data(uint8_t data) {
+    return packet_data->add_data(data);
+}
+bool LoRa_packet::add_packet_data(const  uint8_t* data, uint8_t len) {
+    return packet_data->add_data(data, len);
+}
+#if defined( USE_VECTOR )
+bool LoRa_packet::add_packet_data(const std::vector<uint8_t>& data) {
+    return packet_data->add_data(data);
+}
+#endif
+#if defined( USE_STANDARD_ARRAY )
+bool LoRa_packet::add_packet_data(const std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN>& data, uint8_t len) {
+    return packet_data->add_data(data, len);
 }
 
+
+// Получить данные из пакета
+std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN> LoRa_packet::get_data() {
+    return packet_data->get_data();
+}
+std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN> const & LoRa_packet::get_data() const {
+    return ((const LoRa_packet_data*) packet_data)->get_data();
+}
+#elif defined( USE_VECTOR )
 std::vector<uint8_t> LoRa_packet::get_data() const {
-    std::vector<uint8_t> data;
-    for(int i = 0; i < packet_data->len; ++i)
-        data.push_back(packet_data->data[i]);
-    return data;
+    return packet_data->get_data();
 }
-uint8_t LoRa_packet::get_data(int num) const {
-    return packet_data->data[num];
+#endif
+LoRa_packet_data* LoRa_packet::get_packet() {
+    return packet_data;
 }
-uint8_t LoRa_packet::get_len() const {
-    if(packet_data == nullptr)
-        return 0;
-    return packet_data->len;
+LoRa_packet_data const * LoRa_packet::get_packet() const {
+    return packet_data;
 }
 bool LoRa_packet::get_crc_error() const {
     return crc_error_;
@@ -189,12 +141,37 @@ bool LoRa_packet::get_crc_error() const {
 uint8_t LoRa_packet::get_rssi() const {
     return rssi_;
 }
-uint8_t& LoRa_packet::operator[] (const int index) {
-    return packet_data->data[index];
+
+
+// получение одного байта
+uint8_t LoRa_packet::get_data(int num) const {
+    return packet_data->data_[num];
 }
-const uint8_t& LoRa_packet::operator[](const int index) const {
-    return packet_data->data[index];
+uint8_t LoRa_packet::get_len() const {
+    if(packet_data == nullptr)
+        return 0;
+    return packet_data->len_;
 }
+uint8_t& LoRa_packet::operator[] (int index) {
+    return packet_data->data_[index];
+}
+const uint8_t& LoRa_packet::operator[](int index) const {
+    return packet_data->data_[index];
+}
+
+
+// Очистка пакета
+void LoRa_packet::clear_packet() {
+    if(packet_data == nullptr)
+        search_data();
+    else
+        packet_data->len_ = 0;
+    rssi_ = 0;
+    crc_error_  = false;
+}
+
+
+// Присваивание
 class LoRa_packet& LoRa_packet::operator=(const class LoRa_packet& right) {
     // Проверка на самоприсваивание
     if (this == &right)
@@ -203,15 +180,12 @@ class LoRa_packet& LoRa_packet::operator=(const class LoRa_packet& right) {
     if(packet_data == nullptr)
         search_data();
     // Перенос значений
-    packet_data->len = right.packet_data->len;
+    *packet_data = *right.packet_data; // * для копирования содержимого, а не указателя
     crc_error_ = right.crc_error_;
     rssi_ = right.rssi_;
-    for(int i = 0; i < packet_data->len; ++i)
-        packet_data->data[i] = right.packet_data->data[i];
     return *this;
 }
-
-class LoRa_packet& LoRa_packet::operator=(class LoRa_packet&& right) {
+class LoRa_packet& LoRa_packet::operator=(class LoRa_packet&& right) noexcept {
     // Проверка на самоприсваивание
     if (this == &right)
         return *this;

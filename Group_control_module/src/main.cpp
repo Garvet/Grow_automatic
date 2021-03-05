@@ -1,3 +1,5 @@
+#include "build_data.h"
+
 #define SERIAL_LOG_OUTPUT
 #define TEST_FUN
 #if defined ( TEST_FUN )
@@ -50,167 +52,6 @@
 std::vector<uint8_t> packet = { 01, 00, 00, 01, 01, 01, 04, 11, 12, 00, 3, 1, 1, 2, 3};
 LoRa_packet reg_packet;
 Group_control_module __GCM__;
-// uint8_t data[100] = {0x00, 0x01, // Address
-//                      0x00, 0x04, // Channel
-//                      0x0F,       // Name.size()
-//                      0x00, 0x02, // Sensors.size()
-//                      0x00, 0x03, // Devices.size()
-//                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
-//                      // Sensor[0]
-//                      0x00, 0x09, 0xFB, 0xF1, // period
-//                      0x02,                   // component.size()
-//                      0x04, 0x03,             // component.type[0-1]
-//                      // Sensor[1]
-//                      0x00, 0x00, 0x00, 0x00, // period
-//                      0x02,                   // component.size()
-//                      0x06, 0x06,             // component.type[0-1]
-//                      // Devices[0]
-//                      0x01,                         // component.size()
-//                      0x05, 0x02, 0x01, 0x10, 0x07, // component[0]
-//                      // Devices[1]
-//                      0x02,                         // component.size()
-//                      0x05, 0x02, 0x01, 0x10, 0x07, // component[0]
-//                      0x03, 0x01, 0x06, 0x05, 0x02, // component[1]
-//                      // Devices[2]
-//                      0x01,                         // component.size()
-//                      0x05, 0x02, 0x01, 0x10, 0x07  // component[0]
-//                      };
-
-// uint8_t data[100] = {0x00, 0x01, // Address
-//                      0x00, 0x04, // Channel
-//                      0x0F,       // Name.size()
-//                      0x00, 0x02, // Sensors.size() //  0x00, 0x03, // Sensors.size()
-//                      0x00, 0x00, // Devices.size()
-//                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
-//                      // Sensor[0]
-//                      0x00, 0x00, 0x20, 0x00, // period
-//                      0x01,                   // component.size()
-//                      0x06,                   // component.type[0-1]
-//                      // Sensor[1]
-//                      0x00, 0x00, 0x2F, 0x10, // period
-//                      0x01,                   // component.size()
-//                      0x06,                   // component.type[0-1]
-//                     //  // Sensor[2]
-//                     //  0x00, 0x00, 0x00, 0x20, // period
-//                     //  0x01,                   // component.size()
-//                     //  0x06,                   // component.type[0-1]
-//                      };
-
-// uint8_t data[100] = {0x00, 0x01, // Address
-//                      0x00, 0x04, // Channel
-//                      0x0F,       // Name.size()
-//                      0x00, 0x01, // Sensors.size() //  0x00, 0x03, // Sensors.size()
-//                      0x00, 0x00, // Devices.size()
-//                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
-//                      // Sensor[0]
-//                      0x00, 0x00, 0x75, 0x30, // period
-//                      0x03,                   // component.size()
-//                      0x03, 0x04, 0x06,                   // component.type[0-1]
-//                      //  Sensor[1]
-//                      //  0x00, 0x00, 0x2F, 0x10, // period
-//                      //  0x01,                   // component.size()
-//                      //  0x06,                   // component.type[0-1]
-//                      //  // Sensor[2]
-//                      //  0x00, 0x00, 0x00, 0x20, // period
-//                      //  0x01,                   // component.size()
-//                      //  0x06,                   // component.type[0-1]
-//                     };
-
-// uint8_t data[100] = {0x00, 0x01, // Address
-//                      0x00, 0x04, // Channel
-//                      0x0F,       // Name.size()
-//                      0x00, 0x01, // Sensors.size() //  0x00, 0x03, // Sensors.size()
-//                      0x00, 0x00, // Devices.size()
-//                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
-//                      // Sensor[0]
-//                      0x00, 0x00, 0x20, 0x30, // period
-//                      0x03,                   // component.size()
-//                      0x03, 0x04, 0x06,                   // component.type[0-1]
-//                      //  Sensor[1]
-//                      //  0x00, 0x00, 0x2F, 0x10, // period
-//                      //  0x01,                   // component.size()
-//                      //  0x06,                   // component.type[0-1]
-//                      //  // Sensor[2]
-//                      //  0x00, 0x00, 0x00, 0x20, // period
-//                      //  0x01,                   // component.size()
-//                      //  0x06,                   // component.type[0-1]
-//                     };
-
-uint8_t data[100] = {0x00, 0x01, // Address
-                     0x00, 0x04, // Channel
-                     0x0F,       // Name.size()
-                     0x00, 0x06, // Sensors.size() //  0x00, 0x03, // Sensors.size()
-                     0x00, 0x00, // Devices.size()
-                     0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
-                     // Sensor[0]
-                     0x00, 0x00, 0xEA, 0x60, // period
-                     0x03,                   // component.size()
-                     0x03, 0x04, 0x06,       // component.type[0-1]
-                     // Sensor[1]
-                     0x00, 0x00, 0xEA, 0x60, // period
-                     0x03,                   // component.size()
-                     0x03, 0x04, 0x06,       // component.type[0-1]
-                     // Sensor[2]
-                     0x00, 0x00, 0xEA, 0x60, // period
-                     0x03,                   // component.size()
-                     0x03, 0x04, 0x06,       // component.type[0-1]
-                     // Sensor[3]
-                     0x00, 0x00, 0xEA, 0x60, // period
-                     0x03,                   // component.size()
-                     0x03, 0x04, 0x06,       // component.type[0-1]
-                     // Sensor[4]
-                     0x00, 0x00, 0xEA, 0x60, // period
-                     0x03,                   // component.size()
-                     0x03, 0x04, 0x06,       // component.type[0-1]
-                     // Sensor[5]
-                     0x00, 0x00, 0xEA, 0x60, // period
-                     0x03,                   // component.size()
-                     0x03, 0x04, 0x06,       // component.type[0-1]
-                    //  // Sensor[6]
-                    //  0x00, 0x00, 0xEA, 0x60, // period
-                    //  0x03,                   // component.size()
-                    //  0x03, 0x04, 0x06,       // component.type[0-1]
-                    };
-
-// uint8_t data[100] = {0x00, 0x01, // Address
-//                      0x00, 0x04, // Channel
-//                      0x0F,       // Name.size()
-//                      0x00, 0x03, // Sensors.size() //  0x00, 0x03, // Sensors.size()
-//                      0x00, 0x00, // Devices.size()
-//                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
-//                      // Sensor[0]
-//                      0x00, 0x00, 0x7A, 0x60, // period
-//                      0x03,                   // component.size()
-//                      0x03, 0x04, 0x06,       // component.type[0-1]
-//                      // Sensor[1]
-//                      0x00, 0x00, 0xEA, 0x60, // period
-//                      0x03,                   // component.size()
-//                      0x03, 0x04, 0x06,       // component.type[0-1]
-//                      // Sensor[2]
-//                      0x00, 0x00, 0xEA, 0x60, // period
-//                      0x03,                   // component.size()
-//                      0x03, 0x04, 0x06,       // component.type[0-1]
-//                     };
-
-// uint8_t data[100] = {0x00, 0x01, // Address
-//                      0x00, 0x04, // Channel
-//                      0x0F,       // Name.size()
-//                      0x00, 0x03, // Sensors.size() //  0x00, 0x03, // Sensors.size()
-//                      0x00, 0x00, // Devices.size()
-//                      0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
-//                      // Sensor[0]
-//                      0x00, 0x00, 0x2A, 0x60, // period
-//                      0x03,                   // component.size()
-//                      0x03, 0x04, 0x06,       // component.type[0-1]
-//                      // Sensor[1]
-//                      0x00, 0x00, 0x2A, 0x60, // period
-//                      0x03,                   // component.size()
-//                      0x03, 0x04, 0x06,       // component.type[0-1]
-//                      // Sensor[2]
-//                      0x00, 0x00, 0x7A, 0x60, // period
-//                      0x03,                   // component.size()
-//                      0x03, 0x04, 0x06,       // component.type[0-1]
-//                     };
 
 extern std::array<LoRa_packet_data, SIZE_LORA_PACKET_BUFFER> lora_packet_data;
 void GT_print_NR_S() {
@@ -436,13 +277,17 @@ void setup() {
         GT_print();
 
 
+        #if (SEND_SERVER == 1)
         std::array<char, AMT_BYTES_NETWORK_NAME> network_name = {"213_Guest"};
         std::array<char, AMT_BYTES_NETWORK_PASSWORD> network_pswd = {"11081975"};
+        // std::array<char, AMT_BYTES_NETWORK_NAME> network_name = {"a202"};
+        // std::array<char, AMT_BYTES_NETWORK_PASSWORD> network_pswd = {"gamma113"};
         std::array<char, AMT_BYTES_NETWORK_ADDRESS> server_address = {"95.181.230.220"}; //"192.168.1.56"; //"192.168.0.255"; 0123456789
         const int server_port = 3333;
         gcm_interface.init_server_connect(network_name, 10, network_pswd, 9, server_address, AMT_BYTES_NETWORK_ADDRESS, server_port);
         delay(5000);
         gcm_interface.report_to_server_regist_data();
+        #endif
     }
     else {
         GT_print();
