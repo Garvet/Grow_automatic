@@ -97,7 +97,13 @@ bool LoRa_contact_data::init_lora_module(SPI_HandleTypeDef *spi) {
 uint8_t LoRa_contact_data::begin_lora_module(ulong frequency, bool paboost,
           uint8_t signal_power, uint8_t SF, ulong SBW, uint8_t sync_word) {
 #if defined ( ESP32 )
+
+#if defined (BUILD_TESTING_CODE_409)
+    uint8_t err = lora_.begin(433375E3, true, 14, 8, 150E3, 0xA5);
+#else
     uint8_t err = lora_.begin(frequency, paboost, signal_power, SF, SBW, sync_word);
+#endif
+
 #else
     uint8_t err = LoRa.begin(frequency, paboost, signal_power, SF, SBW, sync_word);
 #endif
@@ -279,6 +285,7 @@ bool LoRa_contact_data::end_contact() {
         past_stage_ = current_stage_;
         return true;
     }
+    clear();
     current_stage_.stade_communication = SC_DOWNTIME;
     past_stage_ = current_stage_;
     return false;

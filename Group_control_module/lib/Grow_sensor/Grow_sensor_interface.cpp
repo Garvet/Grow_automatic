@@ -38,6 +38,7 @@ size_t Grow_sensor_interface::set_data(Grow_sensor &grow_sensor, uint8_t *data, 
     grow_sensor.period_ |= ((ulong)data[size++]) << 16;
     grow_sensor.period_ |= ((ulong)data[size++]) << 8;
     grow_sensor.period_ |= ((ulong)data[size++]);
+    grow_sensor.read_time_ = millis() - grow_sensor.period_;
     uint8_t amt_component = data[size++];
     if(amt_component != 0) {
         grow_sensor.component_.resize(amt_component);
@@ -47,6 +48,10 @@ size_t Grow_sensor_interface::set_data(Grow_sensor &grow_sensor, uint8_t *data, 
             size += grow_sensor.component_[i].set_data(data+size, available_size-size);
             grow_sensor.component_[i].set_id(id_mas_sensors[grow_sensor.component_[i].get_type()]++);            
         }
+        for(int i = 0; i < COUNT_TYPE_SENSOR; ++i)
+            if(id_mas_sensors[i] > 1) {
+                grow_sensor.set_setting(0x04);
+            }
     }
     return size;
 }

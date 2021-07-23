@@ -12,7 +12,15 @@ static uint32_t network_port_ = 0;
 static WiFiMulti wifiMulti;
 // static WiFiUDP udp_;
 WiFiClient client;
+static bool init_connected = false;
 static bool connected = false;
+static uint32_t time_connected = 0;
+static const uint32_t TEMR_RECONNECTED = 5000;
+
+// - 2021.06.11 - перезапуск при отсутствии соединения -
+static const uint16_t MAX_ERRORS_IN_ROW_WIFI = 5;
+static const uint16_t MAX_ERRORS_IN_ROW_CONNECT = 5;
+// -----------------------------------------------------
 
 static uint8_t buffer[AMT_BYTES_BUFFER];
 static uint16_t buf_len = 0;
@@ -48,6 +56,7 @@ bool GCM_interface::init_server_connect(
     for(int i = 0; i < len_network_adr; ++i)
         network_adr_[i] = network_adr[i];
     network_port_ = network_port;
+    init_connected = true;
     connectToWiFi();
     return false;
 }
@@ -217,6 +226,7 @@ size_t GCM_interface::set_data(uint8_t *data, size_t available_size) {
 // --- Отчётность ---
 
 void connectToWiFi() {
+#if defined( SEND_SERVER )
                                                                                                         // Serial.println("Connecting to WiFi network: " + String(ssid));
 
 //   // delete old config
@@ -235,7 +245,7 @@ void connectToWiFi() {
 
     wifiMulti.addAP(network_name_, network_pswd_);
                                                                                                         Serial.print("Waiting for WIFI connection...");
-    uint8_t wait_time = 10;
+    uint8_t wait_time = 3;
     connected = true;
     while (wifiMulti.run() != WL_CONNECTED) {
         if(wait_time == 0) {
@@ -247,16 +257,48 @@ void connectToWiFi() {
         Serial.print(".");
         --wait_time;
     }
-    if(connected)
-                                                                                                        Serial.println("\nWiFi connection");
+    if(connected) {
+                                                                                                        Serial.print("\nWiFi connection, IP = ");
+                                                                                                        Serial.println(WiFi.localIP());
+    }
+    // - 2021.06.11 - перезапуск при отсутствии соединения -
+    #if defined (ERROR_REBOOT)
+    static const uint16_t MAX_ERRORS_IN_ROW = MAX_ERRORS_IN_ROW_WIFI;
+    static uint16_t number_errors_row = 0;
+    if(connected) {
+        number_errors_row = 0;
+    }
+    else {
+        if(number_errors_row == MAX_ERRORS_IN_ROW) {
+            RtcDateTime rdt = gcm_interface.gcm_->get_data_time();
+            uint16_t data;
+            Serial.println("\n| ----- -----");
+            Serial.println("| ------- ----- -----");
+            Serial.print("| ----- ");
+            data = rdt.Year(); Serial.print(data); Serial.print("/");
+            data = rdt.Month(); Serial.print(data); Serial.print("/");
+            data = rdt.Day(); Serial.print(data); Serial.print("  ");
+            data = rdt.Hour(); Serial.print(data); Serial.print(":");
+            data = rdt.Minute(); Serial.print(data); Serial.print(":");
+            data = rdt.Second(); Serial.print(data); Serial.println(" - {Server connect error reboot}");
+            Serial.println("| ------- ----- -----");
+            Serial.println("| ----- -----\n");
+            esp_restart();
+        }
+        else
+            ++number_errors_row;
+    }
+    #endif
+    // -----------------------------------------------------
 
 
 
 
 
-                                                                                                        
+#endif
 }
 void WiFiEvent(WiFiEvent_t event) {
+#if defined( SEND_SERVER )
     switch(event) {
       case SYSTEM_EVENT_STA_GOT_IP:
           //When connected set 
@@ -279,16 +321,22 @@ void WiFiEvent(WiFiEvent_t event) {
                                                                                                         else {
                                                                                                             Serial.println("False connection");
                                                                                                         }
+
+#endif
 }
 
+
 #define SEND_WAIT_ERROR 5000u
-bool WiFisend() {
+
+RtcDateTime rdt;
+bool send_request(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id, bool state) { // (-) ----- костыль
+#if defined( SEND_SERVER )
     static uint32_t send_wait_error = millis() - SEND_WAIT_ERROR;
     uint8_t wait_connect = 10;
     bool client_connect = true;
     bool err_send_data = true;
-    if(!connected || (millis() - send_wait_error < SEND_WAIT_ERROR))
-        return err_send_data;
+    
+    client.stop(); 
     while (!client.connect(network_adr_, network_port_)) { // adr!!!
         if(wait_connect == 0) {
             client_connect = false;
@@ -298,6 +346,101 @@ bool WiFisend() {
         delay(1000);
     }
     if(client_connect) {
+        buf_len = 0;
+
+        for(int i = 0; i < scs::AMT_BYTES_ID; ++i)
+            buffer[buf_len++] = system_id[i];
+        buffer[buf_len++] = 2; // type report (0 - registration, 1 - sensor, 2 - device)
+        buffer[buf_len++] = 1;
+        buffer[buf_len++] = Signal_digital;
+        buffer[buf_len++] = 0;
+        buffer[buf_len++] = (uint8_t)state;
+
+        buffer[buf_len++] = rdt.Day();
+        buffer[buf_len++] = rdt.Month();
+        buffer[buf_len++] = (rdt.Year() >> 8) & 0xFF;
+        buffer[buf_len++] = rdt.Year() & 0xFF;
+
+        buffer[buf_len++] = rdt.Hour();
+        buffer[buf_len++] = rdt.Minute();
+        buffer[buf_len++] = rdt.Second();
+
+        client.write(buffer, buf_len);
+
+        uint maxloops = 0;
+        while (!client.available() && maxloops < 10000) {
+            maxloops++;
+            delay(1); //delay 1 msec
+        }
+
+        if (client.available() > 0) {
+            Serial.println("Packet send correct");
+            send_wait_error = millis() - SEND_WAIT_ERROR;
+            err_send_data = false;
+        }
+        else {
+            Serial.println("client.available() timed out ");
+        }
+    }
+#endif
+}
+bool WiFisend() {
+#if defined( SEND_SERVER )
+    static uint32_t send_wait_error = millis() - SEND_WAIT_ERROR;
+    uint8_t wait_connect = 3;
+    bool client_connect = true;
+    bool err_send_data = true;
+
+
+    if(!connected && (millis() - time_connected > TEMR_RECONNECTED)) {
+        // установить соединение
+        connectToWiFi();
+        time_connected = millis();
+    }
+
+
+    if(!connected || (millis() - send_wait_error < SEND_WAIT_ERROR)) {
+        return err_send_data;
+    }
+    while (!client.connect(network_adr_, network_port_, 2000)) { // adr!!!
+        if(wait_connect == 0) {
+            client_connect = false;
+            break;
+        }
+        --wait_connect;
+        Serial.println("client.connect err");
+        delay(100);
+    }
+    // - 2021.06.11 - перезапуск при отсутствии соединения -
+    #if defined (ERROR_REBOOT)
+    static const uint16_t MAX_ERRORS_IN_ROW = MAX_ERRORS_IN_ROW_CONNECT;
+    static uint16_t number_errors_row = 0;
+    if(wait_connect == 0) {
+        if(number_errors_row == MAX_ERRORS_IN_ROW) {
+            RtcDateTime rdt = gcm_interface.gcm_->get_data_time();
+            uint16_t data;
+            Serial.println("\n| ----- -----");
+            Serial.println("| ------- ----- -----");
+            Serial.print("| ----- ");
+            data = rdt.Year(); Serial.print(data); Serial.print("/");
+            data = rdt.Month(); Serial.print(data); Serial.print("/");
+            data = rdt.Day(); Serial.print(data); Serial.print("  ");
+            data = rdt.Hour(); Serial.print(data); Serial.print(":");
+            data = rdt.Minute(); Serial.print(data); Serial.print(":");
+            data = rdt.Second(); Serial.print(data); Serial.println(" - {Server error reboot}");
+            Serial.println("| ------- ----- -----");
+            Serial.println("| ----- -----\n");
+            esp_restart();
+        }
+        else
+            ++number_errors_row;
+    }
+    else {
+        number_errors_row = 0;
+    }
+    #endif
+    // -----------------------------------------------------
+    if(client_connect) {
         client.write(buffer, buf_len);
 
         uint maxloops = 0;
@@ -306,21 +449,136 @@ bool WiFisend() {
             delay(1); //delay 1 msec
         }
         if (client.available() > 0) {
-            buf_len = client.readBytesUntil('\r', buffer, AMT_BYTES_BUFFER);
-            for(int i = 0; i < buf_len; ++i)
-                Serial.print((char)buffer[i]);
-            // String line = client.readStringUntil('\r');
-            // Serial.print(line);
+            static size_t receive_len = 0;
+            static uint8_t type_packet = 0xFF; // (regist|sensor|devices|check)
+            static uint8_t amount = 0; // количество устройств (ныне не более 1)
+            static uint8_t type_num = 0xFF; // тип управляемого устройства (нене только "Signal_digital")
+            static uint8_t new_state = 0xFF; // новое состояние (true или false = work или sleep)
+            static scs::State set_state;
+            static int index_component;
+            static bool is_device;
+            delay(1);
+            //    {-} ----- {-}
+            // read back one line from the server
+            receive_len = client.readBytes(buffer, AMT_BYTES_BUFFER);
+            if(receive_len > 0) {
+                if(buffer[0] == 1) {
+                    std::array<uint8_t, scs::AMT_BYTES_ID> system_id{}; // настраиваемый модуль
+                    Serial.print("Receive command: (receive_len = ");
+                    Serial.print(receive_len);
+                    Serial.print("; packet_len = ");
+                    Serial.print((((uint16_t)buffer[1]) << 8) | ((uint16_t)buffer[2]));
+                    Serial.println(")");
+                    size_t receive_num = 3; // [1, len[1], len[0], ...]
+
+                    for(int i = 0; i < scs::AMT_BYTES_ID; ++i) {
+                        system_id[i] = buffer[receive_num++];
+                    }
+                    type_packet = buffer[receive_num++];
+                    if(type_packet != 0x02) {
+                        Serial.println("<<< Recive packet no device!!! >>>");
+                    }
+                    amount = buffer[receive_num++];
+                    if(amount != 1) {
+                        Serial.print("<<< amount != 1 (amount = "); Serial.print(amount); Serial.println(">>>");
+                    }
+
+                    type_num = buffer[receive_num++];
+                    if(type_num != (uint8_t)Signal_digital) {
+                        Serial.print("<<< type_num != Signal_digital (type_num = "); Serial.print(type_num); Serial.println(">>>");
+                    }
+                    new_state = buffer[receive_num++]; // number
+                    new_state = buffer[receive_num++];
+                    if((new_state != 0) && (new_state != 1)) {
+                        Serial.print("<<< new_state != 0 or 1 (new_state = "); Serial.print(new_state); Serial.println(">>>");
+                    }
+
+                    index_component = gcm_interface.gcm_->search_device(system_id);
+                    if(index_component != -1) {
+                        is_device = true;
+                    }
+                    else {
+                        index_component = gcm_interface.gcm_->search_sensor(system_id);
+                    }
+
+                    if(index_component == -1) {
+                        Serial.println("Error ID");
+                    }
+                    else {
+                        if(new_state == 0) {
+                            if(is_device) {
+                                set_state = scs::State::from_work_to_stop;
+                            }
+                            else
+                                set_state = scs::State::stop;
+                            set_state = scs::State::stop; // (-) -----
+                        } 
+                        else if (new_state == 1) {
+                            if(is_device) {
+                                set_state = scs::State::from_stop_to_work;
+                            }
+                            else
+                                set_state = scs::State::work;
+                            set_state = scs::State::work; // (-) -----
+                        }
+                        else {
+                            set_state = scs::State::end_;
+                        }
+                        if(is_device) {
+                            gcm_interface.gcm_->devices_[index_component].set_state___(set_state);
+                        }
+                        else {
+                            gcm_interface.gcm_->sensors_[index_component].set_state___(set_state);
+                        }
+                    }
+                                                                                                Serial.print("ID: {");
+                                                                                                for(int i = 0; i < scs::AMT_BYTES_ID; ++i) {
+                                                                                                    if(system_id[i] < 16)
+                                                                                                        Serial.print("0");
+                                                                                                    Serial.print(system_id[i], 16);
+                                                                                                    if(i < scs::AMT_BYTES_ID - 1)
+                                                                                                        Serial.print(", ");
+                                                                                                }
+                                                                                                Serial.print("} set state: ");
+                                                                                                if(new_state) {
+                                                                                                    Serial.println("true");
+                                                                                                }
+                                                                                                else {
+                                                                                                    Serial.println("false");
+                                                                                                }
+                    // {-} ----- присвоить значение состояния ----- {-}
+                    send_request(system_id, new_state);
+                    // {-} ----- присвоить значение состояния ----- {-}
+                }
+                else {
+                    Serial.print("Not command, receive: ");
+                    Serial.write(buffer, receive_len);
+                    Serial.println();
+                    // print "recive correct"
+                }
+            }
+            //    {-} ----- {-}
+            // buf_len = client.readBytesUntil('\r', buffer, AMT_BYTES_BUFFER);
+            // for(int i = 0; i < buf_len; ++i)
+            //     Serial.print((char)buffer[i]);
+            // // String line = client.readStringUntil('\r');
+            // // Serial.print(line);
             Serial.print("\nTime send to server = ");
             Serial.print(maxloops);
             Serial.println("ms");
             send_wait_error = millis() - SEND_WAIT_ERROR;
             err_send_data = false;
+            //    {-} ----- {-}
         }
         else {
             Serial.println("client.available() timed out ");
         }
     }
+
+
+
+
+
     client.stop(); 
                                                                                                         // Serial.println();
                                                                                                         // Serial.print("|>-{");
@@ -334,6 +592,7 @@ bool WiFisend() {
                                                                                                         // Serial.println("}-<|\n");
     // Serial.printf("Seconds since boot: %lu\n", millis()/1000);
     return err_send_data;
+#endif
 }
 
 
@@ -355,7 +614,7 @@ uint16_t GCM_interface::report_to_server_regist_data() {
         for(int i = 0; i < gcm_->system_id_.size(); ++i)
             buffer[buf_len++] = gcm_->devices_[k].get_system_id()[i];
 
-    RtcDateTime rdt = gcm_->get_data_time();
+    rdt = gcm_->get_data_time();
 
     buffer[buf_len++] = rdt.Day();
     buffer[buf_len++] = rdt.Month();
@@ -405,8 +664,9 @@ uint16_t GCM_interface::report_to_server_regist_data() {
 uint16_t GCM_interface::report_to_server_read_data() {
     // clear_change_value = false
     buf_len = 0;
-    RtcDateTime rdt = gcm_->get_data_time();
+    // RtcDateTime rdt; // (-) ----- вернуть из global 
     for(int k = 0; k < gcm_->sensors_.size(); ++k) {
+        buf_len = 0;
         if(!gcm_->sensors_[k].get_change_value())
             continue;
         gcm_->sensors_[k].clear_change_value();
@@ -431,6 +691,8 @@ uint16_t GCM_interface::report_to_server_read_data() {
             buffer[buf_len++] = (data >>  8) & 0xFF;
             buffer[buf_len++] =  data        & 0xFF;
         }
+
+        rdt = gcm_->get_data_time();
 
         buffer[buf_len++] = rdt.Day();
         buffer[buf_len++] = rdt.Month();
@@ -477,6 +739,123 @@ uint16_t GCM_interface::report_to_server_read_data() {
                                                                                                         // Serial.print(":");
                                                                                                         // Serial.print(rdt.Second());
                                                                                                         // Serial.println(" |\n");
+    }
+
+
+    for(int k = 0; k < gcm_->devices_.size(); ++k) {
+        buf_len = 0;
+        if(!gcm_->devices_[k].get_change_value())
+            continue;
+        gcm_->devices_[k].clear_change_value();
+
+
+        for(int i = 0; i < gcm_->system_id_.size(); ++i)
+            buffer[buf_len++] = gcm_->devices_[k].get_system_id()[i];
+        buffer[buf_len++] = 2; // type report (0 - registration, 1 - sensor, 2 - device)
+
+        buffer[buf_len++] = gcm_->devices_[k].get_count_component();
+
+        uint8_t data_b;        
+        uint8_t dev_type;
+        // uint32_t data;
+        uint16_t pwmv;
+        int i = 0;
+        for(i = 0; i < gcm_->devices_[k].get_count_component(); ++i) {
+            gcm_->devices_[k].get_type(i, dev_type);
+            buffer[buf_len++] = dev_type;
+            gcm_->devices_[k].get_id(i, data_b);
+            buffer[buf_len++] = data_b;
+            gcm_->devices_[k].get_value(i, pwmv);
+
+            if(dev_type == Signal_PWM || dev_type == Fan_PWM || dev_type == Phytolamp_PWM) {
+                buffer[buf_len++] = (pwmv >>  8) & 0xFF;
+                buffer[buf_len++] =  pwmv & 0xFF;
+            }
+            else if (dev_type == Signal_digital || dev_type == Pumping_system || dev_type == Phytolamp_digital) {
+                if(pwmv)
+                    buffer[buf_len++] =  1 & 0xFF;
+                else
+                    buffer[buf_len++] =  0 & 0xFF;
+            }
+            else {
+                Serial.println("Error send type devices");
+                break;
+            }
+            // buffer[buf_len++] = (data >> 24) & 0xFF;
+            // buffer[buf_len++] = (data >> 16) & 0xFF;
+            // buffer[buf_len++] = (data >>  8) & 0xFF;
+            // buffer[buf_len++] =  data        & 0xFF;
+        }
+        if(i < gcm_->devices_[k].get_count_component())
+            continue;
+
+        rdt = gcm_->get_data_time();
+
+        buffer[buf_len++] = rdt.Day();
+        buffer[buf_len++] = rdt.Month();
+        buffer[buf_len++] = (rdt.Year() >> 8) & 0xFF;
+        buffer[buf_len++] = rdt.Year() & 0xFF;
+
+        buffer[buf_len++] = rdt.Hour();
+        buffer[buf_len++] = rdt.Minute();
+        buffer[buf_len++] = rdt.Second();
+        // if(init_server)
+            WiFisend();
+        // mas = [0x02, 0x06, 0x11, 0x21, 0x0b, 0x0c, 0xc1, 0xd1, 0x4b, 0x00, 0xc3, 0x01,  # ID
+        //        1,                     # type report (0 - registration, 1 - sensor, 2 - device)
+        //        4,                     # amt
+        //        0, 0, 10, 20,          # sensor 1
+        //        1, 0, 1,               # sensor 2
+        //        3, 1, 0x42, 0x12, 0x66, 0x66,   # sensor 3
+        //        6, 0, 0x43, 0x66, 0x00, 0x00,   # sensor 4
+        //        15, 6, 2020 >> 8, 2020 & 0xFF,  # date
+        //        12, 30, 30]            # time
+                                                                                                        // Serial.println();
+                                                                                                        // Serial.print("|>-{");
+                                                                                                        // for(int i = 0; i < buf_len; ++i) {
+                                                                                                        //     if(buffer[i] < 16)
+                                                                                                        //         Serial.print("0");
+                                                                                                        //     Serial.print(buffer[i], 16);
+                                                                                                        //     if(i < buf_len - 1)
+                                                                                                        //         Serial.print(", ");
+
+                                                                                                        //     if((i == 11) || (i == 13) || (i == 19) || (i == 25) || (i == 31))
+                                                                                                        //         Serial.print("\n     ");
+                                                                                                        // }
+                                                                                                        // Serial.print("}-<| ");
+
+                                                                                                        // Serial.print(rdt.Day());
+                                                                                                        // Serial.print("/");
+                                                                                                        // Serial.print(rdt.Month());
+                                                                                                        // Serial.print("/");
+                                                                                                        // Serial.print(rdt.Year());
+                                                                                                        // Serial.print("  ");
+                                                                                                        // Serial.print(rdt.Hour());
+                                                                                                        // Serial.print(":");
+                                                                                                        // Serial.print(rdt.Minute());
+                                                                                                        // Serial.print(":");
+                                                                                                        // Serial.print(rdt.Second());
+                                                                                                        // Serial.println(" |\n");
+    }
+
+    // send an empty packet every second (?) -----
+    static unsigned long empty_time = millis();
+    if(millis() - empty_time > 5000U) {
+        buf_len = 0;
+        for(int i = 0; i < gcm_->get_system_id().size(); ++i)
+            buffer[buf_len++] = gcm_->get_system_id()[i];
+        buffer[buf_len++] = 3; // type report (0 - registration, 1 - sensor, 2 - device)
+        buffer[buf_len++] = 0;
+        rdt = gcm_->get_data_time();
+        buffer[buf_len++] = rdt.Day();
+        buffer[buf_len++] = rdt.Month();
+        buffer[buf_len++] = (rdt.Year() >> 8) & 0xFF;
+        buffer[buf_len++] = rdt.Year() & 0xFF;
+        buffer[buf_len++] = rdt.Hour();
+        buffer[buf_len++] = rdt.Minute();
+        buffer[buf_len++] = rdt.Second();
+        WiFisend();
+        empty_time = millis();
     }
 }
 // Отправка данных об ошибках

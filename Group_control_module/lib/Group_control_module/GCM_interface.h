@@ -1,5 +1,5 @@
-#ifndef __GROW_SENSOR_INTERFACE_H__
-#define __GROW_SENSOR_INTERFACE_H__
+#ifndef GROUP_CONTROL_MODULE_H_
+#define GROUP_CONTROL_MODULE_H_
 
 #include <Arduino.h>
 #include <Group_control_module.h>
@@ -11,6 +11,8 @@
 // #include <WiFiUdp.h>
 // Bluetooth
 #include <BluetoothSerial.h>
+//
+#include <System_component.hpp>
 
 // #include <Packet_analyzer.h>
 // #include <LoRa_packet.h>
@@ -78,4 +80,4 @@ public:
 
 extern GCM_interface gcm_interface;
 
-#endif // __GROW_SENSOR_INTERFACE_H__
+#endif // GROUP_CONTROL_MODULE_H_

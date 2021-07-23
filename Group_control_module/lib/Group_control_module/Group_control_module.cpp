@@ -3,8 +3,46 @@
 #define NUM_SENSOR 0x01
 #define NUM_DEVICE 0x02
 
-uint32_t amt_error_connect = 0;
-uint32_t amt_error_connect_num[6] = {0, 0, 0, 0, 0, 0};
+uint32_t amt_error_connect_s = 0;
+uint32_t amt_error_connect_num_s[6] = {0, 0, 0, 0, 0, 0};
+uint32_t amt_error_connect_d = 0;
+uint32_t amt_error_connect_num_d[6] = {0, 0, 0, 0, 0, 0};
+// - 2021.06.11 - перезапуск при отсутствии соединения -
+#if defined (ERROR_REBOOT)
+static const uint16_t MAX_ERRORS_ONE_COMPONENT = 3;
+uint32_t amt_error_connect_last_num_s[6] = {0, 0, 0, 0, 0, 0};
+uint32_t amt_error_connect_last_num_d[6] = {0, 0, 0, 0, 0, 0};
+#endif
+// -----------------------------------------------------
+
+#if defined (BUILD_TESTING_CODE_409)
+#define VERSION_MODULE 1
+extern uint32_t led1_time;
+extern uint32_t led2_time;
+extern uint32_t led3_time;
+extern bool led1_state;
+extern bool led2_state;
+extern bool led3_state;
+#endif
+
+// - 2021.06.11 - перезапуск при отсутствии соединения -
+#if defined (ERROR_REBOOT)
+static const uint16_t MAX_ERRORS_IN_ROW = 3; // MAX_... >= amt_component
+static uint16_t number_errors_row = 0;
+#endif
+// -----------------------------------------------------
+
+
+enum class Purpose_contact {
+    noname = 0,
+    get_data,
+    set_state,
+    set_sync_rtc
+
+    /* data */
+};
+Purpose_contact last_purpose_contact = Purpose_contact::noname;
+
 
 // (!) ----- Переделать в нормальный вид (pin -> тот или иной GT)
 static Group_control_module* group_control_module_interrupt;
@@ -31,10 +69,10 @@ Group_control_module::Group_control_module(/* args */): rtc_(rtc_wire) {
     end_adr_ = 0; // (--) ----- (исключается)
     rtc_begin_ = false;
     data_time_ = 0;
-    permission_regist_interrupt_ = true; 
+    permission_regist_interrupt_ = true;
 }
 
-Group_control_module::Group_control_module(uint8_t pin_reset, uint8_t spi_bus, uint8_t spi_nss, uint8_t pin_dio0, 
+Group_control_module::Group_control_module(uint8_t pin_reset, uint8_t spi_bus, uint8_t spi_nss, uint8_t pin_dio0,
                        uint8_t pin_dio1, uint8_t pin_dio3): rtc_(rtc_wire) {
     // (-) ----- (обычный конструктор)
     LoRa_init(pin_reset, spi_bus, spi_nss, pin_dio0, pin_dio1, pin_dio3);
@@ -46,14 +84,14 @@ Group_control_module::~Group_control_module() {
 
 
 // Инициализация параметров LoRa модуля (частота задаётся конфигурацией)
-bool Group_control_module::LoRa_init(uint8_t pin_reset, uint8_t spi_bus, uint8_t spi_nss, 
+bool Group_control_module::LoRa_init(uint8_t pin_reset, uint8_t spi_bus, uint8_t spi_nss,
                            uint8_t pin_dio0, uint8_t pin_dio1, uint8_t pin_dio3) {
     group_control_module_interrupt = this;
     bool result = contact_data_.init_lora_module(pin_reset, spi_bus, spi_nss, pin_dio0, pin_dio1, pin_dio3);
     interrupt_init(pin_dio0, pin_dio1, pin_dio3);
     return result;
 }
-// Запуск 
+// Запуск
 void Group_control_module::rtc_begin() {
     rtc_.Begin();
     rtc_begin_ = true;
@@ -69,7 +107,7 @@ uint8_t Group_control_module::begin() {
     return LoRa_begin();
 }
 // Работа класса
-uint8_t Group_control_module::work_system() { 
+uint8_t Group_control_module::work_system() {
     // (проверяет систему, обрабатывает формулы (У|Д|Ф), гинерит пакеты, запускает передачу)
     static bool in_work_system = false;
     if(in_work_system)
@@ -82,25 +120,29 @@ uint8_t Group_control_module::work_system() {
     case GT_PROCESSING:
         // if(contact_data_.get_signal_complete()) {
         if(contact_data_.get_state_contact() == SC_DOWNTIME) {
-            // if(!handler_devices())
-            //     break;
+#if defined (BUILD_TESTING_CODE_409)
+                                                            // Если тестовый модуль, то не начинаем контакт
+                                                            break;
+#endif
+            if(!handler_devices())
+                break;
             if(!handler_sensors())
                 break;
             // формулы()   // --- if(формулы()) ---
             //             // ---     break;    ---
-            // опустить все флаги датчиков (они не должны опускаться если из-за формул меняются устройства) (нет, т.к. 
+            // опустить все флаги датчиков (они не должны опускаться если из-за формул меняются устройства) (нет, т.к.
             //     я пройдусь по всем формулам)
 
-            // в формулы() 
+            // в формулы()
             //          false при отсутствии change_value_ в датчиках
             //          пройтись по всем формулам
-            //          выдать true, если 
+            //          выдать true, если
 
             // (-) -----
             // 2. Обработка устройств (проверить то, что было в старом GT и параметр change_value_)
             // 3. Обработка датчиков (при приёме установить значение переменных с данными, чтобы изменился change_value_)
-            // 4. Обработка формул при изменении показателей датчиков (проверить все формулы с датчиками, у которых 
-            //      есть change_value_, внося в вектор все проверенные датчики, после - их опустить, [?] в sensors сделать 
+            // 4. Обработка формул при изменении показателей датчиков (проверить все формулы с датчиками, у которых
+            //      есть change_value_, внося в вектор все проверенные датчики, после - их опустить, [?] в sensors сделать
             //      режимы "в общении", и "ошибка", при 1-м формулы опускать, при 2-м - выключить/включить устройства)
             //      в результате формул посылать управление ШИМом и сигналом
         }
@@ -113,7 +155,7 @@ uint8_t Group_control_module::work_system() {
 }
 static float value = 0.0;
 static float* p_value = nullptr;
-void Group_control_module::LoRa_interrupt() { 
+void Group_control_module::LoRa_interrupt() {
     // (контролирует каждый шаг передачи, по завершению запускает work_system, контролирует трансляцию, заносит запросы регистрации)
     // (-) -----
     bool add_err = false;
@@ -126,8 +168,8 @@ void Group_control_module::LoRa_interrupt() {
         if(mode_ == GT_SETTING) {
             LoRa_address adr = contact_data_.get_connect_adr();
             for(int i = 0; i < devices_.size(); ++i) {
-                if(devices_[i].get_address() == adr.branch) {
-                    devices_[i].set_active(0);    
+                if(devices_[i].get_address() == adr) { // (?) ----- adr.branch
+                    devices_[i].set_active(0);
                     Serial.print("Add contact error = ");
                     Serial.println(error);
                     add_err = true;
@@ -135,8 +177,8 @@ void Group_control_module::LoRa_interrupt() {
                 }
             }
             for(int i = 0; i < sensors_.size(); ++i) {
-                if(sensors_[i].get_address() == adr.branch) {
-                    sensors_[i].set_active(0);    
+                if(sensors_[i].get_address() == adr) { // adr.branch
+                    sensors_[i].set_active(0);
                     Serial.print("Add contact error = ");
                     Serial.println(error);
                     add_err = true;
@@ -145,15 +187,98 @@ void Group_control_module::LoRa_interrupt() {
             }
         }
         else {
-            ++amt_error_connect; // (?) -----
+            bool this_device = false;
             LoRa_address adr = contact_data_.get_connect_adr();
-            for(int i = 0; i < sensors_.size(); ++i) {
-                if(sensors_[i].get_address() == adr.branch) {
-                    amt_error_connect_num[i] += 1;
+
+            for(int i = 0; i < devices_.size(); ++i) {
+                if(devices_[i].get_address() == adr) { // adr.branch
+                    ++amt_error_connect_d; // (?) -----
+
+#if defined (BUILD_TESTING_CODE_409)
+                                                            // Если тестовый модуль, то включаем диод
+                                                            led2_state = false;
+                                                            led3_state = true;
+                                                            led3_time = millis();
+#endif
+                    amt_error_connect_num_d[i] += 1;
+                    // - 2021.06.11 - перезапуск при отсутствии соединения -
+                    #if defined (ERROR_REBOOT)
+                    amt_error_connect_last_num_d[i] += 1;
+                    if(MAX_ERRORS_ONE_COMPONENT < amt_error_connect_last_num_d[i]) {
+                        RtcDateTime rdt = get_data_time();
+                        uint16_t data;
+                        Serial.println("\n| ----- -----");
+                        Serial.println("| ------- ----- -----");
+                        Serial.print("| ----- ");
+                        data = rdt.Year(); Serial.print(data); Serial.print("/");
+                        data = rdt.Month(); Serial.print(data); Serial.print("/");
+                        data = rdt.Day(); Serial.print(data); Serial.print("  ");
+                        data = rdt.Hour(); Serial.print(data); Serial.print(":");
+                        data = rdt.Minute(); Serial.print(data); Serial.print(":");
+                        data = rdt.Second(); Serial.print(data); Serial.print(" - {amt error device[");
+                        Serial.print(i); Serial.println("] reboot}");
+                        Serial.println("| ------- ----- -----");
+                        Serial.println("| ----- -----\n");
+                        esp_restart();
+                    }
+                    #endif
+                    // -----------------------------------------------------
+                    this_device = true;
                     break;
                 }
             }
-            
+            if(!this_device) {
+                for(int i = 0; i < sensors_.size(); ++i) {
+                    if(sensors_[i].get_address() == adr) { // adr.branch
+                        ++amt_error_connect_s; // (?) -----
+                        amt_error_connect_num_s[i] += 1;
+                        // - 2021.06.11 - перезапуск при отсутствии соединения -
+                        #if defined (ERROR_REBOOT)
+                        amt_error_connect_last_num_s[i] += 1;
+                        if(MAX_ERRORS_ONE_COMPONENT < amt_error_connect_last_num_s[i]) {
+                            RtcDateTime rdt = get_data_time();
+                            uint16_t data;
+                            Serial.println("\n| ----- -----");
+                            Serial.println("| ------- ----- -----");
+                            Serial.print("| ----- ");
+                            data = rdt.Year(); Serial.print(data); Serial.print("/");
+                            data = rdt.Month(); Serial.print(data); Serial.print("/");
+                            data = rdt.Day(); Serial.print(data); Serial.print("  ");
+                            data = rdt.Hour(); Serial.print(data); Serial.print(":");
+                            data = rdt.Minute(); Serial.print(data); Serial.print(":");
+                            data = rdt.Second(); Serial.print(data); Serial.print(" - {amt error sensor[");
+                            Serial.print(i); Serial.println("] reboot}");
+                            Serial.println("| ------- ----- -----");
+                            Serial.println("| ----- -----\n");
+                            esp_restart();
+                        }
+                        #endif
+                        // -----------------------------------------------------
+                        break;
+                    }
+                }
+            }
+
+            // - 2021.06.11 - перезапуск при отсутствии соединения -
+            #if defined (ERROR_REBOOT)
+            if(++number_errors_row == MAX_ERRORS_IN_ROW) {
+                RtcDateTime rdt = get_data_time();
+                uint16_t data;
+                Serial.println("\n| ----- -----");
+                Serial.println("| ------- ----- -----");
+                Serial.print("| ----- ");
+                data = rdt.Year(); Serial.print(data); Serial.print("/");
+                data = rdt.Month(); Serial.print(data); Serial.print("/");
+                data = rdt.Day(); Serial.print(data); Serial.print("  ");
+                data = rdt.Hour(); Serial.print(data); Serial.print(":");
+                data = rdt.Minute(); Serial.print(data); Serial.print(":");
+                data = rdt.Second(); Serial.print(data); Serial.println(" - {LoRa error reboot}");
+                Serial.println("| ------- ----- -----");
+                Serial.println("| ----- -----\n");
+                esp_restart();
+            }
+            #endif
+            // -----------------------------------------------------
 
             Serial.print("Err: ");
             Serial.println(error);
@@ -186,12 +311,12 @@ void Group_control_module::LoRa_interrupt() {
                                                                                                     Serial.println("YYY");
                     LoRa_address adr = contact_data_.get_connect_adr();
                     for(int i = 0; i < devices_.size(); ++i) {
-                        if(devices_[i].get_address() == adr.branch)
-                            devices_[i].set_active(2);    
+                        if(devices_[i].get_address() == adr) // adr.branch
+                            devices_[i].set_active(2);
                     }
                     for(int i = 0; i < sensors_.size(); ++i) {
-                        if(sensors_[i].get_address() == adr.branch)
-                            sensors_[i].set_active(2);    
+                        if(sensors_[i].get_address() == adr) // adr.branch
+                            sensors_[i].set_active(2);
                     }
 
                     // всё зарегистрировано
@@ -213,7 +338,7 @@ void Group_control_module::LoRa_interrupt() {
                         contact_data_.end_contact();
                         set_mode(Mode::GT_PROCESSING);
                     }
-                        
+
                 }
 
                 if(contact_data_.get_signal_complete() || contact_data_.get_state_contact() == SC_WAITING || contact_data_.get_state_contact() == SC_DOWNTIME) {
@@ -221,7 +346,7 @@ void Group_control_module::LoRa_interrupt() {
                     LoRa_address regist_adr = {contact_data_.get_my_adr().group, 0};
                     for(int i = 0; i < devices_.size(); ++i) {
                         if(devices_[i].get_active() == 1) {
-                            regist_adr.branch = devices_[i].get_address();
+                            regist_adr.branch = devices_[i].get_address().branch; // adr.branch
                             check_reg = true;
                             break;
                         }
@@ -230,7 +355,7 @@ void Group_control_module::LoRa_interrupt() {
                         for(int i = 0; i < sensors_.size(); ++i) {
                             if(sensors_[i].get_active() == 1) {
                                                                                                     Serial.println("ZZZ");
-                                regist_adr.branch = sensors_[i].get_address();
+                                regist_adr.branch = sensors_[i].get_address().branch; // adr.branch
                                 check_reg = true;
                                 break;
                             }
@@ -274,7 +399,7 @@ void Group_control_module::LoRa_interrupt() {
                                                             // packet.packet->set_packet_type(Packet_Type::SYSTEM);
                                                             // static_cast<Packet_System*>(packet.packet)->set_packet_data(&com, data, &len);
                                                             packet_system.set_packet_data(packet, &com, data, &len);
-                                                            
+
                                                             contact_data_.init_contact(regist_adr);
                                                             contact_data_.add_packet(packet);
                                                             contact_data_.start_transfer();
@@ -292,29 +417,250 @@ void Group_control_module::LoRa_interrupt() {
         }
         case GT_PROCESSING: {
             if(contact_data_.get_signal_complete()) {
+                // - 2021.06.11 - перезапуск при отсутствии соединения -
+                #if defined (ERROR_REBOOT)
+                number_errors_row = 0;
+                #endif
+                // -----------------------------------------------------
                                                                                                                     Serial.print("check sensor complete (amt error = ");
-                                                                                                                    Serial.print(amt_error_connect);
+                                                                                                                    Serial.print(amt_error_connect_s);
                                                                                                                     Serial.print(") [");
                                                                                                                     for(int i = 0; i < sensors_.size(); ++i) {
                                                                                                                         Serial.print("err№");
                                                                                                                         Serial.print(i+1);
                                                                                                                         Serial.print(" = ");
-                                                                                                                        Serial.print(amt_error_connect_num[i]);
+                                                                                                                        Serial.print(amt_error_connect_num_s[i]);
                                                                                                                         if(i < sensors_.size() - 1)
                                                                                                                             Serial.print(";  ");
                                                                                                                     }
+
                                                                                                                     Serial.println("]");
+                                                                                                                    Serial.print("check device complete (amt error = ");
+                                                                                                                    Serial.print(amt_error_connect_d);
+                                                                                                                    Serial.print(") [");
+                                                                                                                    for(int i = 0; i < devices_.size(); ++i) {
+                                                                                                                        Serial.print("err№");
+                                                                                                                        Serial.print(i+1);
+                                                                                                                        Serial.print(" = ");
+                                                                                                                        Serial.print(amt_error_connect_num_d[i]);
+                                                                                                                        if(i < devices_.size() - 1)
+                                                                                                                            Serial.print(";  ");
+                                                                                                                    }
+                                                                                                                    Serial.println("]");
+                                                                                                                    // - 2021.06.11 - перезапуск при отсутствии соединения -
+                                                                                                                    #if defined (ERROR_REBOOT)
+                                                                                                                    Serial.print("check last sensor complete            [");
+                                                                                                                    for(int i = 0; i < sensors_.size(); ++i) {
+                                                                                                                        Serial.print("err№");
+                                                                                                                        Serial.print(i+1);
+                                                                                                                        Serial.print(" = ");
+                                                                                                                        Serial.print(amt_error_connect_last_num_s[i]);
+                                                                                                                        if(i < sensors_.size() - 1)
+                                                                                                                            Serial.print(";  ");
+                                                                                                                    }
+
+                                                                                                                    Serial.println("]");
+                                                                                                                    Serial.print("check last device complete            [");
+                                                                                                                    for(int i = 0; i < devices_.size(); ++i) {
+                                                                                                                        Serial.print("err№");
+                                                                                                                        Serial.print(i+1);
+                                                                                                                        Serial.print(" = ");
+                                                                                                                        Serial.print(amt_error_connect_last_num_d[i]);
+                                                                                                                        if(i < devices_.size() - 1)
+                                                                                                                            Serial.print(";  ");
+                                                                                                                    }
+                                                                                                                    Serial.println("]");
+                                                                                                                    #endif
+                                                                                                                    // -----------------------------------------------------
+#if defined (BUILD_TESTING_CODE_409)
+                                                            // Если тестовый модуль, то включаем диод
+                                                            led2_state = false;
+                                                            led1_state = true;
+                                                            led1_time = millis();
+                                                            // и выключаемся
+                                                            contact_data_.end_contact();
+                                                            in_interrupt = false;
+                                                            return;
+#endif
                 // (-) -----
-                // Обработать показания с датчиков 
+                // Обработать показания
+
+
+                bool this_device = false;
+                bool this_sensor = false;
+                LoRa_address adr = contact_data_.get_connect_adr();
                 LoRa_packet packet_processing;
                 std::vector<LoRa_packet> packets = contact_data_.get_all_packet();
-                uint16_t num_sensor;
-                for(num_sensor = 0; num_sensor < sensors_.size(); ++num_sensor) {
-                    if(sensors_[num_sensor].get_address() == contact_data_.get_connect_adr().branch) {
+                size_t num_component = 0;
+                for(int i = 0; i < devices_.size(); ++i) {
+                    if(devices_[i].get_address() == adr) { // adr.branch
+                        this_device = true;
+                        num_component = i;
+                        // - 2021.06.11 - перезапуск при отсутствии соединения -
+                        #if defined (ERROR_REBOOT)
+                        amt_error_connect_last_num_d[i] = 0;
+                        #endif
+                        // -----------------------------------------------------
                         break;
                     }
                 }
-                if(num_sensor < sensors_.size()) {
+                if(!this_device) {
+                    for(int i = 0; i < sensors_.size(); ++i) {
+                        if(sensors_[i].get_address() == adr) { // adr.branch
+                            this_sensor = true;
+                            num_component = i;
+                            // - 2021.06.11 - перезапуск при отсутствии соединения -
+                            #if defined (ERROR_REBOOT)
+                            amt_error_connect_last_num_s[i] = 0;
+                            #endif
+                            // -----------------------------------------------------
+                            break;
+                        }
+                    }
+                }
+                if(this_device) {
+
+                    if(last_purpose_contact == Purpose_contact::set_state) {
+                        // (packets.size() == 0) && (devices_[num_component].get_state___() == scs::State::from_work_to_stop || devices_[num_component].get_state___() == scs::State::from_stop_to_work)) {
+                        
+                        // set state
+                        Serial.print("Device {");
+                        Serial.print(adr.group, 16);
+                        Serial.print("|");
+                        Serial.print(adr.branch, 16);
+                        Serial.print("} set mode ");
+
+                        if(devices_[num_component].get_state___() == scs::State::from_work_to_stop) {
+                            devices_[num_component].set_state___(scs::State::stop);
+                            Serial.println("'stop'");
+                        }
+                        else if (devices_[num_component].get_state___() == scs::State::from_stop_to_work) {
+                            devices_[num_component].set_state___(scs::State::work);
+                            Serial.println("'work'");
+                        }
+                        else {
+                            devices_[num_component].set_state___(scs::State::from_work_to_stop);
+                            Serial.println("'set stop' (error set state → stop device)");
+                        }
+                        last_purpose_contact = Purpose_contact::noname;
+                    }
+                    else if(last_purpose_contact == Purpose_contact::set_sync_rtc){
+                        devices_[num_component].set_rtc_sync(false);
+                        last_purpose_contact = Purpose_contact::noname;
+                    }
+                    else {
+                        if(last_purpose_contact == Purpose_contact::get_data) {
+                            Serial.println("Read devices data:");
+                        }
+                        for(int i = 0; i < packets.size(); ++i) {
+                            // packet_processing.set_packet(packets[i]);
+                            // if(packet_processing.packet->get_sour_adr() != contact_data_.get_connect_adr())
+                            if(packet_analyzer.get_sour_adr(packets[i]) != contact_data_.get_connect_adr())
+                                continue; // (-) ----- неправильная обработка (?) ----- возврат пакета обратно, можно запомнить i
+
+                            //                           (!) ----- (-) ----- (-) ----- (-) ----- (!) ----- interface
+                            if(packet_analyzer.get_packet_type(packets[i]) == Packet_Type::DEVICE) {
+                                uint8_t size = 0;
+                                uint8_t id = 0;
+                                uint8_t com = 0;
+                                uint8_t obj = 0;
+                                uint16_t data = 0;
+                                uint8_t len = 0;
+
+                                packet_device.set_setting(devices_[num_component].get_setting());
+                                packet_device.get_size_by_packet(packets[i], &obj, size);
+
+                                packet_device.get_packet_data(packets[i], &obj, &id, &com, (uint8_t*)&data, &len);
+                                if(obj == 0x06) { // rtc(!) -----
+                                    if(com == 0x00) // get rtc time (!) -----
+                                        devices_[num_component].set_rtc_sync(true);
+                                    else {
+                                        Serial.print("Error, recieve device[] packet: rtc type = ");
+                                        Serial.print(num_component);
+                                        Serial.print("] packet: rtc com = ");
+                                        Serial.println(com);
+                                    }
+                                }
+                                else {
+                                    for(int k = 0; k < devices_[num_component].get_count_component(); ++k) {
+                                        if(devices_[num_component].get_component(k).get_type() == obj)
+                                            if(devices_[num_component].get_component(k).get_id() == id) {
+                                                if((obj == Signal_digital) || (obj == Pumping_system) || (obj == Phytolamp_digital)) {
+                                                    devices_[num_component].set_value(k, data);
+                                                                                                                        // Serial.print("Device data T[");
+                                                                                                                        // Serial.print(obj);
+                                                                                                                        // Serial.print("] id№");
+                                                                                                                        // Serial.print(id);
+                                                                                                                        // Serial.print(" : ");
+                                                                                                                        // Serial.println(data);
+                                                }
+                                                else if((obj == Signal_PWM) || (obj == Fan_PWM) || (obj == Phytolamp_PWM)){
+                                                    devices_[num_component].set_value(k, data);
+                                                                                                                        // Serial.print("Device data T[");
+                                                                                                                        // Serial.print(obj);
+                                                                                                                        // Serial.print("] id№");
+                                                                                                                        // Serial.print(id);
+                                                                                                                        // Serial.print(" : ");
+                                                                                                                        // Serial.println(data);
+                                                }
+                                                break;
+                                            }
+                                    }
+                                }
+                                // packet_sensor.set_setting(sensors_[num_component].get_setting());
+                                // packet_sensor.get_size_by_packet(packets[i], &amt, nullptr, size);
+                                // if(amt == 0)
+                                //     continue;
+                                
+
+
+
+                                // {-} ----- прочитать пакеты от устройств ----- {-}
+                                // uint8_t amt = 0;
+                                // uint8_t size = 0;
+                                // uint8_t id[3];
+                                // uint8_t param[3];
+                                // uint32_t data[3];
+                                // for(int j = 0; j < 3; ++j)
+                                //     id[j] = param[j] = data[j] = 0;
+                                // packet_sensor.set_setting(sensors_[num_component].get_setting());
+                                // packet_sensor.get_size_by_packet(packets[i], &amt, nullptr, size);
+                                // if(amt == 0)
+                                //     continue;
+                                // packet_sensor.get_packet_data(packets[i], &amt, param, id, data);
+                                // for(int j = 0; j < amt; ++j) {
+                                //     for(int k = 0; k < sensors_[num_component].get_count_component(); ++k) {
+                                //         if(sensors_[num_component].get_component(k).get_type() == param[j])
+                                //             if(sensors_[num_component].get_component(k).get_id() == id[j]) {
+                                //                 // у 0x00 тип uint16_t = 0-4095, у 0x01 тип bool
+                                //                 if(param[j] == 0x00 || (param[j] == 0x01)) {
+                                //                     value = data[j];
+                                //                     sensors_[num_component].set_value(k, value);
+                                //                 }
+                                //                 else {
+                                //                     sensors_[num_component].set_value(k, data[j]);
+                                //                                                                                         // float g_value;
+                                //                                                                                         // Serial.print("Sensor data T[");
+                                //                                                                                         // Serial.print(param[j]);
+                                //                                                                                         // Serial.print("] id№");
+                                //                                                                                         // Serial.print(id[j]);
+                                //                                                                                         // Serial.print(" : ");
+                                //                                                                                         // sensors_[num_sensor].get_value(k, g_value);
+                                //                                                                                         // Serial.println(g_value);
+                                //                 }
+                                //                 break;
+                                //             }
+                                //     }
+                                // }
+
+                            }
+                            else {
+                                // packet not devices?
+                            }
+                        }
+                    }
+                } 
+                else if(this_sensor) {
                     for(int i = 0; i < packets.size(); ++i) {
                         // packet_processing.set_packet(packets[i]);
                         // if(packet_processing.packet->get_sour_adr() != contact_data_.get_connect_adr())
@@ -325,13 +671,13 @@ void Group_control_module::LoRa_interrupt() {
                         if(packet_analyzer.get_packet_type(packets[i]) == Packet_Type::SENSOR) {
                             uint8_t amt = 0;
                             uint8_t size = 0;
-                            uint8_t id[3];
-                            uint8_t param[3];
-                            uint32_t data[3]; 
-                            for(int j = 0; j < 3; ++j)
+                            uint8_t id[10];
+                            uint8_t param[10];
+                            uint32_t data[10];
+                            for(int j = 0; j < 10; ++j)
                                 id[j] = param[j] = data[j] = 0;
 
-                            packet_sensor.set_setting(sensors_[num_sensor].get_setting());
+                            packet_sensor.set_setting(sensors_[num_component].get_setting());
                             packet_sensor.get_size_by_packet(packets[i], &amt, nullptr, size);
                             if(amt == 0)
                                 continue;
@@ -339,30 +685,39 @@ void Group_control_module::LoRa_interrupt() {
 
                             packet_sensor.get_packet_data(packets[i], &amt, param, id, data);
                             for(int j = 0; j < amt; ++j) {
-                                for(int k = 0; k < sensors_[num_sensor].get_count_component(); ++k) {
-                                    if(sensors_[num_sensor].get_component(k).get_type() == param[j])
-                                        if(sensors_[num_sensor].get_component(k).get_id() == id[j]) {
+                                for(int k = 0; k < sensors_[num_component].get_count_component(); ++k) {
+                                    if(sensors_[num_component].get_component(k).get_type() == param[j])
+                                        if(sensors_[num_component].get_component(k).get_id() == id[j]) {
                                             // у 0x00 тип uint16_t = 0-4095, у 0x01 тип bool
-                                            if(param[j] == 0x00 || (param[j] == 0x01)) { 
+                                            if(param[j] == 0x00 || (param[j] == 0x01)) {
                                                 value = data[j];
-                                                sensors_[num_sensor].set_value(k, value);
+                                                sensors_[num_component].set_value(k, value);
+                                                                                                                    Serial.print("Sensor data T[");
+                                                                                                                    Serial.print(param[j]);
+                                                                                                                    Serial.print("] id№");
+                                                                                                                    Serial.print(id[j]);
+                                                                                                                    Serial.print(" : ");
+                                                                                                                    Serial.println(value);
                                             }
                                             else {
-                                                sensors_[num_sensor].set_value(k, data[j]);
-                                                                                                                    // float g_value;
-                                                                                                                    // Serial.print("Sensor data T[");
-                                                                                                                    // Serial.print(param[j]);
-                                                                                                                    // Serial.print("] id№");
-                                                                                                                    // Serial.print(id[j]);
-                                                                                                                    // Serial.print(" : ");
-                                                                                                                    // sensors_[num_sensor].get_value(k, g_value);
-                                                                                                                    // Serial.println(g_value);
+                                                sensors_[num_component].set_value(k, data[j]);
+                                                                                                                    float g_value;
+                                                                                                                    Serial.print("Sensor data T[");
+                                                                                                                    Serial.print(param[j]);
+                                                                                                                    Serial.print("] id№");
+                                                                                                                    Serial.print(id[j]);
+                                                                                                                    Serial.print(" : ");
+                                                                                                                    sensors_[num_component].get_value(k, g_value);
+                                                                                                                    Serial.println(g_value);
                                             }
                                             break;
                                         }
                                 }
                             }
 
+                        }
+                        else {
+                            // packet not sensors?
                         }
 
                         // if(packet_processing.type_packet == PACKET_SENSOR) {
@@ -371,7 +726,7 @@ void Group_control_module::LoRa_interrupt() {
                         //     uint8_t size = 0;
                         //     uint8_t *id  = nullptr;
                         //     uint8_t *param = nullptr;
-                        //     uint32_t *data = nullptr; 
+                        //     uint32_t *data = nullptr;
                         //     static_cast<Packet_Sensor*>(packet_processing.packet)->set_setting(sensors_[num_sensor].get_setting());
                         //     static_cast<Packet_Sensor*>(packet_processing.packet)->get_size_by_packet(&amt, nullptr, &size);
                         //     id = new uint8_t[amt];
@@ -383,7 +738,7 @@ void Group_control_module::LoRa_interrupt() {
                         //             if(sensors_[num_sensor].get_component(k).get_type() == param[j])
                         //                 if(sensors_[num_sensor].get_component(k).get_id() == id[j]) {
                         //                     // у 0x00 тип uint16_t = 0-4095, у 0x01 тип bool
-                        //                     if(param[j] == 0x00 || (param[j] == 0x01)) { 
+                        //                     if(param[j] == 0x00 || (param[j] == 0x01)) {
                         //                         value = data[j];
                         //                     }
                         //                     else {
@@ -398,10 +753,11 @@ void Group_control_module::LoRa_interrupt() {
                     }
                 }
                 else {
-                    // Не датчик, а ... ?
+                                                                        Serial.println("!this_HeZeChTO!");
+                    // Не устройство или датчик, а ... ?
                 }
             }
-            // Запустить проверку датчиков/фомул при успешном завершении контакта
+            // Запустить проверку датчиков/фомул при успешном завершении контакта (-) -----
             work_system(); // проверка встроена
             break;
         }
@@ -425,6 +781,36 @@ RtcDateTime Group_control_module::get_data_time() {
     if (rtc_begin_)
         data_time_ = rtc_.GetDateTime();
     return data_time_;
+}
+
+// Поиск номера устройства/датчика по параметру
+int Group_control_module::search_device(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> search_id) {
+    auto it = std::find_if(devices_.begin(), devices_.end(),
+        [&search_id] (const Grow_device& check) {if(check.get_system_id() == search_id) return true; return false;});
+    if (it == devices_.end())
+        return -1;
+    return (int)std::distance( devices_.begin(), it );
+}
+int Group_control_module::search_sensor(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> search_id) {
+    auto it = std::find_if(sensors_.begin(), sensors_.end(),
+        [&search_id] (const Grow_sensor& check) {if(check.get_system_id() == search_id) return true; return false;});
+    if (it == sensors_.end())
+        return -1;
+    return (int)std::distance( sensors_.begin(), it );
+}
+int Group_control_module::search_device(uint16_t address) {
+    auto it = std::find_if(devices_.begin(), devices_.end(),
+        [address] (const Grow_device& check) {if(check.get_address().branch == address) return true; return false;}); // adr.branch
+    if (it == devices_.end())
+        return -1;
+    return (int)std::distance( devices_.begin(), it );
+}
+int Group_control_module::search_sensor(uint16_t address) {
+    auto it = std::find_if(sensors_.begin(), sensors_.end(),
+        [&address](const Grow_sensor& check) {if(check.get_address().branch == address) return true; return false; }); // adr.branch
+    if (it == sensors_.end())
+        return -1;
+    return (int)std::distance( sensors_.begin(), it );
 }
 
 
@@ -452,7 +838,7 @@ size_t Group_control_module::get_size() {
     for(int i = 0; i < sensors_.size(); ++i)
         size += grow_sensor_interface.get_size(sensors_[i]);
     for(int i = 0; i < devices_.size(); ++i)
-        size += devices_[i].get_size();
+        size += grow_device_interface.get_size(devices_[i]);
     return size;
 }
 size_t Group_control_module::get_data(uint8_t *data) {
@@ -477,7 +863,7 @@ size_t Group_control_module::get_data(uint8_t *data) {
     for(int i = 0; i < sensors_.size(); ++i)
         size += grow_sensor_interface.get_data(sensors_[i], data+size);
     for(int i = 0; i < devices_.size(); ++i)
-        size += devices_[i].get_data(data+size);
+        size += grow_device_interface.get_data(devices_[i], data+size);
     return size;
 }
 size_t Group_control_module::set_data(uint8_t *data, size_t available_size) {
@@ -492,6 +878,7 @@ size_t Group_control_module::set_data(uint8_t *data, size_t available_size) {
     value  = ((uint16_t)data[size++]) << 8;
     value |= ((uint16_t)data[size++]);
     contact_data_.set_my_adr({value, 0});
+    address_ = {value, 0};
 
     value  = ((uint16_t)data[size++]) << 8;
     value |= ((uint16_t)data[size++]);
@@ -504,24 +891,27 @@ size_t Group_control_module::set_data(uint8_t *data, size_t available_size) {
     amt_devices |= ((uint16_t)data[size++]);
 
     if(len_name != 0) {
+        name_.reserve(len_name);
         name_.resize(len_name);
         for(int i = 0; i < len_name; ++i)
             name_[i] = data[size++];
     }
 
     if(amt_sensors != 0) {
+        sensors_.reserve(amt_sensors);
         sensors_.resize(amt_sensors);
         for(int i = 0; i < amt_sensors; ++i) {
             size += grow_sensor_interface.set_data(sensors_[i], data+size, available_size-size);
-            sensors_[i].set_address(address++);
+            sensors_[i].set_address({address_.group, address++}); // adr.branch
         }
     }
 
     if(amt_devices != 0) {
+        devices_.reserve(amt_devices);
         devices_.resize(amt_devices);
         for(int i = 0; i < amt_devices; ++i) {
-            size += devices_[i].set_data(data+size, available_size-size);
-            devices_[i].set_address(address++);
+            size += grow_device_interface.set_data(devices_[i], data+size, available_size-size);
+            devices_[i].set_address({address_.group, address++}); // adr.branch
         }
     }
 
@@ -529,12 +919,12 @@ size_t Group_control_module::set_data(uint8_t *data, size_t available_size) {
     contact_data_.broadcast_receive();
 // save (-) -----
     return size;
-    
+
     // resize
 }
 
 
-// Фильтрация регистрируемых модулей 
+// Фильтрация регистрируемых модулей
 bool Group_control_module::filter_devices(Grow_device &devices) {
     if(mode_ != GT_SETTING)
         return true;
@@ -573,7 +963,7 @@ bool Group_control_module::regist_device(std::array<uint8_t, AMT_BYTES_SYSTEM_ID
     // Поиск в конфигурации
     uint16_t num_device;
     for(int i = 0; i < devices_.size(); ++i) {
-        if(new_adr == devices_[i].get_address()) {
+        if(new_adr == devices_[i].get_address().branch) { // adr.branch
             if(devices_[i].get_active() == 0) // удалять если занят (?) -----
                 err = false;
             num_device = i;
@@ -621,9 +1011,9 @@ bool Group_control_module::regist_device(std::array<uint8_t, AMT_BYTES_SYSTEM_ID
                     // delete[] data;
                     // contact_data_.add_packet(packet);
                     // contact_data_.broadcast_send(true);
-                    
+
         devices_[num_device].set_active(1);
-    }   
+    }
     enable_regist_interrupt();
     // save (-) -----
     return err;
@@ -635,7 +1025,7 @@ bool Group_control_module::regist_sensor(std::array<uint8_t, AMT_BYTES_SYSTEM_ID
     // Поиск в конфигурации
     uint16_t num_sensor;
     for(int i = 0; i < sensors_.size(); ++i) {
-        if(new_adr == sensors_[i].get_address()) {
+        if(new_adr == sensors_[i].get_address().branch) { // adr.branch
             if(sensors_[i].get_active() == 0) // удалять если занят (?) -----
                 err = false;
             num_sensor = i;
@@ -680,7 +1070,7 @@ bool Group_control_module::regist_sensor(std::array<uint8_t, AMT_BYTES_SYSTEM_ID
                 // data[num_byte++] = (sensor_id)       & 0xFF;
 
                 data[num_byte++] = (contact_data_.get_my_adr().group >> 1) & 0xFF;
-                data[num_byte++] = (contact_data_.get_my_adr().group << 7) & 0x80 
+                data[num_byte++] = (contact_data_.get_my_adr().group << 7) & 0x80
                                  | (new_adr >> 8) & 0x7F;
                 data[num_byte++] = (new_adr) & 0xFF;
 
@@ -720,7 +1110,7 @@ bool Group_control_module::regist_sensor(std::array<uint8_t, AMT_BYTES_SYSTEM_ID
     // save (-) -----
     return err;
 }
-// [T] Сигнал модуля (?) ----- 
+// [T] Сигнал модуля (?) -----
 bool Group_control_module::module_set_signal(uint16_t adr) {
     if(mode_ != GT_SETTING)
         return true;
@@ -735,12 +1125,12 @@ bool Group_control_module::remove_module(uint16_t adr) {
     // save (-) -----
     return false;
 }
-// Установка режима 
+// Установка режима
 bool Group_control_module::set_mode(Group_control_module::Mode mode) {
     switch (mode)
     {
     case GT_SETTING:
-        mode_ = GT_SETTING; // Остановка обработок системы (-) ----- 
+        mode_ = GT_SETTING; // Остановка обработок системы (-) -----
         return false;
         break;
     case GT_PROCESSING:
@@ -786,7 +1176,7 @@ void Group_control_module::interrupt_init(uint8_t pin_dio0, uint8_t pin_dio1, ui
         pinMode(pin_dio3, INPUT);
         attachInterrupt(digitalPinToInterrupt(pin_dio3), lora_interrupt, RISING);
     }
-#if defined( WIFI_LoRa_32_V2 ) 
+#if defined( WIFI_LoRa_32_V2 )
 #define PIN_IRQ   GPIO_NUM_26
     pinMode(PIN_IRQ, INPUT);
     attachInterrupt(digitalPinToInterrupt(PIN_IRQ),  lora_interrupt, RISING);
@@ -817,14 +1207,14 @@ bool Group_control_module::add_reg_module(const LoRa_packet &reg_packet) {
     // Проверка ID
     // (-) ----- превратить в get_id()
     std::array<uint8_t, AMT_BYTES_SYSTEM_ID> module_id;
-    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i) 
+    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
         module_id[i] = data[symbol++];
     // module_id = (module_id << 8) | data[symbol++];
     // module_id = (module_id << 8) | data[symbol++];
     // module_id = (module_id << 8) | data[symbol++];
-    // if(module_id == 0)  
+    // if(module_id == 0)
     //     err = true;
-    
+
     if(!err) {
         for(int i = 0; i < reg_devices_.size(); ++i) {
             if(module_id == reg_devices_[i].get_system_id()) {
@@ -895,7 +1285,7 @@ bool Group_control_module::add_reg_module(const LoRa_packet &reg_packet) {
     // module_id = (module_id << 8) | data[symbol++];
     // module_id = (module_id << 8) | data[symbol++];
     // module_id = (module_id << 8) | data[symbol++];
-    // if(module_id == 0)  
+    // if(module_id == 0)
     //     err = true;
     // // Проверка наличия ID в списке запросивших
     // if(!err) {
@@ -965,11 +1355,23 @@ bool Group_control_module::check_device_period() {
     // save_v2 (-) -----
     return check_device_;
 }
+bool Group_control_module::check_device_read() {
+    unsigned long time = millis();
+    check_device_ = false;
+    for(int i = 0; i < devices_.size(); ++i) {
+        if (devices_[i].check_time(time) && devices_[i].get_state___() == scs::State::work) {
+            check_device_ = true;
+            devices_[i].update();
+        }
+    }
+    // save_v2 (-) -----
+    return check_device_;
+}
 bool Group_control_module::check_sensor_read() {
     unsigned long time = millis();
     check_sensor_ = false;
     for(int i = 0; i < sensors_.size(); ++i) {
-        if (sensors_[i].check_time(time)) {
+        if (sensors_[i].check_time(time) && sensors_[i].get_state___() == scs::State::work) {
             check_sensor_ = true;
             sensors_[i].update();
         }
@@ -979,19 +1381,150 @@ bool Group_control_module::check_sensor_read() {
 }
 
 bool Group_control_module::handler_devices() {
-    if(!check_sensor_read()) // (-) -----
+                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
+                                                                                                                                                                                        // Serial.print("!_! handler_devices: ");
+                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
+
+    int send_state_devices = -1;
+    scs::State dev_st;
+    for(int i = 0; i < devices_.size(); ++i) {
+        if (devices_[i].get_state___() == scs::State::from_work_to_stop ||
+            devices_[i].get_state___() == scs::State::from_stop_to_work) {
+            send_state_devices = i;
+            dev_st = devices_[i].get_state___();
+            break;
+        }
+    }
+    if(send_state_devices != -1) {
+        last_purpose_contact = Purpose_contact::set_state;
+        LoRa_address connect_adr = devices_[send_state_devices].get_address(); // not adr.branch
+                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
+                                                                                                                                                                                        // Serial.println("send_state_devices");
+                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
+
+        // (-) ----- создание пакета установки режима
+        LoRa_packet packet;
+        uint8_t size = 0;
+        uint8_t com = 0x05;
+        packet_system.get_size_by_data(&com, nullptr, size);
+        uint8_t data[1];
+        if(dev_st == scs::State::from_work_to_stop) {
+            data[0] = static_cast<uint8_t>(scs::Packet_State::stop);
+        }
+        else if (dev_st == scs::State::from_stop_to_work) {
+            data[0] = static_cast<uint8_t>(scs::Packet_State::work);
+        }
+        else {
+            Serial.println("unknown state");
+            delay(1500);
+            return 1;
+        }
+        packet_system.set_dest_adr(packet, connect_adr);
+        packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
+        packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
+        packet_system.set_packet_data(packet, &com, data, nullptr);
+        contact_data_.init_contact(connect_adr);
+        contact_data_.add_packet(packet);
+        if(contact_data_.start_transfer())
+            Serial.println("Error start transfer set devices state");
+                                                            // LoRa_packet packet;
+                                                            // uint8_t size = 0;
+                                                            // uint8_t com = 0x05;
+                                                            // uint8_t len = 2;
+                                                            // packet_system.get_size_by_data(&com, &len, size);
+                                                            // // static_cast<Packet_System*>(packet.packet)->get_size_by_data(&size, &com, &len);
+                                                            // uint8_t data[2];
+                                                            // // packet.creat_packet(size + 10, Packet_Type::SYSTEM);
+                                                            // packet_system.set_dest_adr(packet, regist_adr);
+                                                            // packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
+                                                            // packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
+                                                            // data[0] = (contact_data_.get_channel() >> 8) & 0xFF;
+                                                            // data[1] = contact_data_.get_channel() & 0xFF;
+                                                            // // packet.packet->set_dest_adr(regist_adr);
+                                                            // // packet.packet->set_sour_adr(contact_data_.get_my_adr());
+                                                            // // packet.packet->set_packet_type(Packet_Type::SYSTEM);
+                                                            // // static_cast<Packet_System*>(packet.packet)->set_packet_data(&com, data, &len);
+                                                            // packet_system.set_packet_data(packet, &com, data, &len);
+                                                            // contact_data_.init_contact(regist_adr);
+                                                            // contact_data_.add_packet(packet);
+                                                            // contact_data_.start_transfer();
+
+        // () ----- создание пакета установки режима
+
+        return false;
+    }
+
+
+
+
+    int send_rtc_sync = -1;
+    for(int i = 0; i < devices_.size(); ++i) {
+        if (devices_[i].get_rtc_sync()) {
+            send_state_devices = i;
+            // dev_st = devices_[i].get_state___();
+            break;
+        }
+    }
+#if defined (BUILD_TESTING_CODE_409)
+    send_state_devices = 0;
+#endif
+    if(send_state_devices != -1) {
+        last_purpose_contact = Purpose_contact::set_sync_rtc;
+        LoRa_address connect_adr = devices_[send_state_devices].get_address(); // not adr.branch
+                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
+                                                                                                                                                                                        // Serial.println("send_time_devices");
+                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
+
+        // (-) ----- создание пакета установки времени
+        LoRa_packet packet;
+        uint8_t size = 0;
+        uint8_t obj = 0x06; // RTC
+        uint8_t com = 0x02; // set time (0x03 set date)
+        uint8_t num = 0;
+        packet_device.get_size_by_data(&obj, &com, size);
+        uint8_t data[3];
+        get_data_time();
+        data[0] = data_time_.Second();
+        data[1] = data_time_.Minute();
+        data[2] = data_time_.Hour();
+
+        packet_device.set_setting(devices_[send_state_devices].get_setting());
+
+        packet_device.set_dest_adr(packet, connect_adr);
+        packet_device.set_sour_adr(packet, contact_data_.get_my_adr());
+        packet_device.set_packet_type(packet, Packet_Type::DEVICE);
+        packet_device.set_packet_data(packet, &obj, &num, &com, data, &size);
+        contact_data_.init_contact(connect_adr);
+        contact_data_.add_packet(packet);
+        if(contact_data_.start_transfer())
+            Serial.println("Error start transfer sync devices time");
+        // () ----- создание пакета установки времени
+        return false;
+    }
+
+
+
+    if(!check_device_read())
         return true;
+    last_purpose_contact = Purpose_contact::get_data;
     // Произвести чтение с устройств
+                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
+                                                                                                                                                                                        // Serial.println("read_data_device");
+                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
     for(int i = 0; i < devices_.size(); ++i) {
         if (devices_[i].read_signal(true)) {
-            LoRa_address connect_adr = devices_[i].get_address();
+            LoRa_address connect_adr = contact_data_.get_my_adr();
+            connect_adr.branch = devices_[i].get_address().branch; // adr.branch
             contact_data_.init_contact(connect_adr);
             if(contact_data_.start_transfer())
-                Serial.println("Error start sensor transfer");
+                Serial.println("Error start devices transfer");
             break;
         }
     }
     return false;
+
+
+
     // if(!check_device_period())
     //     return true;
     // // Произвести переключение исполнительных устройств
@@ -1020,7 +1553,7 @@ bool Group_control_module::handler_devices() {
     //                 uint8_t id = devices_[i].get_component(j).get_id();
     //                 static_cast<Packet_Device*>(packet.packet)->get_size_by_data(&obj, &com, &size);
     //                 uint8_t *data = new uint8_t[size];
-    //                 if(size == 1) { 
+    //                 if(size == 1) {
     //                     data[0] = device_value & 0xFF;
     //                 }
     //                 else {
@@ -1056,7 +1589,7 @@ bool Group_control_module::handler_sensors() {
         if (sensors_[i].read_signal(true)) {
                                                                                             // Serial.println("2");
             LoRa_address connect_adr = contact_data_.get_my_adr();
-            connect_adr.branch = sensors_[i].get_address();
+            connect_adr.branch = sensors_[i].get_address().branch; // adr.branch
                                                                                             // Serial.println("3");
             contact_data_.init_contact(connect_adr);
                                                                                             // Serial.println("4");

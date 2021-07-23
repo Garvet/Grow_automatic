@@ -21,10 +21,10 @@ extern const uint16_t LORA_ADDRESS_BRANCH;
 
 // Адресация в LoRa-сети
 // (!) ----- Поменяй глобальные адреса на рассчитываемые
-#define LORA_GLOBAL_ADDRESS    0x01FF7FFF
-#define LORA_GLOBAL_ADR_GROUP  0x1FF
-#define LORA_GLOBAL_ADR_BRANCH 0x7FFF
-class LoRa_address {
+#define LORA_GLOBAL_ADDRESS    0x01FF7FFFU
+#define LORA_GLOBAL_ADR_GROUP  0x1FFU
+#define LORA_GLOBAL_ADR_BRANCH 0x7FFFU
+class LoRa_address final {
 public:
     uint16_t group = 0xFFFF;  // Адрес группы
     uint16_t branch = 0xFFFF; // Адрес ветви
@@ -44,6 +44,10 @@ public:
     friend bool operator!=(const LoRa_address& left, const uint32_t& right);
     friend bool operator==(const uint32_t& left, const LoRa_address& right);
     friend bool operator!=(const uint32_t& left, const LoRa_address& right);
+    friend bool operator==(const LoRa_address& left, const uint16_t& right)=delete;
+    friend bool operator!=(const LoRa_address& left, const uint16_t& right)=delete;
+    friend bool operator==(const uint16_t& left, const LoRa_address& right)=delete;
+    friend bool operator!=(const uint16_t& left, const LoRa_address& right)=delete;
 };
 
 // Пакеты в LoRa-сети

@@ -8,6 +8,8 @@
 #include <main.h>
 #endif
 
+#include <System_component.hpp>
+
 #include <vector>
 #include <Grow_sensor_component.h>
 
@@ -16,10 +18,9 @@
 
 // (!) ----- (-) ----- перенести на статическую память
 
-class Grow_sensor {
+class Grow_sensor : public scs::System_component {
 private:
-    std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id_;
-    uint16_t address_; // адрес датчика
+    // uint16_t address_; // адрес датчика
     std::vector<Grow_sensor_component> component_; // вектор компонентов датчиков (не как плата, а как механический модуль)
 
 #if !defined( ESP32 )
@@ -45,11 +46,6 @@ public:
 
     /// --- Поля класса-платы ---
 
-    // установка индивидуального номера платы
-    void set_system_id(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id);
-    // получение индивидуального номера платы
-    std::array<uint8_t, AMT_BYTES_SYSTEM_ID> get_system_id() const;
-
     // установка состояния активности
     void set_active(uint8_t active);
     // получение состояния активности
@@ -60,10 +56,10 @@ public:
     // сброс флага изменённого состояния
     void clear_change_value();
 
-    // установка адреса модуля (ветви, без группы)
-    bool set_address(uint16_t address);
-    // получение адреса модуля (ветви, без группы)
-    uint16_t get_address() const;
+    // // установка адреса модуля (ветви, без группы)
+    // bool set_address(uint16_t address);
+    // // получение адреса модуля (ветви, без группы)
+    // uint16_t get_address() const;
 
 #if !defined( ESP32 )
     // установка адреса МУГа ()

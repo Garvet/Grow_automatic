@@ -5,11 +5,10 @@ extern const uint16_t LORA_ADDRESS_BRANCH;
 uint8_t id_mas_sensors[COUNT_TYPE_SENSOR];
 
 Grow_sensor::Grow_sensor(uint8_t amt_component, enum Type_sensor* type_sensor) {
-    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
-        system_id_[i] = 0;
-    address_ = 0xFFFF;
+    for(int i = 0; i < scs::AMT_BYTES_ID; ++i)
+        system_id[i] = 0;
     setting_ = 0;
-    active_ = false;
+    active_ = 0;
     change_value_ = false;
     for(int i = 0; i < COUNT_TYPE_SENSOR; ++i)
         id_mas_sensors[i] = 0;
@@ -22,11 +21,10 @@ Grow_sensor::Grow_sensor(uint8_t amt_component, enum Type_sensor* type_sensor) {
         }
 }
 Grow_sensor::Grow_sensor(uint8_t amt_component, uint8_t* type_sensor) {
-    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
-        system_id_[i] = 0;
-    address_ = 0xFFFF;
+    for(int i = 0; i < scs::AMT_BYTES_ID; ++i)
+        system_id[i] = 0;
     setting_ = 0;
-    active_ = false;
+    active_ = 0;
     change_value_ = false;
     for(int i = 0; i < COUNT_TYPE_SENSOR; ++i)
         id_mas_sensors[i] = 0;
@@ -40,11 +38,10 @@ Grow_sensor::Grow_sensor(uint8_t amt_component, uint8_t* type_sensor) {
 }
 
 Grow_sensor::Grow_sensor(const std::vector<enum Type_sensor>& type_sensor) {
-    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i)
-        system_id_[i] = 0;
-    address_ = 0xFFFF;
+    for(int i = 0; i < scs::AMT_BYTES_ID; ++i)
+        system_id[i] = 0;
     setting_ = 0;
-    active_ = false;
+    active_ = 0;
     change_value_ = false;
     for(int i = 0; i < COUNT_TYPE_SENSOR; ++i)
         id_mas_sensors[i] = 0;
@@ -58,13 +55,6 @@ Grow_sensor::Grow_sensor(const std::vector<enum Type_sensor>& type_sensor) {
 }
 
 // --- Поля класса-платы ---
-
-void Grow_sensor::set_system_id(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id) {
-    system_id_ = system_id;
-}
-std::array<uint8_t, AMT_BYTES_SYSTEM_ID> Grow_sensor::get_system_id() const {
-    return system_id_;
-}
 
 void Grow_sensor::set_active(uint8_t active) {
     if(active < 3)
@@ -82,15 +72,15 @@ void Grow_sensor::clear_change_value() {
     change_value_ = false;
 }
 
-bool Grow_sensor::set_address(uint16_t address) {
-    if((address >= (1 << LORA_ADDRESS_BRANCH)) || (address == 0))
-        return true;
-    address_ = address;
-    return false;
-}
-uint16_t Grow_sensor::get_address() const {
-    return address_;
-}
+// bool Grow_sensor::set_address(uint16_t address) {
+//     if((address >= (1 << LORA_ADDRESS_BRANCH)) || (address == 0))
+//         return true;
+//     address_ = address;
+//     return false;
+// }
+// uint16_t Grow_sensor::get_address() const {
+//     return address_;
+// }
 
 void Grow_sensor::set_setting(uint8_t setting) {
     setting_ = setting;
@@ -232,23 +222,23 @@ const char *sensor_component_name[] =
 
 void Grow_sensor::print() {
     Serial.print("System ID: ");
-    for(int i = 0; i < AMT_BYTES_SYSTEM_ID; ++i) {
-        uint8_t data = system_id_[i];
+    for(int i = 0; i < scs::AMT_BYTES_ID; ++i) {
+        uint8_t data = system_id[i];
         if(data < 16)
             Serial.print("0");
         Serial.print(data, 16);
-        if(i < 3)
+        if(i < scs::AMT_BYTES_ID)
             Serial.print(".");
     }
     Serial.println();
     Serial.print("Address: ");
-    if((address_ >> 8) < 16)
+    if((address_.branch >> 8) < 16)
         Serial.print("0");
-    Serial.print((address_ >> 8), 16);
+    Serial.print((address_.branch >> 8), 16);
     Serial.print(" ");
-    if((address_ & 0xFF) < 16)
+    if((address_.branch & 0xFF) < 16)
         Serial.print("0");
-    Serial.print((address_ & 0xFF), 16);
+    Serial.print((address_.branch & 0xFF), 16);
     if(active_ == 0)
         Serial.println(" (-)");
     else if(active_ == 1)

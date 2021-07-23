@@ -2,6 +2,7 @@
 #define __GROUP_CONTROL_MODULE__H__
 
 #include <Arduino.h>
+#include <algorithm>
 #include <vector>
 
 #include <Wire.h>
@@ -9,22 +10,35 @@
 #include <ThreeWire.h>
 #include <RtcDS1302.h>
 
+#include <System_component.hpp>
+
 #include <LoRa_contact_data.h>
 #include <Grow_sensor.h>
 #include <Grow_sensor_interface.h>
 #include <Grow_device.h>
+#include <Grow_device_interface.h>
 
 // (!) ----- (-) ----- перенести на статическую память
 
 #define SYNC_WORD  0x4A // Кодовое слово (должно совпадать у всех модулей сети)
+#if defined(BUILD_BASEMENT)
+#define REIST_BAND 43455E4
+#elif defined( BUILD_OBJECT1 )
+#define REIST_BAND 43455E4
+#else
 #define REIST_BAND 43325E4 // Частота работы при регистрации (-) ----- добавить остальные параметры канала
+#endif
 
 #define MAX_AMT_SENSOR 0x3FF5 // максимальное число датчиков (условно)
 #define MAX_AMT_DEVICE 0x3FF5 // максимальное число устройств (условно)
 
+#if defined( BUILD_BASEMENT )
 #define SYSTEM_ID_GCM std::array<uint8_t, AMT_BYTES_SYSTEM_ID>({0x5f, 0xdc, 0xbd, 0xcb, 0x5f, 0x25, 0x97, 0x30, 0x86, 0x17, 0x08, 0x9b})
+#else
+#define SYSTEM_ID_GCM std::array<uint8_t, AMT_BYTES_SYSTEM_ID>({0x60, 0x86, 0xcc, 0xa2, 0x34, 0x2b, 0x73, 0x2b, 0x2d, 0x4a, 0x42, 0x74})
+#endif
 
-class Group_control_module {
+class Group_control_module : public scs::System_component {
 // private: // (-) ----- верни приватность полей и некоторых функций
 public:
     const std::array<uint8_t, AMT_BYTES_SYSTEM_ID> system_id_ = SYSTEM_ID_GCM; // id модуля
@@ -77,6 +91,7 @@ public:
     /// Обработка модулей группы
     // Проверка необходимости считывания с устройств (-) ----- перенести на удалёнку
     bool check_device_period();
+    bool check_device_read(); // (-) ----- костыль
     // Проверка необходимости считывания с датчиков
     bool check_sensor_read();
 
@@ -108,6 +123,12 @@ public:
     void set_data_time(RtcDateTime data_time); // установить значение RTC
     RtcDateTime get_data_time(); // считать значение RTC
 
+    // Поиск номера устройства/датчика по параметру
+    int search_device(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> search_id);
+    int search_sensor(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> search_id);
+    int search_device(uint16_t address);
+    int search_sensor(uint16_t address);
+
     /// --- Настройка системы ---
     // все функции кроме set_mode работают только при mode_ = GT_SETTING
 
@@ -121,7 +142,7 @@ public:
     bool filter_sensors(Grow_sensor &sensor);
     // [T] Регистрация модуля (old_adr и new_adr задаются Bluetooth модулем)
     bool regist_device(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> device_id, uint16_t new_adr);
-    bool regist_sensor(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> device_id, uint16_t new_adr);
+    bool regist_sensor(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> sensor_id, uint16_t new_adr);
     // [T] Сигнал модуля (?) ----- пока только в планах
     bool module_set_signal(uint16_t adr);
     // [C] Удаление модуля (?) ----- пока только в планах
