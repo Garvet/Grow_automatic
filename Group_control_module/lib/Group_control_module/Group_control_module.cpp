@@ -27,7 +27,9 @@ extern bool led3_state;
 
 // - 2021.06.11 - перезапуск при отсутствии соединения -
 #if defined (ERROR_REBOOT)
+#ifndef MAX_ERRORS_IN_ROW
 static const uint16_t MAX_ERRORS_IN_ROW = 3; // MAX_... >= amt_component
+#endif
 static uint16_t number_errors_row = 0;
 #endif
 // -----------------------------------------------------
