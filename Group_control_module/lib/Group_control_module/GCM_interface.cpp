@@ -329,7 +329,7 @@ void WiFiEvent(WiFiEvent_t event) {
 #define SEND_WAIT_ERROR 5000u
 
 RtcDateTime rdt;
-bool send_request(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id, bool state) { // (-) ----- костыль
+bool send_request_state(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id, bool state) { // (-) ----- костыль
 #if defined( SEND_SERVER )
     static uint32_t send_wait_error = millis() - SEND_WAIT_ERROR;
     uint8_t wait_connect = 10;
@@ -355,6 +355,62 @@ bool send_request(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id, bool 
         buffer[buf_len++] = Signal_digital;
         buffer[buf_len++] = 0;
         buffer[buf_len++] = (uint8_t)state;
+
+        buffer[buf_len++] = rdt.Day();
+        buffer[buf_len++] = rdt.Month();
+        buffer[buf_len++] = (rdt.Year() >> 8) & 0xFF;
+        buffer[buf_len++] = rdt.Year() & 0xFF;
+
+        buffer[buf_len++] = rdt.Hour();
+        buffer[buf_len++] = rdt.Minute();
+        buffer[buf_len++] = rdt.Second();
+
+        client.write(buffer, buf_len);
+
+        uint maxloops = 0;
+        while (!client.available() && maxloops < 10000) {
+            maxloops++;
+            delay(1); //delay 1 msec
+        }
+
+        if (client.available() > 0) {
+            Serial.println("Packet send correct");
+            send_wait_error = millis() - SEND_WAIT_ERROR;
+            err_send_data = false;
+        }
+        else {
+            Serial.println("client.available() timed out ");
+        }
+    }
+#endif
+}
+bool send_request_value(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id, uint16_t value) { // (-) ----- костыль
+#if defined( SEND_SERVER )
+    static uint32_t send_wait_error = millis() - SEND_WAIT_ERROR;
+    uint8_t wait_connect = 10;
+    bool client_connect = true;
+    bool err_send_data = true;
+    
+    client.stop(); 
+    while (!client.connect(network_adr_, network_port_)) { // adr!!!
+        if(wait_connect == 0) {
+            client_connect = false;
+            break;
+        }
+        --wait_connect;
+        delay(1000);
+    }
+    if(client_connect) {
+        buf_len = 0;
+
+        for(int i = 0; i < scs::AMT_BYTES_ID; ++i)
+            buffer[buf_len++] = system_id[i];
+        buffer[buf_len++] = 2; // type report (0 - registration, 1 - sensor, 2 - device)
+        buffer[buf_len++] = 1;
+        buffer[buf_len++] = Signal_PWM;
+        buffer[buf_len++] = 0;
+        buffer[buf_len++] = (value >> 8) & 0x0F;
+        buffer[buf_len++] = value & 0xFF;
 
         buffer[buf_len++] = rdt.Day();
         buffer[buf_len++] = rdt.Month();
@@ -454,6 +510,7 @@ bool WiFisend() {
             static uint8_t amount = 0; // количество устройств (ныне не более 1)
             static uint8_t type_num = 0xFF; // тип управляемого устройства (нене только "Signal_digital")
             static uint8_t new_state = 0xFF; // новое состояние (true или false = work или sleep)
+            static uint16_t new_value = 0xFFFF; // новое состояние (true или false = work или sleep)
             static scs::State set_state;
             static int index_component;
             static bool is_device;
@@ -484,71 +541,171 @@ bool WiFisend() {
                     }
 
                     type_num = buffer[receive_num++];
-                    if(type_num != (uint8_t)Signal_digital) {
-                        Serial.print("<<< type_num != Signal_digital (type_num = "); Serial.print(type_num); Serial.println(">>>");
-                    }
-                    new_state = buffer[receive_num++]; // number
-                    new_state = buffer[receive_num++];
-                    if((new_state != 0) && (new_state != 1)) {
-                        Serial.print("<<< new_state != 0 or 1 (new_state = "); Serial.print(new_state); Serial.println(">>>");
-                    }
+                    if(type_num == (uint8_t)Signal_digital) {
+                        Serial.println("Packet type: Signal_digital");
+                        receive_num++; // number = buffer[receive_num++]; // number devices in the module
+                        new_state = buffer[receive_num++];
+                        if((new_state != 0) && (new_state != 1)) {
+                            Serial.print("<<< new_state != 0 or 1 (new_state = "); Serial.print(new_state); Serial.println(">>>");
+                        }
 
-                    index_component = gcm_interface.gcm_->search_device(system_id);
-                    if(index_component != -1) {
-                        is_device = true;
-                    }
-                    else {
-                        index_component = gcm_interface.gcm_->search_sensor(system_id);
-                    }
-
-                    if(index_component == -1) {
-                        Serial.println("Error ID");
-                    }
-                    else {
-                        if(new_state == 0) {
-                            if(is_device) {
-                                set_state = scs::State::from_work_to_stop;
-                            }
-                            else
-                                set_state = scs::State::stop;
-                            set_state = scs::State::stop; // (-) -----
-                        } 
-                        else if (new_state == 1) {
-                            if(is_device) {
-                                set_state = scs::State::from_stop_to_work;
-                            }
-                            else
-                                set_state = scs::State::work;
-                            set_state = scs::State::work; // (-) -----
+                        index_component = gcm_interface.gcm_->search_device(system_id);
+                        if(index_component != -1) {
+                            is_device = true;
                         }
                         else {
-                            set_state = scs::State::end_;
+                            index_component = gcm_interface.gcm_->search_sensor(system_id);
                         }
-                        if(is_device) {
-                            gcm_interface.gcm_->devices_[index_component].set_state___(set_state);
+
+                        if(index_component == -1) {
+                            Serial.println("Error ID");
                         }
                         else {
-                            gcm_interface.gcm_->sensors_[index_component].set_state___(set_state);
+                            if(new_state == 0) {
+                                if(is_device) {
+                                    set_state = scs::State::from_work_to_stop;
+                                }
+                                else
+                                    set_state = scs::State::stop;
+                                // set_state = scs::State::stop; // (-) -----
+                            } 
+                            else if (new_state == 1) {
+                                if(is_device) {
+                                    set_state = scs::State::from_stop_to_work;
+                                }
+                                else
+                                    set_state = scs::State::work;
+                                // set_state = scs::State::work; // (-) -----
+                            }
+                            else {
+                                set_state = scs::State::end_;
+                            }
+                            if(is_device) {
+                                gcm_interface.gcm_->devices_[index_component].set_state___(set_state);
+                            }
+                            else {
+                                gcm_interface.gcm_->sensors_[index_component].set_state___(set_state);
+                            }
                         }
+                                                                                                    Serial.print("ID: {");
+                                                                                                    for(int i = 0; i < scs::AMT_BYTES_ID; ++i) {
+                                                                                                        if(system_id[i] < 16)
+                                                                                                            Serial.print("0");
+                                                                                                        Serial.print(system_id[i], 16);
+                                                                                                        if(i < scs::AMT_BYTES_ID - 1)
+                                                                                                            Serial.print(", ");
+                                                                                                    }
+                                                                                                    Serial.print("} set state: ");
+                                                                                                    if(new_state) {
+                                                                                                        Serial.println("true");
+                                                                                                    }
+                                                                                                    else {
+                                                                                                        Serial.println("false");
+                                                                                                    }
+                        // {-} ----- присвоить значение состояния ----- {-}
+                        send_request_state(system_id, new_state);
+                        // {-} ----- присвоить значение состояния ----- {-}
                     }
-                                                                                                Serial.print("ID: {");
-                                                                                                for(int i = 0; i < scs::AMT_BYTES_ID; ++i) {
-                                                                                                    if(system_id[i] < 16)
-                                                                                                        Serial.print("0");
-                                                                                                    Serial.print(system_id[i], 16);
-                                                                                                    if(i < scs::AMT_BYTES_ID - 1)
-                                                                                                        Serial.print(", ");
-                                                                                                }
-                                                                                                Serial.print("} set state: ");
-                                                                                                if(new_state) {
-                                                                                                    Serial.println("true");
-                                                                                                }
-                                                                                                else {
-                                                                                                    Serial.println("false");
-                                                                                                }
-                    // {-} ----- присвоить значение состояния ----- {-}
-                    send_request(system_id, new_state);
-                    // {-} ----- присвоить значение состояния ----- {-}
+                    else if (type_num == (uint8_t)Signal_PWM) {
+                        Serial.println("Packet type: Signal_PWM");
+                        receive_num++; // number = buffer[receive_num++]; // number devices in the module
+                        new_value = buffer[receive_num++] & 0x0F;
+                        new_value = (new_value << 8) | buffer[receive_num++];
+
+                        index_component = gcm_interface.gcm_->search_device(system_id);
+                        if(index_component == -1) {
+                            Serial.println("Error ID does not belong to devices");
+                        }
+                        else {
+                            gcm_interface.gcm_->devices_[index_component].set_send_server_value(new_value);
+                        }
+                                                                                                    Serial.print("ID: {");
+                                                                                                    for(int i = 0; i < scs::AMT_BYTES_ID; ++i) {
+                                                                                                        if(system_id[i] < 16)
+                                                                                                            Serial.print("0");
+                                                                                                        Serial.print(system_id[i], 16);
+                                                                                                        if(i < scs::AMT_BYTES_ID - 1)
+                                                                                                            Serial.print(", ");
+                                                                                                    }
+                                                                                                    Serial.print("} set value: ");
+                                                                                                    Serial.println(new_value);
+                        // {-} ----- присвоить значение состояния ----- {-}
+                        send_request_value(system_id, new_value);
+                        // {-} ----- присвоить значение состояния ----- {-}
+                    }
+                    else {
+                        Serial.print("<<< type_num != Signal_digital or type_num != Signal_PWM (type_num = "); Serial.print(type_num); Serial.println(">>>");
+                    }
+
+#if defined (OLD)
+                    if(0) { // OLD
+                        if(type_num != (uint8_t)Signal_digital) {
+                            Serial.print("<<< type_num != Signal_digital (type_num = "); Serial.print(type_num); Serial.println(">>>");
+                        }
+                        new_state = buffer[receive_num++]; // number
+                        new_state = buffer[receive_num++];
+                        if((new_state != 0) && (new_state != 1)) {
+                            Serial.print("<<< new_state != 0 or 1 (new_state = "); Serial.print(new_state); Serial.println(">>>");
+                        }
+
+                        index_component = gcm_interface.gcm_->search_device(system_id);
+                        if(index_component != -1) {
+                            is_device = true;
+                        }
+                        else {
+                            index_component = gcm_interface.gcm_->search_sensor(system_id);
+                        }
+
+                        if(index_component == -1) {
+                            Serial.println("Error ID");
+                        }
+                        else {
+                            if(new_state == 0) {
+                                if(is_device) {
+                                    set_state = scs::State::from_work_to_stop;
+                                }
+                                else
+                                    set_state = scs::State::stop;
+                                set_state = scs::State::stop; // (-) -----
+                            } 
+                            else if (new_state == 1) {
+                                if(is_device) {
+                                    set_state = scs::State::from_stop_to_work;
+                                }
+                                else
+                                    set_state = scs::State::work;
+                                set_state = scs::State::work; // (-) -----
+                            }
+                            else {
+                                set_state = scs::State::end_;
+                            }
+                            if(is_device) {
+                                gcm_interface.gcm_->devices_[index_component].set_state___(set_state);
+                            }
+                            else {
+                                gcm_interface.gcm_->sensors_[index_component].set_state___(set_state);
+                            }
+                        }
+                                                                                                    Serial.print("ID: {");
+                                                                                                    for(int i = 0; i < scs::AMT_BYTES_ID; ++i) {
+                                                                                                        if(system_id[i] < 16)
+                                                                                                            Serial.print("0");
+                                                                                                        Serial.print(system_id[i], 16);
+                                                                                                        if(i < scs::AMT_BYTES_ID - 1)
+                                                                                                            Serial.print(", ");
+                                                                                                    }
+                                                                                                    Serial.print("} set state: ");
+                                                                                                    if(new_state) {
+                                                                                                        Serial.println("true");
+                                                                                                    }
+                                                                                                    else {
+                                                                                                        Serial.println("false");
+                                                                                                    }
+                        // {-} ----- присвоить значение состояния ----- {-}
+                        send_request_state(system_id, new_state);
+                        // {-} ----- присвоить значение состояния ----- {-}
+                    }
+#endif
                 }
                 else {
                     Serial.print("Not command, receive: ");

@@ -28,7 +28,7 @@ extern bool led3_state;
 // - 2021.06.11 - перезапуск при отсутствии соединения -
 #if defined (ERROR_REBOOT)
 #ifndef MAX_ERRORS_IN_ROW
-static const uint16_t MAX_ERRORS_IN_ROW = 3; // MAX_... >= amt_component
+static const uint16_t MAX_ERRORS_IN_ROW = 9; // MAX_... >= amt_component
 #endif
 static uint16_t number_errors_row = 0;
 #endif
@@ -39,7 +39,9 @@ enum class Purpose_contact {
     noname = 0,
     get_data,
     set_state,
-    set_sync_rtc
+    set_sync_rtc,
+
+    set_server_value // (-) ----- (!) ----- КОСТЫЛЬ
 
     /* data */
 };
@@ -544,6 +546,10 @@ void Group_control_module::LoRa_interrupt() {
                             devices_[num_component].set_state___(scs::State::from_work_to_stop);
                             Serial.println("'set stop' (error set state → stop device)");
                         }
+                        last_purpose_contact = Purpose_contact::noname;
+                    }
+                    else if(last_purpose_contact == Purpose_contact::set_server_value){
+                        devices_[num_component].clear_send_server_value();
                         last_purpose_contact = Purpose_contact::noname;
                     }
                     else if(last_purpose_contact == Purpose_contact::set_sync_rtc){
@@ -1386,146 +1392,197 @@ bool Group_control_module::handler_devices() {
                                                                                                                                                                                         // (*)-(*)-(*)-(*)-(*)
                                                                                                                                                                                         // Serial.print("!_! handler_devices: ");
                                                                                                                                                                                         // (*)-(*)-(*)-(*)-(*)
-
-    int send_state_devices = -1;
-    scs::State dev_st;
-    for(int i = 0; i < devices_.size(); ++i) {
-        if (devices_[i].get_state___() == scs::State::from_work_to_stop ||
-            devices_[i].get_state___() == scs::State::from_stop_to_work) {
-            send_state_devices = i;
-            dev_st = devices_[i].get_state___();
-            break;
+    // Смена режима работы устройства
+    {
+        // Поиск среди устройств
+        int send_state_devices = -1;
+        scs::State dev_st;
+        for(int i = 0; i < devices_.size(); ++i) {
+            if (devices_[i].get_state___() == scs::State::from_work_to_stop ||
+                devices_[i].get_state___() == scs::State::from_stop_to_work) {
+                send_state_devices = i;
+                dev_st = devices_[i].get_state___();
+                break;
+            }
         }
-    }
-    if(send_state_devices != -1) {
-        last_purpose_contact = Purpose_contact::set_state;
-        LoRa_address connect_adr = devices_[send_state_devices].get_address(); // not adr.branch
-                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
-                                                                                                                                                                                        // Serial.println("send_state_devices");
-                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
+        // Если устройство найдено
+        if(send_state_devices != -1) {
+            last_purpose_contact = Purpose_contact::set_state;
+            LoRa_address connect_adr = devices_[send_state_devices].get_address(); // not adr.branch
+                                                                                                                                                                                            // (*)-(*)-(*)-(*)-(*)
+                                                                                                                                                                                            // Serial.println("send_state_devices");
+                                                                                                                                                                                            // (*)-(*)-(*)-(*)-(*)
 
-        // (-) ----- создание пакета установки режима
-        LoRa_packet packet;
-        uint8_t size = 0;
-        uint8_t com = 0x05;
-        packet_system.get_size_by_data(&com, nullptr, size);
-        uint8_t data[1];
-        if(dev_st == scs::State::from_work_to_stop) {
-            data[0] = static_cast<uint8_t>(scs::Packet_State::stop);
-        }
-        else if (dev_st == scs::State::from_stop_to_work) {
-            data[0] = static_cast<uint8_t>(scs::Packet_State::work);
-        }
-        else {
-            Serial.println("unknown state");
-            delay(1500);
-            return 1;
-        }
-        packet_system.set_dest_adr(packet, connect_adr);
-        packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
-        packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
-        packet_system.set_packet_data(packet, &com, data, nullptr);
-        contact_data_.init_contact(connect_adr);
-        contact_data_.add_packet(packet);
-        if(contact_data_.start_transfer())
-            Serial.println("Error start transfer set devices state");
-                                                            // LoRa_packet packet;
-                                                            // uint8_t size = 0;
-                                                            // uint8_t com = 0x05;
-                                                            // uint8_t len = 2;
-                                                            // packet_system.get_size_by_data(&com, &len, size);
-                                                            // // static_cast<Packet_System*>(packet.packet)->get_size_by_data(&size, &com, &len);
-                                                            // uint8_t data[2];
-                                                            // // packet.creat_packet(size + 10, Packet_Type::SYSTEM);
-                                                            // packet_system.set_dest_adr(packet, regist_adr);
-                                                            // packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
-                                                            // packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
-                                                            // data[0] = (contact_data_.get_channel() >> 8) & 0xFF;
-                                                            // data[1] = contact_data_.get_channel() & 0xFF;
-                                                            // // packet.packet->set_dest_adr(regist_adr);
-                                                            // // packet.packet->set_sour_adr(contact_data_.get_my_adr());
-                                                            // // packet.packet->set_packet_type(Packet_Type::SYSTEM);
-                                                            // // static_cast<Packet_System*>(packet.packet)->set_packet_data(&com, data, &len);
-                                                            // packet_system.set_packet_data(packet, &com, data, &len);
-                                                            // contact_data_.init_contact(regist_adr);
-                                                            // contact_data_.add_packet(packet);
-                                                            // contact_data_.start_transfer();
-
-        // () ----- создание пакета установки режима
-
-        return false;
-    }
-
-
-
-
-    int send_rtc_sync = -1;
-    for(int i = 0; i < devices_.size(); ++i) {
-        if (devices_[i].get_rtc_sync()) {
-            send_state_devices = i;
-            // dev_st = devices_[i].get_state___();
-            break;
-        }
-    }
-#if defined (BUILD_TESTING_CODE_409)
-    send_state_devices = 0;
-#endif
-    if(send_state_devices != -1) {
-        last_purpose_contact = Purpose_contact::set_sync_rtc;
-        LoRa_address connect_adr = devices_[send_state_devices].get_address(); // not adr.branch
-                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
-                                                                                                                                                                                        // Serial.println("send_time_devices");
-                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
-
-        // (-) ----- создание пакета установки времени
-        LoRa_packet packet;
-        uint8_t size = 0;
-        uint8_t obj = 0x06; // RTC
-        uint8_t com = 0x02; // set time (0x03 set date)
-        uint8_t num = 0;
-        packet_device.get_size_by_data(&obj, &com, size);
-        uint8_t data[3];
-        get_data_time();
-        data[0] = data_time_.Second();
-        data[1] = data_time_.Minute();
-        data[2] = data_time_.Hour();
-
-        packet_device.set_setting(devices_[send_state_devices].get_setting());
-
-        packet_device.set_dest_adr(packet, connect_adr);
-        packet_device.set_sour_adr(packet, contact_data_.get_my_adr());
-        packet_device.set_packet_type(packet, Packet_Type::DEVICE);
-        packet_device.set_packet_data(packet, &obj, &num, &com, data, &size);
-        contact_data_.init_contact(connect_adr);
-        contact_data_.add_packet(packet);
-        if(contact_data_.start_transfer())
-            Serial.println("Error start transfer sync devices time");
-        // () ----- создание пакета установки времени
-        return false;
-    }
-
-
-
-    if(!check_device_read())
-        return true;
-    last_purpose_contact = Purpose_contact::get_data;
-    // Произвести чтение с устройств
-                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
-                                                                                                                                                                                        // Serial.println("read_data_device");
-                                                                                                                                                                                        // (*)-(*)-(*)-(*)-(*)
-    for(int i = 0; i < devices_.size(); ++i) {
-        if (devices_[i].read_signal(true)) {
-            LoRa_address connect_adr = contact_data_.get_my_adr();
-            connect_adr.branch = devices_[i].get_address().branch; // adr.branch
+            // (-) ----- создание пакета установки режима
+            LoRa_packet packet;
+            uint8_t size = 0;
+            uint8_t com = 0x05;
+            packet_system.get_size_by_data(&com, nullptr, size);
+            uint8_t data[1];
+            if(dev_st == scs::State::from_work_to_stop) {
+                data[0] = static_cast<uint8_t>(scs::Packet_State::stop);
+            }
+            else if (dev_st == scs::State::from_stop_to_work) {
+                data[0] = static_cast<uint8_t>(scs::Packet_State::work);
+            }
+            else {
+                Serial.println("unknown state");
+                delay(1500);
+                return 1;
+            }
+            packet_system.set_dest_adr(packet, connect_adr);
+            packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
+            packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
+            packet_system.set_packet_data(packet, &com, data, nullptr);
             contact_data_.init_contact(connect_adr);
+            contact_data_.add_packet(packet);
             if(contact_data_.start_transfer())
-                Serial.println("Error start devices transfer");
-            break;
+                Serial.println("Error start transfer set devices state");
+                                                                // LoRa_packet packet;
+                                                                // uint8_t size = 0;
+                                                                // uint8_t com = 0x05;
+                                                                // uint8_t len = 2;
+                                                                // packet_system.get_size_by_data(&com, &len, size);
+                                                                // // static_cast<Packet_System*>(packet.packet)->get_size_by_data(&size, &com, &len);
+                                                                // uint8_t data[2];
+                                                                // // packet.creat_packet(size + 10, Packet_Type::SYSTEM);
+                                                                // packet_system.set_dest_adr(packet, regist_adr);
+                                                                // packet_system.set_sour_adr(packet, contact_data_.get_my_adr());
+                                                                // packet_system.set_packet_type(packet, Packet_Type::SYSTEM);
+                                                                // data[0] = (contact_data_.get_channel() >> 8) & 0xFF;
+                                                                // data[1] = contact_data_.get_channel() & 0xFF;
+                                                                // // packet.packet->set_dest_adr(regist_adr);
+                                                                // // packet.packet->set_sour_adr(contact_data_.get_my_adr());
+                                                                // // packet.packet->set_packet_type(Packet_Type::SYSTEM);
+                                                                // // static_cast<Packet_System*>(packet.packet)->set_packet_data(&com, data, &len);
+                                                                // packet_system.set_packet_data(packet, &com, data, &len);
+                                                                // contact_data_.init_contact(regist_adr);
+                                                                // contact_data_.add_packet(packet);
+                                                                // contact_data_.start_transfer();
+
+            // () ----- создание пакета установки режима
+
+            return false; // false - был контакт
         }
     }
-    return false;
+
+    // Передача значения на устройство
+    {
+        // Поиск среди устройств
+        int send_value_devices = -1;
+        uint16_t value = 0xFFFF;
+        for(int i = 0; i < devices_.size(); ++i) {
+            if (devices_[i].get_send_server_value() != 0xFFFF) {
+                send_value_devices = i;
+                value = devices_[i].get_send_server_value();
+                break;
+            }
+        }
+        // Если устройство найдено
+        if(send_value_devices != -1) {
+            last_purpose_contact = Purpose_contact::set_server_value;
+            LoRa_address connect_adr = devices_[send_value_devices].get_address(); // not adr.branch
+
+            // (-) ----- создание пакета данных с сервера
+            LoRa_packet packet;
+            uint8_t size = 0;
+            uint8_t obj = 0x00; // PWM signal
+            uint8_t com = 0x01; // set value
+            uint8_t num = 0;
+            packet_device.get_size_by_data(&obj, &com, size);
+            uint8_t data[2];
+            data[0] = (value >> 8) & 0x0F;
+            data[1] = value & 0xFF;
+
+            packet_device.set_setting(devices_[send_value_devices].get_setting());
+
+            packet_device.set_dest_adr(packet, connect_adr);
+            packet_device.set_sour_adr(packet, contact_data_.get_my_adr());
+            packet_device.set_packet_type(packet, Packet_Type::DEVICE);
+            packet_device.set_packet_data(packet, &obj, &num, &com, data, &size);
+            contact_data_.init_contact(connect_adr);
+            contact_data_.add_packet(packet);
+            if(contact_data_.start_transfer())
+                Serial.println("Error start transfer value on devices");
+            // () ----- создание пакета данных с сервера
+            return false; // false - был контакт
+        }
+    }
+
+    // Установка времени на устройстве
+    {
+        // Поиск среди устройств
+        int send_rtc_sync = -1;
+        for(int i = 0; i < devices_.size(); ++i) {
+            if (devices_[i].get_rtc_sync()) {
+                send_rtc_sync = i;
+                // dev_st = devices_[i].get_state___();
+                break;
+            }
+        }
+    #if defined (BUILD_TESTING_CODE_409)
+        send_rtc_sync = -1; // Для тестирования нет необходимости в установке времени
+    #endif
+        // Если устройство найдено
+        if(send_rtc_sync != -1) {
+            last_purpose_contact = Purpose_contact::set_sync_rtc;
+            LoRa_address connect_adr = devices_[send_rtc_sync].get_address(); // not adr.branch
+                                                                                                                                                                                            // (*)-(*)-(*)-(*)-(*)
+                                                                                                                                                                                            // Serial.println("send_time_devices");
+                                                                                                                                                                                            // (*)-(*)-(*)-(*)-(*)
+
+            // (-) ----- создание пакета установки времени
+            LoRa_packet packet;
+            uint8_t size = 0;
+            uint8_t obj = 0x06; // RTC
+            uint8_t com = 0x02; // set time (0x03 set date)
+            uint8_t num = 0;
+            packet_device.get_size_by_data(&obj, &com, size);
+            uint8_t data[3];
+            get_data_time();
+            data[0] = data_time_.Second();
+            data[1] = data_time_.Minute();
+            data[2] = data_time_.Hour();
+
+            packet_device.set_setting(devices_[send_rtc_sync].get_setting());
+
+            packet_device.set_dest_adr(packet, connect_adr);
+            packet_device.set_sour_adr(packet, contact_data_.get_my_adr());
+            packet_device.set_packet_type(packet, Packet_Type::DEVICE);
+            packet_device.set_packet_data(packet, &obj, &num, &com, data, &size);
+            contact_data_.init_contact(connect_adr);
+            contact_data_.add_packet(packet);
+            if(contact_data_.start_transfer())
+                Serial.println("Error start transfer sync devices time");
+            // () ----- создание пакета установки времени
+            return false; // false - был контакт
+        }
+    }
 
 
+    // Проверка периода считывания устройства
+    {
+        // Поиск среди устройств
+        if(!check_device_read())
+            return true; // true - небыло контакта
+        // Если устройство найдено
+        last_purpose_contact = Purpose_contact::get_data;
+        // Произвести чтение с устройств
+                                                                                                                                                                                            // (*)-(*)-(*)-(*)-(*)
+                                                                                                                                                                                            // Serial.println("read_data_device");
+                                                                                                                                                                                            // (*)-(*)-(*)-(*)-(*)
+        for(int i = 0; i < devices_.size(); ++i) {
+            if (devices_[i].read_signal(true)) {
+                LoRa_address connect_adr = contact_data_.get_my_adr();
+                connect_adr.branch = devices_[i].get_address().branch; // adr.branch
+                contact_data_.init_contact(connect_adr);
+                if(contact_data_.start_transfer())
+                    Serial.println("Error start devices transfer");
+                break;
+            }
+        }
+    }
+    return false; // false - был контакт
 
     // if(!check_device_period())
     //     return true;
@@ -1550,7 +1607,6 @@ bool Group_control_module::handler_devices() {
     //                 else {
     //                     devices_[i].get_value(j, device_value);
     //                 }
-
     //                 uint8_t obj = devices_[i].get_component(j).get_type();
     //                 uint8_t id = devices_[i].get_component(j).get_id();
     //                 static_cast<Packet_Device*>(packet.packet)->get_size_by_data(&obj, &com, &size);

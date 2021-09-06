@@ -56,6 +56,13 @@ namespace scs {
         bool set_state___(State);
         State get_state___() const;
 
+        // (-) ----- (!) ----- \/ \/ \/ КОСТЫЛЬ
+        uint16_t send_server_value{0xFFFF};
+        bool set_send_server_value(uint16_t val);
+        uint16_t get_send_server_value();
+        void clear_send_server_value();
+        // (-) ----- (!) ----- /\ /\ /\ КОСТЫЛЬ
+
         // //
         // size_t get_size();
         // size_t get_data();

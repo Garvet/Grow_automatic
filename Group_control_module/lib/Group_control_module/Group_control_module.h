@@ -24,6 +24,7 @@
 #if defined(BUILD_BASEMENT)
 #define REIST_BAND 43455E4
 #elif defined( BUILD_OBJECT1 )
+// #define REIST_BAND 43455E4
 #define REIST_BAND 43455E4
 #else
 #define REIST_BAND 43325E4 // Частота работы при регистрации (-) ----- добавить остальные параметры канала

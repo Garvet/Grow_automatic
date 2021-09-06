@@ -34,4 +34,20 @@ namespace scs {
     State System_component::get_state___() const {
         return state_;
     }
+
+
+    // (-) ----- (!) ----- \/ \/ \/ КОСТЫЛЬ
+    bool System_component::set_send_server_value(uint16_t val) {
+        if(4095 < val)
+            return true;
+        send_server_value = val;
+        return false;
+    }
+    uint16_t System_component::get_send_server_value() {
+        return send_server_value;
+    }
+    void System_component::clear_send_server_value() {
+        send_server_value = 0xFFFF;
+    }
+    // (-) ----- (!) ----- /\ /\ /\ КОСТЫЛЬ
 }
