@@ -101,16 +101,16 @@ enum class Command_code {
     // запросить состояния сигналов
     // отправить данные о состоянии сигналов
 };
-const uint8_t DEVICE_COMMAND[DEVICE_OBJECT] = {0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x04, 0x04, 0x06};
-const uint8_t device_com_data_0[0x02] = {0, 2},                // ШИМ сигнал
-              device_com_data_1[0x02] = {0, 1},                // Цифровой сигнал
-              device_com_data_2[0x02] = {0, 2},                // Вентилятор
-              device_com_data_3[0x02] = {0, 1},                // Насосная система
-              device_com_data_4[0x02] = {0, 1},                // Фитолампа (0|1)
-              device_com_data_5[0x02] = {0, 2},                // Фитолампа (ШИМ)
-              device_com_data_6[0x04] = {0, 0, 3, 3},          // RTC
-              device_com_data_7[0x04] = {0, 1, 1, 8},          // TimeChannel
-              device_com_data_8[0x06] = {0, 1, 1, 3, 0, 0xFF}; // Grow_timer | Day_management
+constexpr uint8_t DEVICE_COMMAND[DEVICE_OBJECT] = {0x02, 0x02, 0x02, 0x02, 0x02, 0x02, 0x04, 0x08, 0x08};
+const uint8_t device_com_data_0[DEVICE_COMMAND[0]] = {0, 2},                      // ШИМ сигнал
+              device_com_data_1[DEVICE_COMMAND[1]] = {0, 1},                      // Цифровой сигнал
+              device_com_data_2[DEVICE_COMMAND[2]] = {0, 2},                      // Вентилятор
+              device_com_data_3[DEVICE_COMMAND[3]] = {0, 1},                      // Насосная система
+              device_com_data_4[DEVICE_COMMAND[4]] = {0, 1},                      // Фитолампа (0|1)
+              device_com_data_5[DEVICE_COMMAND[5]] = {0, 2},                      // Фитолампа (ШИМ)
+              device_com_data_6[DEVICE_COMMAND[6]] = {0, 0, 3, 3},                // RTC
+              device_com_data_7[DEVICE_COMMAND[7]] = {0, 1, 1, 9, 0, 0xFF, 3, 3}, // TimeChannel
+              device_com_data_8[DEVICE_COMMAND[8]] = {0, 1, 1, 3, 0, 0xFF, 2, 2}; // Grow_timer | Day_management
 
 const uint8_t* device_object_data[DEVICE_OBJECT] = {device_com_data_0, device_com_data_1, device_com_data_2,
                                                     device_com_data_3, device_com_data_4, device_com_data_5,

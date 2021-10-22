@@ -489,7 +489,7 @@ uint8_t data[100] = {0x00, 0x06, // Address
                      0x01,                         // component.size()
                      0x03,                         // component.type[0] // PUMP
                     };
-#elif defined( BUILD_S4_D3_OBJECT1_PL_PM )
+#elif defined( BUILD_S5_D3_OBJECT1_PL_PM )
 uint8_t data[100] = {0x00, 0x06, // Address
                      0x00, 0x08, // Channel
                      0x0F,       // Name.size()

@@ -3,6 +3,7 @@
 #define SERIAL_LOG_OUTPUT
 
 #include <Arduino.h>
+#include <FS.h>
 
 #include <GCM_interface.h>
 #include <Group_control_module.h>
@@ -110,7 +111,7 @@ LoRa_packet reg_packet;
 Group_control_module __GCM__;
 
 
-
+void set_start_components();
 
 extern std::array<LoRa_packet_data, SIZE_LORA_PACKET_BUFFER> lora_packet_data;
 void GT_print_NR_S();
@@ -226,25 +227,7 @@ void setup() {
 #endif
     
     if(1) {
-        for(int i = 0; (i < __GCM__.sensors_.size()) && (i < AMT_SENSORS_ID); ++i) {
-            __GCM__.sensors_[i].set_active(2);
-            __GCM__.sensors_[i].set_system_id(sensors_id[i]);
-        }
-        for(int i = 0; (i < __GCM__.devices_.size()) && (i < AMT_DEVICES_ID); ++i) {
-            __GCM__.devices_[i].set_active(2);
-            __GCM__.devices_[i].set_system_id(devices_id[i]);
-        }
-        __GCM__.contact_data_.end_contact();
-        __GCM__.set_mode(Group_control_module::GT_PROCESSING);
-        end_serial = true;
-        GT_print();
-
-
-        #if (SEND_SERVER == 1)
-        gcm_interface.init_server_connect(network_name, 10, network_pswd, 9, server_address, AMT_BYTES_NETWORK_ADDRESS, server_port);
-        delay(5000);
-        gcm_interface.report_to_server_regist_data();
-        #endif
+        set_start_components();
     }
     else {
         GT_print();
@@ -516,6 +499,28 @@ void loop() {
 }
 
 
+
+void set_start_components() {
+    for(int i = 0; (i < __GCM__.sensors_.size()) && (i < AMT_SENSORS_ID); ++i) {
+        __GCM__.sensors_[i].set_active(2);
+        __GCM__.sensors_[i].set_system_id(sensors_id[i]);
+    }
+    for(int i = 0; (i < __GCM__.devices_.size()) && (i < AMT_DEVICES_ID); ++i) {
+        __GCM__.devices_[i].set_active(2);
+        __GCM__.devices_[i].set_system_id(devices_id[i]);
+    }
+    __GCM__.contact_data_.end_contact();
+    __GCM__.set_mode(Group_control_module::GT_PROCESSING);
+    end_serial = true;
+    GT_print();
+
+
+    #if (SEND_SERVER == 1)
+    gcm_interface.init_server_connect(network_name, 10, network_pswd, 9, server_address, AMT_BYTES_NETWORK_ADDRESS, server_port);
+    delay(5000);
+    gcm_interface.report_to_server_regist_data();
+    #endif
+}
 
 void GT_print_NR_S() {
     if(__GCM__.sensors_.size() != 0) {

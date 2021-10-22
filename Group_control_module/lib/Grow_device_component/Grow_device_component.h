@@ -7,8 +7,6 @@
 #include <main.h>
 #endif
 
-// Количество всех типов устройств
-#define COUNT_TYPE_DEVICE 6
 // Список всех типов устройств
 enum Type_device {
 	Signal_PWM = 0,
@@ -16,8 +14,14 @@ enum Type_device {
 	Fan_PWM,
 	Pumping_system,
 	Phytolamp_digital,
-	Phytolamp_PWM
+	Phytolamp_PWM,
+    Time_Channel,
+    GrowTimer,
+    // Количество типов устройств
+    AMT_DEVICES,
 };
+// Количество всех типов устройств
+#define COUNT_TYPE_DEVICE AMT_DEVICES
 
 class Grow_device_component {
 private:
