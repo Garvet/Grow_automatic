@@ -3,6 +3,7 @@
 #define SERIAL_LOG_OUTPUT
 
 #include <Arduino.h>
+#include <SPIFFS.h>
 #include <FS.h>
 
 #include <GCM_interface.h>
@@ -500,6 +501,9 @@ void loop() {
 
 
 
+#if (CREATE_SERVER == 1)
+#include <GCM_server.h>
+#endif
 void set_start_components() {
     for(int i = 0; (i < __GCM__.sensors_.size()) && (i < AMT_SENSORS_ID); ++i) {
         __GCM__.sensors_[i].set_active(2);
@@ -519,6 +523,8 @@ void set_start_components() {
     gcm_interface.init_server_connect(network_name, 10, network_pswd, 9, server_address, AMT_BYTES_NETWORK_ADDRESS, server_port);
     delay(5000);
     gcm_interface.report_to_server_regist_data();
+    #elif (CREATE_SERVER == 1)
+    lsc::server_GCM::init(__GCM__);
     #endif
 }
 

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    .input{
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .text{
+      font-family: "Roboto Light",sans-serif;
+      font-size: 24px;
+    }
+    #button{
+      margin-top: 20px;
+      background: #4C5DB8;
+      box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+      border-radius: 15px;
+      width: 251px;
+      height: 39px;
+    }
+  </style>
+  <meta charset="UTF-8">
+  <title>SMARTGLOW v.0.1</title>
+</head>
+<body>
+  <div style="margin-top: 303px">
+    <h1 style="font-size: 24px; font-family: Roboto, sans-serif; color:  #4C5DB8; text-align: center">
+      Введите ID модуля управления для входа</h1>
+  </div>
+  <form>
+    <div class="input">
+      <input id="serial_number_input" type="text" style="width: 245px; height: 25px; border: none;  background-color: #4C5DB8; color: white; font-size: 24px ">
+    </div>
+    <div class="input">
+      <button id="button" type="button" onclick="send_login_request()"><span class="text">Подтвердить</span></button>
+    </div>
+  </form>
+</body>
+<script>
+  async function send_login_request(){
+    let input_value = document.getElementById('serial_number_input').value
+    let response = await fetch('http://' + location.hostname +'/login', {
+    method: 'POST',
+    body: input_value
+
+  })
+    .then(response => {
+    // HTTP 301 response
+    // HOW CAN I FOLLOW THE HTTP REDIRECT RESPONSE?
+    if (response.redirected) {
+      console.log(response.url)
+      window.location.href = response.url;
+    }
+    })
+    .catch(function(err) {
+    console.info(err);
+    });
+    console.log(response);
+  }
+</script>
+</html>
