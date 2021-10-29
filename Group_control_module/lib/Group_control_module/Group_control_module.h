@@ -68,7 +68,7 @@ public:
     /// RTC
     RtcDS1302<ThreeWire> rtc_; // Модуль реального времени 
     bool rtc_begin_ = false;  // RTC был запущен
-    RtcDateTime data_time_;  // Последнее считанное время
+    RtcDateTime date_time_;  // Последнее считанное время
 
     /// Регистрация модуля
     bool permission_regist_interrupt_ = true; // false когда идёт добавление/фильтрация модулей, чтобы список не мог измениться
@@ -121,14 +121,17 @@ public:
     void LoRa_interrupt(); 
 
     /// Обработка времени
-    void set_data_time(RtcDateTime data_time); // установить значение RTC
-    RtcDateTime get_data_time(); // считать значение RTC
+    void set_date_time(RtcDateTime data_time); // установить значение RTC
+    RtcDateTime get_date_time(); // считать значение RTC
 
     // Поиск номера устройства/датчика по параметру
     int search_device(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> search_id);
     int search_sensor(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> search_id);
     int search_device(uint16_t address);
     int search_sensor(uint16_t address);
+    // на замену верхних 4-х функций
+    int search_module(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> search_id);
+    int search_module(uint16_t address);
 
     /// --- Настройка системы ---
     // все функции кроме set_mode работают только при mode_ = GT_SETTING

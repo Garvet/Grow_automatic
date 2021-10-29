@@ -72,7 +72,7 @@ Group_control_module::Group_control_module(/* args */): rtc_(rtc_wire) {
     check_device_ = false;
     end_adr_ = 0; // (--) ----- (исключается)
     rtc_begin_ = false;
-    data_time_ = 0;
+    date_time_ = 0;
     permission_regist_interrupt_ = true;
 }
 
@@ -209,7 +209,7 @@ void Group_control_module::LoRa_interrupt() {
                     #if defined (ERROR_REBOOT)
                     amt_error_connect_last_num_d[i] += 1;
                     if(MAX_ERRORS_ONE_COMPONENT < amt_error_connect_last_num_d[i]) {
-                        RtcDateTime rdt = get_data_time();
+                        RtcDateTime rdt = get_date_time();
                         uint16_t data;
                         Serial.println("\n| ----- -----");
                         Serial.println("| ------- ----- -----");
@@ -240,7 +240,7 @@ void Group_control_module::LoRa_interrupt() {
                         #if defined (ERROR_REBOOT)
                         amt_error_connect_last_num_s[i] += 1;
                         if(MAX_ERRORS_ONE_COMPONENT < amt_error_connect_last_num_s[i]) {
-                            RtcDateTime rdt = get_data_time();
+                            RtcDateTime rdt = get_date_time();
                             uint16_t data;
                             Serial.println("\n| ----- -----");
                             Serial.println("| ------- ----- -----");
@@ -266,7 +266,7 @@ void Group_control_module::LoRa_interrupt() {
             // - 2021.06.11 - перезапуск при отсутствии соединения -
             #if defined (ERROR_REBOOT)
             if(++number_errors_row == MAX_ERRORS_IN_ROW) {
-                RtcDateTime rdt = get_data_time();
+                RtcDateTime rdt = get_date_time();
                 uint16_t data;
                 Serial.println("\n| ----- -----");
                 Serial.println("| ------- ----- -----");
@@ -780,15 +780,15 @@ void Group_control_module::LoRa_interrupt() {
 }
 
 // Обработка времени
-void Group_control_module::set_data_time(RtcDateTime data_time) {
-    data_time_ = data_time;
+void Group_control_module::set_date_time(RtcDateTime date_time) {
+    date_time_ = date_time;
     if (rtc_begin_)
-        rtc_.SetDateTime(data_time_);
+        rtc_.SetDateTime(date_time_);
 }
-RtcDateTime Group_control_module::get_data_time() {
+RtcDateTime Group_control_module::get_date_time() {
     if (rtc_begin_)
-        data_time_ = rtc_.GetDateTime();
-    return data_time_;
+        date_time_ = rtc_.GetDateTime();
+    return date_time_;
 }
 
 // Поиск номера устройства/датчика по параметру
@@ -819,6 +819,25 @@ int Group_control_module::search_sensor(uint16_t address) {
     if (it == sensors_.end())
         return -1;
     return (int)std::distance( sensors_.begin(), it );
+}
+
+int Group_control_module::search_module(std::array<uint8_t, AMT_BYTES_SYSTEM_ID> search_id) {
+    int result = search_device(search_id);
+    if(result == -1) {
+        result = search_sensor(search_id);
+        if(result != -1)
+            result += 1000;
+    }
+    return result;
+}
+int Group_control_module::search_module(uint16_t address) {
+    int result = search_device(address);
+    if(result == -1) {
+        result = search_sensor(address);
+        if(result != -1)
+            result += 1000;
+    }
+    return result;
 }
 
 
@@ -1248,6 +1267,7 @@ bool Group_control_module::add_reg_module(const LoRa_packet &reg_packet) {
     switch (data[symbol++]) {
     case NUM_SENSOR: {
         // Добавление датчика
+                                                    Serial.println("!S!");
         Grow_sensor new_sensor(len, &data[symbol++]);
         new_sensor.set_system_id(module_id);
         reg_sensors_.push_back(new_sensor);
@@ -1255,7 +1275,9 @@ bool Group_control_module::add_reg_module(const LoRa_packet &reg_packet) {
     }
     case NUM_DEVICE: {
         // Добавление устройства
-        Grow_device new_device(len-1, &data[symbol++]);
+                                                    Serial.println("!D!");
+        // Grow_device new_device(len-1, &data[symbol++]);
+        Grow_device new_device(len, &data[symbol++]);
         new_device.set_system_id(module_id);
         reg_devices_.push_back(new_device);
         break;
@@ -1355,9 +1377,9 @@ void Group_control_module::clear_regist_data() {
 // Обработка модулей
 bool Group_control_module::check_device_period() {
     check_device_ = false;
-    get_data_time();
+    get_date_time();
     for(int i = 0; i < devices_.size(); ++i) {
-        if(devices_[i].check_time(data_time_))
+        if(devices_[i].check_time(date_time_))
             check_device_ = true;
     }
     // save_v2 (-) -----
@@ -1539,10 +1561,10 @@ bool Group_control_module::handler_devices() {
             uint8_t num = 0;
             packet_device.get_size_by_data(&obj, &com, size);
             uint8_t data[3];
-            get_data_time();
-            data[0] = data_time_.Second();
-            data[1] = data_time_.Minute();
-            data[2] = data_time_.Hour();
+            get_date_time();
+            data[0] = date_time_.Second();
+            data[1] = date_time_.Minute();
+            data[2] = date_time_.Hour();
 
             packet_device.set_setting(devices_[send_rtc_sync].get_setting());
 

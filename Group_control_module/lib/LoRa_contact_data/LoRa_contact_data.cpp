@@ -2,7 +2,7 @@
 
 #if defined ( ESP32 )
 // #define SERIAL_PRINT_ON // вывод стадий при каждом их прохождении (при каждой отправке/приёме)
-#define SERIAL_PRINT_ON_1 // вывод только пакетов по мере отправки/приёма
+// #define SERIAL_PRINT_ON_1 // (dsdjlbn gfrtns) вывод только пакетов по мере отправки/приёма
 // #define ALL_SAVE_PACKET // сохраняет в массив all_packet все принятые и отправленные пакеты
 #if defined ( ALL_SAVE_PACKET )
 class pack {

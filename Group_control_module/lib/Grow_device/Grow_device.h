@@ -20,6 +20,7 @@
 
 class Grow_device : public scs::System_component {
 private:
+public:
     // uint16_t address_; // адрес датчика
     std::vector<Grow_device_component> component_; // вектор компонентов датчиков (не как плата, а как механический модуль)
 

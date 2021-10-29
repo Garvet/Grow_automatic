@@ -10,6 +10,35 @@ namespace scs {
         return system_id;
     }
 
+    // имя платы
+    bool System_component::set_name(std::array<uint8_t, AMT_BYTES_NAME> set_system_name, uint8_t len) {
+        return set_name(&set_system_name[0], len);
+    }
+    bool System_component::set_name(const uint8_t *set_system_name, uint8_t len) {
+        if(AMT_BYTES_NAME <= len)
+            return true;
+        for(int i = 0; i < len; ++i) {
+            system_name[i] = set_system_name[i];
+        }
+        len_name = len;
+        return false;
+    }
+    bool System_component::set_name(const char *set_system_name, uint8_t len) {
+        return set_name((uint8_t*)set_system_name, len);
+    }
+    const std::array<uint8_t, AMT_BYTES_NAME>& System_component::get_name() const {
+        return system_name;
+    }
+    uint8_t System_component::get_name(uint8_t num) const {
+        // return (num < len_name) * system_name[num];
+        if(num < len_name)
+            return system_name[num];
+        return 0;
+    }
+    uint8_t System_component::get_len_name() const {
+        return len_name;
+    }
+
     // адрес LoRa
     // установка адреса модуля
     bool System_component::set_address(LoRa_address address) {

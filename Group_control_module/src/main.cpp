@@ -107,7 +107,8 @@ bool button4_state = false;
 
 
 
-std::vector<uint8_t> packet = { 01, 00, 00, 01, 01, 01, 04, 11, 12, 00, 3, 1, 1, 2, 3};
+// std::vector<uint8_t> packet = { 01, 00, 00, 01, 01, 01, 04, 11, 12, 00, 3, 1, 1, 2, 3};
+std::array<uint8_t, SIZE_LORA_PACKET_MAX_LEN> packet = { 01, 00, 00, 01, 01, 01, 04, 11, 12, 00, 3, 1, 1, 2, 3};
 LoRa_packet reg_packet;
 Group_control_module __GCM__;
 
@@ -180,7 +181,7 @@ void setup() {
         Serial.println(result);
         while (1) delay(10000);        
     }
-    // __GCM__.set_data_time(RtcDateTime(2020, 01, 22, 17, 22, 00));
+    // __GCM__.set_date_time(RtcDateTime(2020, 01, 22, 17, 22, 00));
     // GT_print();
 
     #if defined( SET_RTC_TIME )
@@ -194,35 +195,56 @@ void setup() {
     // GT_print();
     // Serial.println();
 
-// #define AUTO_REG
+#define AUTO_REG
 #if defined (AUTO_REG) // добавляет модули в запрос регистрации
-    packet = { 01, 00, 00, 01, 03, 02, 04, 11, 12, 00, 2, 1, 4, 3};
-    reg_packet.set_packet(packet);
+    // packet = { 01, 00, 00, 01, 03, 02, 03, 11, 12, 00, 2, 1, 4, 3};
+    packet = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 03, 01, 12, 00, 
+               0xAA, 0xAA, 0x01, 0x02, 0x03, 0x04, 0x05, 0xAA, 0xAA, 0x01, 0xAA, 0x01,
+               2, 1, 4, 3};
+    reg_packet.set_packet(&packet[0], packet.size(), false, 0);
     if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
-    packet = { 01, 00, 00, 01, 01, 02, 04, 11, 12, 00, 2, 1, 4, 3};
-    reg_packet.set_packet(packet);
+    // packet = { 01, 00, 00, 01, 01, 02, 04, 11, 12, 00, 2, 1, 4, 3};
+    packet = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 03, 01, 12, 00, 
+               0xAA, 0xAA, 0x01, 0x02, 0x03, 0x04, 0x05, 0xAA, 0xAA, 0x02, 0xAA, 0x02,
+               2, 1, 4, 3};
+    reg_packet.set_packet(&packet[0], packet.size(), false, 0);
     if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
-    packet = { 01, 00, 00, 01, 02, 01, 04, 11, 12, 00, 2, 1, 6, 6, 3, 3, 3, 1};
-    reg_packet.set_packet(packet);
+    // packet = { 01, 00, 00, 01, 02, 01, 04, 11, 12, 00, 2, 1, 6, 6, 3, 3, 3, 1};
+    packet = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 03, 01, 12, 00, 
+               0xAA, 0xAA, 0x01, 0x02, 0x03, 0x04, 0x05, 0xAA, 0xAA, 0x03, 0xAA, 0x03,
+               6, 1, 6, 6, 3, 3, 3, 1};
+    reg_packet.set_packet(&packet[0], packet.size(), false, 0);
     if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
 
-    packet = { 01, 00, 00, 01, 02, 03, 04, 11, 12, 00, 1, 2, 5};
-    reg_packet.set_packet(packet);
+    // packet = { 01, 00, 00, 01, 02, 03, 04, 11, 12, 00, 1, 2, 5};
+    packet = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 03, 01, 12, 00, 
+               0xBB, 0xBB, 0x10, 0x20, 0x30, 0x40, 0x50, 0xBB, 0x04, 0xBB, 0xBB, 0x04,
+               1, 2, 5};
+    reg_packet.set_packet(&packet[0], packet.size(), false, 0);
     if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
-    packet = { 01, 00, 00, 01, 02, 07, 04, 11, 12, 00, 1, 2, 5};
-    reg_packet.set_packet(packet);
+    // packet = { 01, 00, 00, 01, 02, 07, 04, 11, 12, 00, 1, 2, 5};
+    packet = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 03, 01, 12, 00, 
+               0xBB, 0xBB, 0x10, 0x20, 0x30, 0x40, 0x50, 0xBB, 0x05, 0xBB, 0xBB, 0x05,
+               1, 2, 5};
+    reg_packet.set_packet(&packet[0], packet.size(), false, 0);
     if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
-    packet = { 01, 00, 00, 01, 07, 03, 04, 11, 12, 00, 1, 2, 5};
-    reg_packet.set_packet(packet);
+    // packet = { 01, 00, 00, 01, 07, 03, 04, 11, 12, 00, 1, 2, 5};
+    packet = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 03, 01, 12, 00, 
+               0xBB, 0xBB, 0x10, 0x20, 0x30, 0x40, 0x50, 0xBB, 0x06, 0xBB, 0xBB, 0x06,
+               2, 2, 5, 3,};
+    reg_packet.set_packet(&packet[0], packet.size(), false, 0);
     if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
-    packet = { 01, 00, 00, 01, 03, 01, 04, 11, 12, 00, 2, 2, 5, 3, 4, 2};
-    reg_packet.set_packet(packet);
+    // packet = { 01, 00, 00, 01, 03, 01, 04, 11, 12, 00, 2, 2, 5, 3, 4, 2};
+    packet = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 03, 01, 12, 00, 
+               0xBB, 0xBB, 0x10, 0x20, 0x30, 0x40, 0x50, 0xBB, 0x07, 0xBB, 0xBB, 0x07,
+               4, 2, 5, 3, 4, 2};
+    reg_packet.set_packet(&packet[0], packet.size(), false, 0);
     if(__GCM__.add_reg_module(reg_packet))
         Serial.println("Err");
 #endif
@@ -504,14 +526,156 @@ void loop() {
 #if (CREATE_SERVER == 1)
 #include <GCM_server.h>
 #endif
+
+// (-) -----
+const uint8_t name_s[12] = "Sensor ";
+const uint8_t name_d[12] = "Device ";
+uint8_t name[12];
+uint8_t len;
+
+
 void set_start_components() {
     for(int i = 0; (i < __GCM__.sensors_.size()) && (i < AMT_SENSORS_ID); ++i) {
         __GCM__.sensors_[i].set_active(2);
         __GCM__.sensors_[i].set_system_id(sensors_id[i]);
+
+
+        // (-) -----
+        {
+            for(int j = 0; j < 8; ++j)
+                name[j] = name_s[j];
+            name[7] = i / 10 + '0';
+            name[8] = i % 10 + '0';
+            len = 12;
+            __GCM__.sensors_[i].set_name(name, len);
+        }
+        // (-) -----
     }
     for(int i = 0; (i < __GCM__.devices_.size()) && (i < AMT_DEVICES_ID); ++i) {
         __GCM__.devices_[i].set_active(2);
         __GCM__.devices_[i].set_system_id(devices_id[i]);
+
+
+        // (-) -----
+        {
+            for(int j = 0; j < 8; ++j)
+                name[j] = name_d[j];
+            name[7] = i / 10 + '0';
+            name[8] = i % 10 + '0';
+            len = 12;
+            __GCM__.devices_[i].set_name(name, len);
+        }
+        // (-) -----
+
+
+        // (-) -----
+        {
+            // добавь стартовые периоды и каналы
+            static std::vector<dtc::Grow_timer> time_channel{};
+            dtc::Time_channel channel;
+            for(int j = 0; j < __GCM__.devices_[i].get_count_component(); ++j) {
+                time_channel.clear();
+                switch (__GCM__.devices_[i].get_component()[j].get_type()) {
+                case Signal_digital: {
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[0].set_start_time({1, 10, 30});
+                    time_channel[0].set_end_time({23, 50, 20});
+                    channel.set_duration_on(60);
+                    channel.set_duration_off(60*4);
+                    time_channel[0].bind_channel(channel);
+                    time_channel[0].set_send_server_value(25);
+                    break;
+                }
+                case Pumping_system: {
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[0].set_start_time({06, 00, 01});
+                    time_channel[0].set_end_time({22, 00, 00});
+                    channel.set_duration_on(60);
+                    channel.set_duration_off(60*4);
+                    time_channel[0].bind_channel(channel);
+                    time_channel[0].set_send_server_value(100);
+
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[1].set_start_time({22, 00, 01});
+                    time_channel[1].set_end_time({06, 00, 00});
+                    channel.set_duration_on(60);
+                    channel.set_duration_off(60*6);
+                    time_channel[1].bind_channel(channel);
+                    time_channel[1].set_send_server_value(100);
+                    break;
+                }
+                case Phytolamp_digital: {
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[0].set_start_time({07, 00, 00});
+                    time_channel[0].set_end_time({01, 00, 00});
+                    channel.set_duration_on(1);
+                    channel.set_duration_off(0);
+                    time_channel[0].bind_channel(channel);
+                    time_channel[0].set_send_server_value(100);
+                    break;
+                }
+                case Signal_PWM: {
+                    break;
+                }
+                case Fan_PWM: {
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[0].set_start_time({06, 00, 01});
+                    time_channel[0].set_end_time({16, 00, 00});
+                    channel.set_duration_on(50);
+                    channel.set_duration_off(10);
+                    time_channel[0].bind_channel(channel);
+                    time_channel[0].set_send_server_value(100);
+
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[1].set_start_time({16, 00, 01});
+                    time_channel[1].set_end_time({22, 00, 00});
+                    channel.set_duration_on(50);
+                    channel.set_duration_off(10);
+                    time_channel[1].bind_channel(channel);
+                    time_channel[1].set_send_server_value(75);
+
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[2].set_start_time({22, 00, 01});
+                    time_channel[2].set_end_time({06, 00, 00});
+                    channel.set_duration_on(50);
+                    channel.set_duration_off(10);
+                    time_channel[2].bind_channel(channel);
+                    time_channel[2].set_send_server_value(50);
+                    break;
+                }
+                case Phytolamp_PWM: {
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[0].set_start_time({07, 00, 00});
+                    time_channel[0].set_end_time({13, 00, 00});
+                    channel.set_duration_on(1);
+                    channel.set_duration_off(0);
+                    time_channel[0].bind_channel(channel);
+                    time_channel[0].set_send_server_value(50);
+
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[1].set_start_time({13, 00, 01});
+                    time_channel[1].set_end_time({18, 00, 00});
+                    channel.set_duration_on(1);
+                    channel.set_duration_off(0);
+                    time_channel[1].bind_channel(channel);
+                    time_channel[1].set_send_server_value(100);
+
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[2].set_start_time({18, 00, 01});
+                    time_channel[2].set_end_time({01, 00, 00});
+                    channel.set_duration_on(1);
+                    channel.set_duration_off(0);
+                    time_channel[2].bind_channel(channel);
+                    time_channel[2].set_send_server_value(50);
+                    break;
+                }
+                default:
+                    break;
+                }
+                __GCM__.devices_[i].component_[j].set_timer(time_channel);
+            }
+        }
+        // (-) -----
     }
     __GCM__.contact_data_.end_contact();
     __GCM__.set_mode(Group_control_module::GT_PROCESSING);

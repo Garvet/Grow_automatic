@@ -42,6 +42,7 @@ namespace dtc {
 
 
     // ----- Контроль временных диапазонов -----
+    #if defined(GROW_TIMER_ONE_CHANNEL)
     bool Grow_timer::set_start_time(Time time) {
         Time old_time = start_time;
         if(set_start_hours(time.hour) ||
@@ -125,46 +126,32 @@ namespace dtc {
     }
 
     // Привязать канал
-    bool Grow_timer::bind_channel(Time_channel value) {
-        channel.push_back(value);
-        return false;
+    void Grow_timer::bind_channel(Time_channel value) {
+        channel = value;
+        change = true;
     }
     // Отвязать канал
-    bool Grow_timer::unbind_channel(Time_channel value) {
-        auto it = std::find_if(channel.begin(), channel.end(),
-            [value] (const Time_channel& check) {if(check == value) return true; return false;});
-        if (it == channel.end())
+    bool Grow_timer::unbind_channel() {
+        if((channel.get_duration_off() == 0) && (channel.get_duration_on() == 0))
             return true;
-        channel.erase(it);
+        channel.set_duration_off(0);
+        channel.set_duration_on(0);
+        change = true;
         return false;
     }
-    bool Grow_timer::unbind_channel(uint8_t num) {
-        if(channel.size() <= num)
-            return true;
-        channel.erase(channel.begin() + num);
-        return false;
-    }
-    // Получить количество каналов
-    uint8_t Grow_timer::get_amt_channel() const {
-        return channel.size();
-    }
-    // Получить N-й канал
-    const Time_channel* Grow_timer::get_channel(uint8_t num) const {
-        if(channel.size() <= num)
-            return nullptr;
-        return &channel[num];
-    }
-    // Изменить N-й канал
-    bool Grow_timer::set_channel(Time_channel new_setting, uint8_t num) {
-        if(channel.size() <= num)
-            return true;
-        channel[num] = new_setting;
-        return false;
+    // Получить данные канала
+    const Time_channel& Grow_timer::get_channel() const {
+        return channel;
     }
 
     // Работа с сигналом, связанным с изменением полей (для передачи на узел)
     bool Grow_timer::get_change() const {
         return change;
+    }
+    bool Grow_timer::get_internal_change() const {
+        if(change || channel.get_change())
+            return true;
+        return false;
     }
     bool Grow_timer::reset_change() {
         if(!change)
@@ -172,4 +159,38 @@ namespace dtc {
         change = false;
         return true;
     }
+    bool Grow_timer::reset_internal_change() {
+        if((!change) || (!channel.get_change()))
+            return false;
+        change = false;
+        channel.reset_change();
+        return true;
+    }
+
+
+
+
+    // (-) ----- (!) ----- \/ \/ \/ КОСТЫЛЬ
+    /// Контроль значения
+    bool Grow_timer::set_send_server_value(uint16_t val) {
+        if(4095 < val)
+            return true;
+        change = true;
+        send_server_value = val;
+        return false;
+    }
+    uint16_t Grow_timer::get_send_server_value() const {
+        return send_server_value;
+    }
+    void Grow_timer::clear_send_server_value() {
+        send_server_value = 0xFFFF;
+        change = true;
+    }
+    // (-) ----- (!) ----- /\ /\ /\ КОСТЫЛЬ
+
+
+#endif
+
+#if defined(GROW_TIMER_VECTOR_CHANNEL)
+#endif
 }

@@ -15,6 +15,7 @@
 namespace scs {
 
     const uint8_t AMT_BYTES_ID = 12;
+    const uint8_t AMT_BYTES_NAME = 40;
 
     enum class State { // зарегистрирован, в процессе регистрации (setting - МУГ, ЗАРЕГ и В_ПР_РЕГ - S/D)
         work,           // Работает
@@ -37,6 +38,8 @@ namespace scs {
     class System_component {
     protected:
         std::array<uint8_t, AMT_BYTES_ID> system_id{};
+        std::array<uint8_t, AMT_BYTES_NAME> system_name{};
+        uint8_t len_name{0};
         State state_={State::work}; // (-) ----- здесь not_registered (work, чтобы сразу всё работало)
         LoRa_address address_{}; // [packet_analyzer]
     public:
@@ -45,6 +48,14 @@ namespace scs {
         // индивидуальный номер платы
         void set_system_id(std::array<uint8_t, AMT_BYTES_ID> system_id);
         std::array<uint8_t, AMT_BYTES_ID> get_system_id() const;
+
+        // имя платы
+        bool set_name(std::array<uint8_t, AMT_BYTES_NAME> system_name, uint8_t len);
+        bool set_name(const uint8_t *system_name, uint8_t len);
+        bool set_name(const char *system_name, uint8_t len);
+        const std::array<uint8_t, AMT_BYTES_NAME>& get_name() const;
+        uint8_t get_name(uint8_t num) const;
+        uint8_t get_len_name() const;
 
         // адрес LoRa
         // установка адреса модуля

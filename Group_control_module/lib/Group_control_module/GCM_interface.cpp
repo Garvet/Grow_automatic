@@ -270,7 +270,7 @@ void connectToWiFi() {
     }
     else {
         if(number_errors_row == MAX_ERRORS_IN_ROW) {
-            RtcDateTime rdt = gcm_interface.gcm_->get_data_time();
+            RtcDateTime rdt = gcm_interface.gcm_->get_date_time();
             uint16_t data;
             Serial.println("\n| ----- -----");
             Serial.println("| ------- ----- -----");
@@ -473,7 +473,7 @@ bool WiFisend() {
     static uint16_t number_errors_row = 0;
     if(wait_connect == 0) {
         if(number_errors_row == MAX_ERRORS_IN_ROW) {
-            RtcDateTime rdt = gcm_interface.gcm_->get_data_time();
+            RtcDateTime rdt = gcm_interface.gcm_->get_date_time();
             uint16_t data;
             Serial.println("\n| ----- -----");
             Serial.println("| ------- ----- -----");
@@ -771,7 +771,7 @@ uint16_t GCM_interface::report_to_server_regist_data() {
         for(int i = 0; i < gcm_->system_id_.size(); ++i)
             buffer[buf_len++] = gcm_->devices_[k].get_system_id()[i];
 
-    rdt = gcm_->get_data_time();
+    rdt = gcm_->get_date_time();
 
     buffer[buf_len++] = rdt.Day();
     buffer[buf_len++] = rdt.Month();
@@ -849,7 +849,7 @@ uint16_t GCM_interface::report_to_server_read_data() {
             buffer[buf_len++] =  data        & 0xFF;
         }
 
-        rdt = gcm_->get_data_time();
+        rdt = gcm_->get_date_time();
 
         buffer[buf_len++] = rdt.Day();
         buffer[buf_len++] = rdt.Month();
@@ -946,7 +946,7 @@ uint16_t GCM_interface::report_to_server_read_data() {
         if(i < gcm_->devices_[k].get_count_component())
             continue;
 
-        rdt = gcm_->get_data_time();
+        rdt = gcm_->get_date_time();
 
         buffer[buf_len++] = rdt.Day();
         buffer[buf_len++] = rdt.Month();
@@ -1003,7 +1003,7 @@ uint16_t GCM_interface::report_to_server_read_data() {
             buffer[buf_len++] = gcm_->get_system_id()[i];
         buffer[buf_len++] = 3; // type report (0 - registration, 1 - sensor, 2 - device)
         buffer[buf_len++] = 0;
-        rdt = gcm_->get_data_time();
+        rdt = gcm_->get_date_time();
         buffer[buf_len++] = rdt.Day();
         buffer[buf_len++] = rdt.Month();
         buffer[buf_len++] = (rdt.Year() >> 8) & 0xFF;
