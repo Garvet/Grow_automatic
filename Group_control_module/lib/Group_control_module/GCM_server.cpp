@@ -191,7 +191,8 @@ namespace lsc {
                       NULL, login_connection);
             server.on("/devices/unregistered/get", HTTP_GET, modules_unregistered);
             server.on("/devices/registered/get",   HTTP_GET, modules_registered);
-            server.on("/registered_device/get",    HTTP_GET, module_data);
+            server.on("/registered_device/get",    HTTP_GET, module_registered_data);
+            server.on("/unregistered_device/get",  HTTP_GET, module_unregistered_data);
             server.on("/registered_device/add",    HTTP_GET, module_registration);
             server.on("/registered_device/edit",   HTTP_GET, module_editing);
             server.on("/registered_device/delete", HTTP_POST, [](AsyncWebServerRequest *request) {},
@@ -494,8 +495,8 @@ namespace lsc {
             // request->send(response);
         }
 
-        // Отправка информации о модуле | "/registered_device/get"
-        void module_data(AsyncWebServerRequest *request) { // (?) -----
+        // Отправка информации о исп. модуле | "/registered_device/get"
+        void module_registered_data(AsyncWebServerRequest *request) { // (?) -----
             static std::array<uint8_t, scs::AMT_BYTES_ID> id;
             static const scs::System_component* module;
             static const Grow_device* m_device;
@@ -1073,8 +1074,731 @@ namespace lsc {
             //                                             //сделать подстрою под вас
             // request->send(response);
         }
+        
+        // Отправка информации о рег. модуле | "/unregistered_device/get"
+        void module_unregistered_data(AsyncWebServerRequest *request) { // - (-) -----
+            Serial.println("- (-) ----- \"/unregistered_device/get\"");
+            if(0) {
+            static std::array<uint8_t, scs::AMT_BYTES_ID> id;
+            static const scs::System_component* module;
+            static const Grow_device* m_device;
+            static const Grow_sensor* m_sensor;
+            static bool device = false;
+            static uint16_t amt_components;
+            static int value;
+
+            Serial.println("/registered_device/get");
+            int paramsNr = request->params();
+            module = nullptr;
+            // Serial.println(paramsNr);
+            for (int i = 0; i < paramsNr; i++) {
+                AsyncWebParameter *p = request->getParam(i);
+                // Serial.print("Param name: ");
+                // Serial.println(p->name());
+                // Serial.print("Param value: ");
+                // Serial.println(p->value());
+                // Serial.println("------");
+                String param_name = p->name();
+                if (param_name == "device_id") {
+                    String device_id = p->value();
+                    hex_to_byte((uint8_t*)&device_id[0], id);
+                    
+                    // for (size_t i = 0; i < scs::AMT_BYTES_ID; i++) {
+                    //     Serial.print(id[i], HEX);
+                    // }
+
+                    if(gcm != nullptr) {
+                        int number = gcm->search_device(id);
+                        if(number == -1) {
+                            number = gcm->search_sensor(id);
+                            if(number != -1) {
+                                module = &gcm->sensors_[number];
+
+                                m_sensor = &gcm->sensors_[number];
+                                device = false;
+                            }
+                        }
+                        else {
+                            module = &gcm->devices_[number];
+                            
+                            m_device = &gcm->devices_[number];
+                            device = true;
+                        }
+                        // Serial.print(" - ");
+                        // Serial.println(number);
+                    }
+                }
+            }
+            // somefunction(p->value) какая то функция, которая получает информацию
+            // о модуле
+            AsyncWebServerResponse *response =
+                request->beginResponse(200, "text/plain", "Ok");
+            response->addHeader("Access-Control-Allow-Origin", "*");
+            response->addHeader("Access-Control-Expose-Headers", "*");
+            if(module != nullptr) {
+                buf_size = 0;
+                add_module_name(module, buffer, buf_size);
+                buffer[buf_size++] = '\0';
+                response->addHeader("device_name", (char*)buffer);
+
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                Serial.print("device_name: ");
+                Serial.println((char*)buffer);
+#endif
+
+                if(!device) {
+                    // ----- sensors -----
+                    // Добавление количества компонентов
+                    buf_size = 0;
+                    amt_components = m_sensor->get_count_component();
+                    add_number(amt_components, buffer, buf_size);
+                    buffer[buf_size++] = '\0';
+                    response->addHeader("count_of_sensor_modules", (char*)buffer);
+
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                Serial.print("count_of_sensor_modules: ");
+                Serial.println((char*)buffer);
+#endif
+
+                    // Добавление типов модулей
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        value = m_sensor->get_component(i).get_type();
+                        add_number(value, buffer, buf_size);
+                        buffer[buf_size++] = ',';
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("sensors_names", (char*)buffer);
+
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                Serial.print("sensors_names: ");
+                Serial.println((char*)buffer);
+#endif
+                    // Добавление id модулей
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        value = m_sensor->get_component(i).get_id();
+                        add_number(value, buffer, buf_size);
+                        buffer[buf_size++] = ',';
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("sensors_ids", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                Serial.print("sensors_ids: ");
+                Serial.println((char*)buffer);
+#endif
+                    // Добавление значений
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        value = m_sensor->get_component(i).get_value();
+                        add_number(value, buffer, buf_size, true);
+                        buffer[buf_size++] = '.';
+                        value = m_sensor->get_component(i).get_value() * 1000;
+                        value %= 1000;
+                        add_number(value, buffer, buf_size);
+                        buffer[buf_size++] = ',';
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("sensor_indications", (char*)buffer);
+
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                Serial.print("sensor_indications: ");
+                Serial.println((char*)buffer);
+#endif
+                    // Добавление периода опроса
+                    buf_size = 0;
+                    value = m_sensor->get_period() / 1000;
+                    if(false) {
+                        add_number(value, buffer, buf_size);
+                        buffer[buf_size++] = '\0';
+                    }
+                    else {
+                        for(int i = 0; i < amt_components; ++i) {
+                            add_number(value, buffer, buf_size);
+                            buffer[buf_size++] = ',';
+                        }
+                        buffer[--buf_size] = '\0';
+                    }
+                    response->addHeader("sensor_values", (char*)buffer);
+
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                Serial.print("sensor_values: ");
+                Serial.println((char*)buffer);
+#endif
+
+                    // response->addHeader("count_of_sensor_modules",
+                    //                     "2"); // кол-во сенсоров, подключенных к модулю
+                    // response->addHeader("sensors_names",
+                    //                     "h2o, co2"); // название модулей сенсоров
+                    // response->addHeader("sensors_ids", "1, 2"); // название модулей сенсоров
+                    // response->addHeader("sensor_indications",
+                    //                     "0.333,0.444"); // последние показания датчиков
+                    // response->addHeader("sensor_values",
+                    //                     "1,120"); //Тут не знаю как правильнее 
+                    //                             //сделать подстрою под вас
+
+                    // ----- devices -----
+                    response->addHeader("count_of_device_modules", "0");
+                    response->addHeader("count_of_cycles_in_device_moduls", "");
+                    response->addHeader("devices_names", "");
+                    response->addHeader("mech_devices_ids", "");
+                    response->addHeader("pwm_powers", "");
+                    response->addHeader("work_mode", "auto,manual");
+                    response->addHeader("status", "");
+                    response->addHeader("manual_value", "");
+                    response->addHeader("cycle_begin", "");
+                    response->addHeader("cycle_end", "");
+                    response->addHeader("turn_on", "");
+                    response->addHeader("turn_off", "");
+                }
+                else {
+                    // ----- sensors -----
+                    response->addHeader("count_of_sensor_modules", "0");
+                    response->addHeader("sensors_names", "-, -");
+                    response->addHeader("sensors_ids", "0, 0");
+                    response->addHeader("sensor_indications", "0, 0");
+                    response->addHeader("sensor_values", "0, 0");
+                    // ----- devices -----
+                    // Добавление количества компонентов
+                    buf_size = 0;
+                    amt_components = m_device->get_count_component();
+                    add_number(amt_components, buffer, buf_size);
+                    buffer[buf_size++] = '\0';
+                    response->addHeader("count_of_device_modules", (char*)buffer);
+
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("count_of_device_modules: ");
+                    Serial.println((char*)buffer);
+#endif
+                    // Добавление количества циклов
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        value = m_device->get_component(i).get_timer().size();
+                        add_number(value, buffer, buf_size);
+                        buffer[buf_size++] = ',';
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("count_of_cycles_in_device_moduls", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("count_of_cycles_in_device_moduls: ");
+                    Serial.println((char*)buffer);
+#endif
+                    // // Добавление количества циклов
+                    // response->addHeader("count_of_cycles_in_device_moduls",
+                    //                     "3, 2"); // количество циклов ШИМ
+
+
+                    // Добавление типов модулей
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        value = m_device->get_component(i).get_type();
+                        add_number(value, buffer, buf_size);
+                        buffer[buf_size++] = ',';
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("devices_names", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("devices_names: ");
+                    Serial.println((char*)buffer);
+#endif
+
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        value = m_device->get_component(i).get_id();
+                        add_number(value, buffer, buf_size);
+                        buffer[buf_size++] = ',';
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("mech_devices_ids", (char*)buffer); // (-) ----- удалить
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("mech_devices_ids: ");
+                    Serial.println((char*)buffer);
+#endif
+                    // // Добавление типов модулей
+                    // response->addHeader("devices_names",
+                    //                     "lamp, nasos"); // название модулей сенсоров
+                    // response->addHeader("mech_devices_ids",
+                    //                     "3, 4"); // название модулей сенсоров
+
+
+
+
+                    // Добавление значений
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        for(int j = 0; j < m_device->get_component(i).get_timer().size(); ++j) {
+                            value = m_device->get_component(i).get_timer()[j].get_send_server_value();
+                            add_number(value, buffer, buf_size);
+                            buffer[buf_size++] = ',';
+                        }
+                        buffer[--buf_size] = ';'; ++buf_size;
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("pwm_powers", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("pwm_powers: ");
+                    Serial.println((char*)buffer);
+#endif
+                    // response->addHeader(
+                    //     "pwm_powers", "10,20,30;10,5;10,5"); //значения ШИМ разделитель внутри
+                    //                                     //каждого устройства ',' разделитель
+                    //                                     //между устройствами ';'
+                    
+                    // Добавление периода опроса
+                    static const char MODE_WORK[3][7] = {"auto", "manual", ""};
+                    static const char MODE_WORK_LEN[3] = {4, 6, 0};
+                    static const char STATUS_WORK[3][7] = {"on", "off", ""};
+                    static const char STATUS_WORK_LEN[3] = {2, 3, 0};
+                    static uint8_t number_work;
+
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        if(m_device->get_component(i).get_work_mode() == Work_mode::Auto) {
+                            number_work = 0;
+                        }
+                        else if(m_device->get_component(i).get_work_mode() == Work_mode::Manual) {
+                            number_work = 1;
+                        }
+                        else {
+                            number_work = 2;
+                            Serial.println("Ошибка: Неизместный get_work_mode()!");
+                        }
+
+                        for(int j = 0; j < MODE_WORK_LEN[number_work]; ++j) {
+                            buffer[buf_size++] = MODE_WORK[number_work][j];
+                        }
+                        buffer[buf_size++] = ',';
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("work_mode", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("work_mode: ");
+                    Serial.println((char*)buffer);
+#endif
+
+                    // response->addHeader("work_mode", "auto,manual,auto"); // режимы работы
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        if(m_device->get_component(i).get_work_mode() == Work_mode::Auto) {
+                            number_work = 0;
+                        }
+                        else if(m_device->get_component(i).get_work_mode() == Work_mode::Manual) {
+                            if(m_device->get_component(i).get_manual_work_state() == Manual_work_state::On) {
+                                number_work = 0;
+                            }
+                            else if(m_device->get_component(i).get_manual_work_state() == Manual_work_state::Off) {
+                                number_work = 1;
+                            }
+                            else {
+                                number_work = 2;
+                                Serial.println("Ошибка: Неизместный get_manual_work_state()!");
+                            }
+                        }
+                        else {
+                            number_work = 2;
+                            Serial.println("Ошибка: Неизместный get_work_mode()!");
+                        }
+
+                        for(int j = 0; j < STATUS_WORK_LEN[number_work]; ++j) {
+                            buffer[buf_size++] = STATUS_WORK[number_work][j];
+                        }
+                        buffer[buf_size++] = ',';
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("status", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("status: ");
+                    Serial.println((char*)buffer);
+#endif
+
+                    // response->addHeader(
+                    //     "status",
+                    //     "on,on,on"); // Это для режимов работы если авто, то всегда включен,
+                    //             // если ручной может быть выключен или включен
+
+
+                    // Добавление значений
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        value = m_device->get_component(i).get_send_server_value();
+                        add_number(value, buffer, buf_size);
+                        buffer[buf_size++] = ',';
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("manual_value", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("manual_value: ");
+                    Serial.println((char*)buffer);
+#endif
+                    // response->addHeader("manual_value",
+                    //                     "0,10,10"); // Для авто режима значения ШИМ нам
+                    //                             // всеравно, для ручного - значение
+
+
+                    // Добавление характеристик периодов:
+                    buf_size = 0;
+                    buffer[buf_size] = '\0';
+                    for(int i = 0; i < amt_components; ++i) {
+                        for(int j = 0; j < m_device->get_component(i).get_timer().size(); ++j) {
+                            value = m_device->get_component(i).get_timer()[j].get_start_hours();
+                            if(value < 10)
+                                add_number(0, buffer, buf_size);
+                            add_number(value, buffer, buf_size);
+                            buffer[buf_size++] = ':';
+                            value = m_device->get_component(i).get_timer()[j].get_start_minutes();
+                            if(value < 10)
+                                add_number(0, buffer, buf_size);
+                            add_number(value, buffer, buf_size);
+                            buffer[buf_size++] = ',';
+                        }
+                        if(m_device->get_component(i).get_timer().size() != 0) {
+                            buffer[--buf_size] = ';'; ++buf_size;
+                        }
+                        else
+                            buffer[buf_size++] = ';';
+                    }
+                    if(buf_size != 0)
+                        buffer[--buf_size] = '\0';
+                    response->addHeader("cycle_begin", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("cycle_begin: ");
+                    Serial.println((char*)buffer);
+#endif
+                    // response->addHeader(
+                    //     "cycle_begin",
+                    //     "21:15,12:20,05:00;10:00,20:00;10:00,20:00"); // начало цикла ШИМ. Тут не знаю
+                    //                                     // как правильнее сделать подстрою
+                    //                                     // под вас
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        for(int j = 0; j < m_device->get_component(i).get_timer().size(); ++j) {
+                            value = m_device->get_component(i).get_timer()[j].get_end_hours();
+                            if(value < 10)
+                                add_number(0, buffer, buf_size);
+                            add_number(value, buffer, buf_size);
+                            buffer[buf_size++] = ':';
+                            value = m_device->get_component(i).get_timer()[j].get_end_minutes();
+                            if(value < 10)
+                                add_number(0, buffer, buf_size);
+                            add_number(value, buffer, buf_size);
+                            buffer[buf_size++] = ',';
+                        }
+                        if(m_device->get_component(i).get_timer().size() != 0) {
+                            buffer[--buf_size] = ';'; ++buf_size;
+                        }
+                        else
+                            buffer[buf_size++] = ';';
+                    }
+                    if(buf_size != 0)
+                        buffer[--buf_size] = '\0';
+                    response->addHeader("cycle_end", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("cycle_end: ");
+                    Serial.println((char*)buffer);
+#endif
+                    // response->addHeader(
+                    //     "cycle_end",
+                    //     "21:15,12:20,05:00;10:00,20:00;10:00,20:00"); //конец цикла ШИМ. Тут не знаю как
+                    //                                     //правильнее сделать подстрою под
+                    //                                     //вас
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        for(int j = 0; j < m_device->get_component(i).get_timer().size(); ++j) {
+                            value = m_device->get_component(i).get_timer()[j].get_channel().get_duration_on();
+                            add_number(value, buffer, buf_size);
+                            buffer[buf_size++] = ',';
+                        }
+                        buffer[--buf_size] = ';'; ++buf_size;
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("turn_on", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("turn_on: ");
+                    Serial.println((char*)buffer);
+#endif
+                    // response->addHeader(
+                    //     "turn_on", "10,1200,1800;36000,36000;7200,7200"); //Тут не знаю как правильнее
+                    //                                             //сделать подстрою под вас
+                    buf_size = 0;
+                    for(int i = 0; i < amt_components; ++i) {
+                        for(int j = 0; j < m_device->get_component(i).get_timer().size(); ++j) {
+                            value = m_device->get_component(i).get_timer()[j].get_channel().get_duration_off();
+                            add_number(value, buffer, buf_size);
+                            buffer[buf_size++] = ',';
+                        }
+                        buffer[--buf_size] = ';'; ++buf_size;
+                    }
+                    buffer[--buf_size] = '\0';
+                    response->addHeader("turn_off", (char*)buffer);
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
+                    Serial.print("turn_off: ");
+                    Serial.println((char*)buffer);
+#endif
+                    // response->addHeader("turn_off",
+                    //                     "3,300,600;7200,7200;7200,7200"); //Тут не знаю как правильнее
+                    //                                             //сделать подстрою под вас
+
+
+
+
+
+
+                    // response->addHeader("count_of_device_modules",
+                    //                     "2"); // Это тип насосы дим лампы и т д
+                    // response->addHeader("count_of_cycles_in_device_moduls",
+                    //                     "3, 2"); // количество циклов ШИМ
+                    // response->addHeader("devices_names",
+                    //                     "lamp, nasos"); // название модулей сенсоров
+                    // response->addHeader("mech_devices_ids",
+                    //                     "3, 4"); // название модулей сенсоров
+                    // response->addHeader(
+                    //     "pwm_powers", "10,20,30;10,5"); //значения ШИМ разделитель внутри
+                    //                                     //каждого устройства ',' разделитель
+                    //                                     //между устройствами ';'
+                    // response->addHeader("work_mode", "auto,manual"); // режимы работы
+                    // response->addHeader(
+                    //     "status",
+                    //     "on,on"); // Это для режимов работы если авто, то всегда включен,
+                    //             // если ручной может быть выключен или включен
+                    // response->addHeader("manual_value",
+                    //                     "0,10"); // Для авто режима значения ШИМ нам
+                    //                             // всеравно, для ручного - значение
+                    // response->addHeader(
+                    //     "cycle_begin",
+                    //     "21:15,12:20,05:00;10:00,20:00"); // начало цикла ШИМ. Тут не знаю
+                    //                                     // как правильнее сделать подстрою
+                    //                                     // под вас
+                    // response->addHeader(
+                    //     "cycle_end",
+                    //     "21:15,12:20,05:00;10:00,20:00"); //конец цикла ШИМ. Тут не знаю как
+                    //                                     //правильнее сделать подстрою под
+                    //                                     //вас
+                    // response->addHeader(
+                    //     "turn_on", "10,1200,1800;36000,36000"); //Тут не знаю как правильнее
+                    //                                             //сделать подстрою под вас
+                    // response->addHeader("turn_off",
+                    //                     "3,300,600;7200,7200"); //Тут не знаю как правильнее
+                    //                                             //сделать подстрою под вас
+                }
+            
+            }
+
+            request->send(response);
+            // Serial.println("get_info_registered_device");
+            // int paramsNr = request->params();
+            // Serial.println(paramsNr);
+            // for (int i = 0; i < paramsNr; i++) {
+            //     AsyncWebParameter *p = request->getParam(i);
+            //     Serial.print("Param name: ");
+            //     Serial.println(p->name());
+            //     Serial.print("Param value: ");
+            //     Serial.println(p->value());
+            //     Serial.println("------");
+            //     String param_name = p->name();
+            //     if (param_name == "device_id") {
+            //         String device_id = p->value();
+            //         Serial.println(device_id);
+            //     }
+            // }
+            // // somefunction(p->value) какая то функция, которая получает информацию
+            // // о модуле
+            // AsyncWebServerResponse *response =
+            //     request->beginResponse(200, "text/plain", "Ok");
+            // response->addHeader("Access-Control-Allow-Origin", "*");
+            // response->addHeader("Access-Control-Expose-Headers", "*");
+            // response->addHeader("device_name",
+            //                     "Device"); // название модуля (я так понимаю stmки)
+            // response->addHeader("count_of_sensor_modules",
+            //                     "2"); // кол-во сенсоров, подключенных к модулю
+            // response->addHeader("sensors_names",
+            //                     "h2o, co2"); // название модулей сенсоров
+            // response->addHeader("sensors_ids", "1, 2"); // название модулей сенсоров
+            // response->addHeader("sensor_indications",
+            //                     "0.333,0.444"); // последние показания датчиков
+            // response->addHeader("sensor_values",
+            //                     "1,120"); //Тут не знаю как правильнее 
+            //                               //сделать подстрою под вас
+            // response->addHeader("count_of_device_modules",
+            //                     "2"); // Это тип насосы дим лампы и т д
+            // response->addHeader("count_of_cycles_in_device_moduls",
+            //                     "3, 2"); // количество циклов ШИМ
+            // response->addHeader("devices_names",
+            //                     "lamp, nasos"); // название модулей сенсоров
+            // response->addHeader("mech_devices_ids",
+            //                     "3, 4"); // название модулей сенсоров
+            // response->addHeader(
+            //     "pwm_powers", "10,20,30;10,5"); //значения ШИМ разделитель внутри
+            //                                     //каждого устройства ',' разделитель
+            //                                     //между устройствами ';'
+            // response->addHeader("work_mode", "auto,manual"); // режимы работы
+            // response->addHeader(
+            //     "status",
+            //     "on,on"); // Это для режимов работы если авто, то всегда включен,
+            //               // если ручной может быть выключен или включен
+            // response->addHeader("manual_value",
+            //                     "0,10"); // Для авто режима значения ШИМ нам
+            //                              // всеравно, для ручного - значение
+            // response->addHeader(
+            //     "cycle_begin",
+            //     "21:15,12:20,05:00;10:00,20:00"); // начало цикла ШИМ. Тут не знаю
+            //                                     // как правильнее сделать подстрою
+            //                                     // под вас
+            // response->addHeader(
+            //     "cycle_end",
+            //     "21:15,12:20,05:00;10:00,20:00"); //конец цикла ШИМ. Тут не знаю как
+            //                                     //правильнее сделать подстрою под
+            //                                     //вас
+            // response->addHeader(
+            //     "turn_on", "10,1200,1800;36000,36000"); //Тут не знаю как правильнее
+            //                                             //сделать подстрою под вас
+            // response->addHeader("turn_off",
+            //                     "3,300,600;7200,7200"); //Тут не знаю как правильнее
+            //                                             //сделать подстрою под вас
+            // request->send(response);
+            }
+            else {
+                Serial.println("/unregistered_device/get");
+                int paramsNr = request->params();
+                Serial.println(paramsNr);
+
+                for (int i = 0; i < paramsNr; i++) {
+                    AsyncWebParameter *p = request->getParam(i);
+                    Serial.print("Param name: ");
+                    Serial.println(p->name());
+                    Serial.print("Param value: ");
+                    Serial.println(p->value());
+                    Serial.println("------");
+                    String param_name = p->name();
+                    if (param_name == "device_id") {
+                        String device_id = p->value();
+                        Serial.println(device_id);
+                    }
+                }
+
+                // somefunction(p->value) какая то функция, которая получает информацию
+                // о модуле
+                AsyncWebServerResponse *response =
+                    request->beginResponse(200, "text/plain", "Ok");
+                response->addHeader("Access-Control-Allow-Origin", "*");
+                response->addHeader("Access-Control-Expose-Headers", "*");
+                response->addHeader("count_of_sensor_modules",
+                                    "2"); // кол-во сенсоров, подключенных к модулю
+                response->addHeader("sensors_names",
+                                    "3,0,1,2,3,4,5,6,7,8"); // название модулей сенсоров
+                response->addHeader(
+                    "sensors_ids", "0,0,3,4,5,6,7,8,9,10"); // название модулей сенсоров
+                response->addHeader("sensor_indications",
+                                    "0.333,0.444,0.555,0.555,0.555,0.555,0.555,0.555,0."
+                                    "555,0.555"); // последние показания датчиков
+                response->addHeader(
+                    "sensor_values",
+                    "1,120,1,3,4,5,6,7,8,8"); //Тут не знаю как правильнее сделать
+                                            //подстрою под вас
+                response->addHeader("count_of_device_modules",
+                                    "2"); // Это тип насосы дим лампы и т д
+                response->addHeader("count_of_cycles_in_device_moduls",
+                                    "1, 2, 4, 5, 6"); // количество циклов ШИМ
+                response->addHeader("devices_names",
+                                    "2,3,4,0,5"); // название модулей сенсоров
+                response->addHeader("mech_devices_ids",
+                                    "3,4,2,1,7"); // название модулей сенсоров
+                response->addHeader(
+                    "pwm_powers",
+                    "10;10,5;1,2,3,4;1,2,3,4,5;1,2,3,4,5,6"); //значения ШИМ разделитель
+                                                            //внутри каждого
+                                                            //устройства ','
+                                                            //разделитель между
+                                                            //устройствами ';'
+                response->addHeader("work_mode",
+                                    "auto,manual,manual,manual,auto"); // режимы работы
+                response->addHeader(
+                    "status", "on,on,on,on,off"); // Это для режимов работы если авто,
+                                                // то всегда включен, если ручной
+                                                // может быть выключен или включен
+                response->addHeader("manual_value",
+                                    "0,10,2,3,1"); // Для авто режима значения ШИМ нам
+                                                // всеравно, для ручного - значение
+                response->addHeader("cycle_begin",
+                                "21:15,12:20,05:00;10:00,20:00;10:00,20:00,10:00,20:00;"
+                                "10:00,20:00,10:00,20:00,10:00;10:00,20:00,10:00,20:00,"
+                                "10:00,20:00"); // начало цикла ШИМ. Тут не знаю как
+                                                // правильнее сделать подстрою под вас
+                response->addHeader("cycle_end",
+                                "21:15,12:20,05:00;10:00,20:00;10:00,20:00,10:00,20:00;"
+                                "10:00,20:00,10:00,20:00,10:00;10:00,20:00,10:00,20:00,"
+                                "10:00,20:00"); //конец цикла ШИМ. Тут не знаю как
+                                                //правильнее сделать подстрою под вас
+                response->addHeader("turn_on",
+                                    "10,1200,1800;36000,36000;36000,36000,36000,36000;"
+                                    "36000,36000,36000,36000,36000;36000,36000,36000,"
+                                    "36000,36000,36000"); //Тут не знаю как правильнее
+                                                        //сделать подстрою под вас
+                response->addHeader("turn_off",
+                    "3,300,600;7200,7200;300,600,300,600;300,600,300,600,300;300,600,"
+                    "300,600,300,600"); //Тут не знаю как правильнее сделать подстрою
+                                        //под вас
+                request->send(response);
+            }
+        }
+        
         // Регистрация модуля | "/registered_device/add"
-        void module_registration(AsyncWebServerRequest *request) { // (-) -----
+        void module_registration(AsyncWebServerRequest *request) { // - (-) -----
+            Serial.println("- (-) ----- \"/registered_device/add\"");
+            Serial.println("get_info_registered_device");
+            int paramsNr = request->params();
+            Serial.println(paramsNr);
+            for (int i = 0; i < paramsNr; i++) {
+                AsyncWebParameter *p = request->getParam(i);
+                Serial.print("Param name: ");
+                Serial.println(p->name());
+                Serial.print("Param value: ");
+                Serial.println(p->value());
+                Serial.println("------");
+                String param_name = p->name();
+                if (param_name == "device_id") { // id всего модуля
+                    String device_id = p->value();
+                }
+                else if (param_name == "count_of_sensor_modules") { // кол-во сенсоров, подключенных
+                                                                    // к модулю '2'
+                    String count_of_sensor_modules = p->value();
+                } else if (param_name == "sensors_ids") { // id сенсоров, подключенных
+                                                            // к модулю '1,2'
+                    String sensors_ids = p->value();
+                } else if (param_name ==
+                            "sensors_values") { // периоды снятия показаний с датчиков
+                                                // '1600,2000'
+                    String sensors_values = p->value();
+                } else if (param_name == "mech_devices_ids") { // // кол-во насосов,
+                                                                // дим ламп и т д '2'
+                    String mech_devices_ids = p->value();
+                } else if (param_name ==
+                            "pwm_powers") { // // значения ШИМ '10,20,30;10,5'
+                    String pwm_powers = p->value();
+                } else if (param_name ==
+                            "cycle_begin") { // // начало цикла ШИМ
+                                            // '21:15,12:20,05:00;10:00,20:00'
+                    String cycle_begin = p->value();
+                } else if (param_name ==
+                            "cycle_end") { // // конец цикла ШИМ
+                                            // '21:15,12:20,05:00;10:00,20:00'
+                    String cycle_end = p->value();
+                } else if (param_name == "turn_on") { // // время включения цикла ШИМ
+                                                        // '600,300,3;7200,7200'
+                    String turn_on = p->value();
+                } else if (param_name == "turn_off") { // // время включения цикла ШИМ
+                                                        // '600,300,3;7200,7200'
+                    String turn_off = p->value();
+                }
+            }
+            // somefunction(p->value) какая то функция, которая получает информацию
+            // о модуле
+            AsyncWebServerResponse *response =
+                request->beginResponse(200, "text/plain", "Ok");
+            response->addHeader("Access-Control-Allow-Origin", "*");
+            response->addHeader("Access-Control-Expose-Headers", "*");
+            request->send(response);
+
+
             // Serial.println("get_info_registered_device");
             // int paramsNr = request->params();
             // Serial.println(paramsNr);
@@ -1131,6 +1855,119 @@ namespace lsc {
         }
         // Изменение модуля | "/registered_device/edit"
         void module_editing(AsyncWebServerRequest *request) { // (-) -----
+            static std::array<uint8_t, scs::AMT_BYTES_ID> id;
+            static const scs::System_component* module;
+            static const Grow_device* m_device;
+            static const Grow_sensor* m_sensor;
+            static bool device = false;
+            static uint16_t amt_components;
+            static int value;
+
+            module = nullptr;
+            int paramsNr = request->params();
+            Serial.println("  (-) ----- \"/registered_device/edit\"");
+            Serial.print("paramsNr = ");
+            Serial.println(paramsNr);
+            // Просмотр всех параметров
+            for (int i = 0; i < paramsNr; i++) {
+                AsyncWebParameter *p = request->getParam(i);
+                Serial.print("Param name: ");
+                // Serial.println(p->name());
+                // Serial.print("Param value: ");
+                // Serial.println(p->value());
+                // Serial.println("------");
+
+                Serial.print(p->name());
+                String param_name = p->name();
+                if (param_name == "device_id") { // id всего модуля
+                    String device_id = p->value();
+                    hex_to_byte((uint8_t*)&device_id[0], id);
+                    if(gcm != nullptr) {
+                        int number = gcm->search_device(id);
+                        if(number == -1) {
+                            number = gcm->search_sensor(id);
+                            if(number != -1) {
+                                module = &gcm->sensors_[number];
+
+                                m_sensor = &gcm->sensors_[number];
+                                device = false;
+                            }
+                        }
+                        else {
+                            module = &gcm->devices_[number];
+                            
+                            m_device = &gcm->devices_[number];
+                            device = true;
+                        }
+                    }
+                }
+                else if (param_name == "count_of_sensor_modules") {
+                    // кол-во сенсоров, подключенных к модулю
+                    String count_of_sensor_modules = p->value();
+                    amt_components = count_of_sensor_modules[0] - '0';    // (--) -----
+                } else if (param_name == "sensors_names") {               // (-?) -----
+                    // Типы сенсоров, подключенных к модулю
+                    String sensors_ids = p->value();
+                    //                                                    // (--) -----
+                } else if (param_name == "sensors_ids") { 
+                    // id сенсоров, подключенных к модулю
+                    String sensors_ids = p->value();
+                    //                                                    // (--) -----
+                } else if (param_name ==
+                            "sensors_values") { // периоды снятия показаний с датчиков
+                                                // '1600,2000'
+                    String sensors_values = p->value();
+                    //                                                    // (--) -----
+                } else if (param_name == "mech_devices_names") {          // (-?) -----
+                    // Типы устройств, подключенных к модулю
+                    String sensors_ids = p->value();
+                    //                                                    // (--) -----
+                } else if (param_name == "mech_devices_ids") {            // (-?) -----
+                    // id устройств (насосов, дим ламп и т.д.)
+                    String mech_devices_ids = p->value();
+                    //                                                    // (--) -----
+                } else if (param_name == "pwm_powers") {
+                    // значения ШИМ '10,20,30;10,5'
+                    String pwm_powers = p->value();
+                    //                                                    // (--) -----
+                } else if (param_name == "cycle_begin") {
+                    // начало цикла ШИМ - '21:15,12:20,05:00;10:00,20:00'
+                    String cycle_begin = p->value();
+                    // GT.S                                               // (--) -----
+                } else if (param_name == "cycle_end") {
+                    // конец цикла ШИМ - '21:15,12:20,05:00;10:00,20:00'
+                    String cycle_end = p->value();
+                    // GT.E                                               // (--) -----
+                } else if (param_name == "turn_on") { 
+                    // время включения цикла ШИМ
+                    // '600,300,3;7200,7200'
+                    String turn_on = p->value();
+                    // TC.ON                                              // (--) -----
+                } else if (param_name == "turn_off") { 
+                    // время включения цикла ШИМ
+                    // '600,300,3;7200,7200'
+                    String turn_off = p->value();
+                    // TC.OFF                                             // (--) -----
+                }
+                else {
+                    Serial.print(" -!-");
+                }
+                Serial.println();
+                Serial.print("Param value: ");
+                Serial.println(p->value());
+                Serial.println("------");
+            }
+            // somefunction(p->value) какая то функция, которая получает информацию
+            // о модуле
+            AsyncWebServerResponse *response =
+                request->beginResponse(200, "text/plain", "Ok");
+            response->addHeader("Access-Control-Allow-Origin", "*");
+            response->addHeader("Access-Control-Expose-Headers", "*");
+            request->send(response);
+
+
+
+
             // Serial.println("get_info_registered_device");
             // int paramsNr = request->params();
             // Serial.println(paramsNr);
@@ -1188,7 +2025,8 @@ namespace lsc {
         }
         // Удаление модуля | "/registered_device/delete"
         void module_removing(AsyncWebServerRequest *request, uint8_t *data,
-                             size_t len, size_t index, size_t total) { // (-) -----
+                             size_t len, size_t index, size_t total) { // - (-) -----
+            Serial.println("- (-) ----- \"/registered_device/delete\"");
             // String device_id;
             // for (size_t i = 0; i < len; i++) {
             //     device_id += (char)data[i];
@@ -1205,6 +2043,7 @@ namespace lsc {
         }
         // Отправка данных об устройствах | "/change_device_mode"
         void module_changing_mode(AsyncWebServerRequest *request) { // (-) -----
+            Serial.println("   (-) ----- \"/change_device_mode\"");
             Serial.println("get_info_registered_device");
             int paramsNr = request->params();
             Serial.println(paramsNr);
@@ -1236,7 +2075,33 @@ namespace lsc {
             request->send(response);
       }
         // Отправка данных о датчиках | "/sensor_device/get"
-        void module_sensor_data(AsyncWebServerRequest *request) { // (-) -----
+        void module_sensor_data(AsyncWebServerRequest *request) { // - - (-) -----
+            int paramsNr = request->params();
+            Serial.println("--(-) ----- \"/sensor_device/get\"");
+            // Serial.println("----- ===== ----- ===== ----- ===== -----");
+            // Serial.println("/sensor_device/get");
+            // Serial.println("===== ----- ===== ----- ===== ----- =====");
+            Serial.println(paramsNr);
+            for (int i = 0; i < paramsNr; i++) {
+                AsyncWebParameter *p = request->getParam(i);
+                Serial.print("Param name: ");
+                Serial.println(p->name());
+                Serial.print("Param value: ");
+                Serial.println(p->value());
+                Serial.println("------");
+                String param_name = p->name();
+                if (param_name == "sensor_id") {
+                    String sensor_id = p->value();
+                }
+            }
+            // somefunction(p->value) какая то функция, которая получает информацию
+            // о cенсоре
+            AsyncWebServerResponse *response =
+                request->beginResponse(200, "text/plain", "Ok");
+            response->addHeader("Access-Control-Allow-Origin", "*");
+            response->addHeader("Access-Control-Expose-Headers", "*");
+            response->addHeader("sensor_indications", "132");
+            request->send(response);
             // Serial.println("get_info_registered_device");
             // int paramsNr = request->params();
             // Serial.println(paramsNr);
@@ -1263,7 +2128,8 @@ namespace lsc {
         }
 
         // Установка настроек для соединения с сервером | "/system_settings/get"
-        void mgtt_using(AsyncWebServerRequest *request) { // (-) -----
+        void mgtt_using(AsyncWebServerRequest *request) { // - (-) -----
+            Serial.println("- (-) ----- \"/system_settings/get\"");
             // Serial.println("system_settings/get");
             // // somefunction(p->value) какая то функция, которая получает
             // // информацию о модуле
@@ -1281,7 +2147,8 @@ namespace lsc {
             // request->send(response);
         }
         // Изменение настроек для соединения с сервером | "/system_settings/edit"
-        void mgtt_edit(AsyncWebServerRequest *request) { // (-) -----
+        void mgtt_edit(AsyncWebServerRequest *request) { // - (-) -----
+            Serial.println("- (-) ----- \"/system_settings/edit\"");
             // Serial.println("get_info_registered_device");
             // int paramsNr = request->params();
             // Serial.println(paramsNr);

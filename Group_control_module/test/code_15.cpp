@@ -1,10 +1,8 @@
 #include "ESPAsyncWebServer.h" //библиотека веб сервера esp
 #include "SPIFFS.h" //библиотека файловой системы SPIFFS
 #include "WiFi.h" //библиотека для использования Wi-Fi на esp
-#define WIFI_SSID "Green_Pro"    //имя Wi-Fi сети
-#define WIFI_PASSWORD "12341234" //пароль Wi-Fi сети
-// #define WIFI_SSID "a202"         //имя Wi-Fi сети
-// #define WIFI_PASSWORD "gamma113" //пароль Wi-Fi сети
+#define WIFI_SSID "levakuz"       //имя Wi-Fi сети
+#define WIFI_PASSWORD "qazwsxtgb" //пароль Wi-Fi сети
 
 #define esp32_id "123" //Номер платы esp32
 
@@ -70,7 +68,7 @@ void setup() {
                   request->beginResponse(200, "text/plain", "Ok");
               response->addHeader("Access-Control-Allow-Origin", "*");
               response->addHeader("Access-Control-Expose-Headers", "*");
-              response->addHeader("count_of_devices", "2");
+              response->addHeader("count_of_devices", "5");
               response->addHeader("device_ids", "1,2");
               response->addHeader("device_types", "sensor, lamp");
               request->send(response);
@@ -82,7 +80,7 @@ void setup() {
                   request->beginResponse(200, "text/plain", "Ok");
               response->addHeader("Access-Control-Allow-Origin", "*");
               response->addHeader("Access-Control-Expose-Headers", "*");
-              response->addHeader("count_of_devices", "2");
+              response->addHeader("count_of_devices", "5");
               response->addHeader("device_ids", "3,4");
               response->addHeader("device_names", "dim_lamps, nasosi");
               request->send(response);
@@ -121,49 +119,153 @@ void setup() {
         response->addHeader("count_of_sensor_modules",
                             "2"); // кол-во сенсоров, подключенных к модулю
         response->addHeader("sensors_names",
-                            "h2o, co2"); // название модулей сенсоров
-        response->addHeader("sensors_ids", "1, 2"); // название модулей сенсоров
+                            "3,0,1,2,3,4,5,6,7,8"); // название модулей сенсоров
+        response->addHeader(
+            "sensors_ids", "0,0,3,4,5,6,7,8,9,10"); // название модулей сенсоров
         response->addHeader("sensor_indications",
-                            "0.333,0.444"); // последние показания датчиков
-        response->addHeader("sensor_values",
-                            "1,120"); //Тут не знаю как правильнее 
-                                      //сделать подстрою под вас
+                            "0.333,0.444,0.555,0.555,0.555,0.555,0.555,0.555,0."
+                            "555,0.555"); // последние показания датчиков
+        response->addHeader(
+            "sensor_values",
+            "1,120,1,3,4,5,6,7,8,8"); //Тут не знаю как правильнее сделать
+                                      //подстрою под вас
         response->addHeader("count_of_device_modules",
                             "2"); // Это тип насосы дим лампы и т д
         response->addHeader("count_of_cycles_in_device_moduls",
-                            "3, 2"); // количество циклов ШИМ
+                            "1, 2, 4, 5, 6"); // количество циклов ШИМ
         response->addHeader("devices_names",
-                            "lamp, nasos"); // название модулей сенсоров
+                            "2,3,4,0,5"); // название модулей сенсоров
         response->addHeader("mech_devices_ids",
-                            "3, 4"); // название модулей сенсоров
+                            "3,4,2,1,7"); // название модулей сенсоров
         response->addHeader(
-            "pwm_powers", "10,20,30;10,5"); //значения ШИМ разделитель внутри
-                                            //каждого устройства ',' разделитель
-                                            //между устройствами ';'
-        response->addHeader("work_mode", "auto,manual"); // режимы работы
+            "pwm_powers",
+            "10;10,5;1,2,3,4;1,2,3,4,5;1,2,3,4,5,6"); //значения ШИМ разделитель
+                                                      //внутри каждого
+                                                      //устройства ','
+                                                      //разделитель между
+                                                      //устройствами ';'
+        response->addHeader("work_mode",
+                            "auto,manual,manual,manual,auto"); // режимы работы
         response->addHeader(
-            "status",
-            "on,on"); // Это для режимов работы если авто, то всегда включен,
-                      // если ручной может быть выключен или включен
+            "status", "on,on,on,on,off"); // Это для режимов работы если авто,
+                                          // то всегда включен, если ручной
+                                          // может быть выключен или включен
         response->addHeader("manual_value",
-                            "0,10"); // Для авто режима значения ШИМ нам
-                                     // всеравно, для ручного - значение
+                            "0,10,2,3,1"); // Для авто режима значения ШИМ нам
+                                           // всеравно, для ручного - значение
         response->addHeader(
-            "cycle_begin",
-            "21:15,12:20,05:00;10:00,20:00"); // начало цикла ШИМ. Тут не знаю
-                                              // как правильнее сделать подстрою
-                                              // под вас
+          "cycle_begin",
+                        "21:15,12:20,05:00;10:00,20:00;10:00,20:00,10:00,20:00;"
+                        "10:00,20:00,10:00,20:00,10:00;10:00,20:00,10:00,20:00,"
+                        "10:00,20:00"); // начало цикла ШИМ. Тут не знаю как
+                                        // правильнее сделать подстрою под вас
         response->addHeader(
-            "cycle_end",
-            "21:15,12:20,05:00;10:00,20:00"); //конец цикла ШИМ. Тут не знаю как
-                                              //правильнее сделать подстрою под
-                                              //вас
+          "cycle_end",
+                        "21:15,12:20,05:00;10:00,20:00;10:00,20:00,10:00,20:00;"
+                        "10:00,20:00,10:00,20:00,10:00;10:00,20:00,10:00,20:00,"
+                        "10:00,20:00"); //конец цикла ШИМ. Тут не знаю как
+                                        //правильнее сделать подстрою под вас
+        response->addHeader("turn_on",
+                            "10,1200,1800;36000,36000;36000,36000,36000,36000;"
+                            "36000,36000,36000,36000,36000;36000,36000,36000,"
+                            "36000,36000,36000"); //Тут не знаю как правильнее
+                                                  //сделать подстрою под вас
         response->addHeader(
-            "turn_on", "10,1200,1800;36000,36000"); //Тут не знаю как правильнее
-                                                    //сделать подстрою под вас
-        response->addHeader("turn_off",
-                            "3,300,600;7200,7200"); //Тут не знаю как правильнее
-                                                    //сделать подстрою под вас
+            "turn_off",
+            "3,300,600;7200,7200;300,600,300,600;300,600,300,600,300;300,600,"
+            "300,600,300,600"); //Тут не знаю как правильнее сделать подстрою
+                                //под вас
+        request->send(response);
+
+      });
+
+  server.on(
+      "/unregistered_device/get", HTTP_GET,
+      [](AsyncWebServerRequest
+             *request) { // получение инфы об одном зарегистрированном модуле
+        Serial.println("/unregistered_device/get");
+        int paramsNr = request->params();
+        Serial.println(paramsNr);
+
+        for (int i = 0; i < paramsNr; i++) {
+          AsyncWebParameter *p = request->getParam(i);
+          Serial.print("Param name: ");
+          Serial.println(p->name());
+          Serial.print("Param value: ");
+          Serial.println(p->value());
+          Serial.println("------");
+          String param_name = p->name();
+          if (param_name == "device_id") {
+            String device_id = p->value();
+            Serial.println(device_id);
+          }
+        }
+
+        // somefunction(p->value) какая то функция, которая получает информацию
+        // о модуле
+        AsyncWebServerResponse *response =
+            request->beginResponse(200, "text/plain", "Ok");
+        response->addHeader("Access-Control-Allow-Origin", "*");
+        response->addHeader("Access-Control-Expose-Headers", "*");
+        response->addHeader("count_of_sensor_modules",
+                            "2"); // кол-во сенсоров, подключенных к модулю
+        response->addHeader("sensors_names",
+                            "3,0,1,2,3,4,5,6,7,8"); // название модулей сенсоров
+        response->addHeader(
+            "sensors_ids", "0,0,3,4,5,6,7,8,9,10"); // название модулей сенсоров
+        response->addHeader("sensor_indications",
+                            "0.333,0.444,0.555,0.555,0.555,0.555,0.555,0.555,0."
+                            "555,0.555"); // последние показания датчиков
+        response->addHeader(
+            "sensor_values",
+            "1,120,1,3,4,5,6,7,8,8"); //Тут не знаю как правильнее сделать
+                                      //подстрою под вас
+        response->addHeader("count_of_device_modules",
+                            "2"); // Это тип насосы дим лампы и т д
+        response->addHeader("count_of_cycles_in_device_moduls",
+                            "1, 2, 4, 5, 6"); // количество циклов ШИМ
+        response->addHeader("devices_names",
+                            "2,3,4,0,5"); // название модулей сенсоров
+        response->addHeader("mech_devices_ids",
+                            "3,4,2,1,7"); // название модулей сенсоров
+        response->addHeader(
+            "pwm_powers",
+            "10;10,5;1,2,3,4;1,2,3,4,5;1,2,3,4,5,6"); //значения ШИМ разделитель
+                                                      //внутри каждого
+                                                      //устройства ','
+                                                      //разделитель между
+                                                      //устройствами ';'
+        response->addHeader("work_mode",
+                            "auto,manual,manual,manual,auto"); // режимы работы
+        response->addHeader(
+            "status", "on,on,on,on,off"); // Это для режимов работы если авто,
+                                          // то всегда включен, если ручной
+                                          // может быть выключен или включен
+        response->addHeader("manual_value",
+                            "0,10,2,3,1"); // Для авто режима значения ШИМ нам
+                                           // всеравно, для ручного - значение
+        response
+            ->addHeader("cycle_begin",
+                        "21:15,12:20,05:00;10:00,20:00;10:00,20:00,10:00,20:00;"
+                        "10:00,20:00,10:00,20:00,10:00;10:00,20:00,10:00,20:00,"
+                        "10:00,20:00"); // начало цикла ШИМ. Тут не знаю как
+                                        // правильнее сделать подстрою под вас
+        response
+            ->addHeader("cycle_end",
+                        "21:15,12:20,05:00;10:00,20:00;10:00,20:00,10:00,20:00;"
+                        "10:00,20:00,10:00,20:00,10:00;10:00,20:00,10:00,20:00,"
+                        "10:00,20:00"); //конец цикла ШИМ. Тут не знаю как
+                                        //правильнее сделать подстрою под вас
+        response->addHeader("turn_on",
+                            "10,1200,1800;36000,36000;36000,36000,36000,36000;"
+                            "36000,36000,36000,36000,36000;36000,36000,36000,"
+                            "36000,36000,36000"); //Тут не знаю как правильнее
+                                                  //сделать подстрою под вас
+        response->addHeader(
+            "turn_off",
+            "3,300,600;7200,7200;300,600,300,600;300,600,300,600,300;300,600,"
+            "300,600,300,600"); //Тут не знаю как правильнее сделать подстрою
+                                //под вас
         request->send(response);
 
       });
@@ -172,7 +274,7 @@ void setup() {
       "/registered_device/add", HTTP_GET,
       [](AsyncWebServerRequest
              *request) { // Регистрация, редактирование нового устройства
-        Serial.println("get_info_registered_device");
+        Serial.println("/registered_device/add");
         int paramsNr = request->params();
         Serial.println(paramsNr);
 
@@ -237,7 +339,7 @@ void setup() {
   server.on(
       "/registered_device/edit", HTTP_GET,
       [](AsyncWebServerRequest *request) { // Редактирование нового устройства
-        Serial.println("get_info_registered_device");
+        Serial.println("/registered_device/edit");
         int paramsNr = request->params();
         Serial.println(paramsNr);
 
@@ -500,6 +602,9 @@ void setup() {
   });
   server.on("/plus_icon", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(SPIFFS, "/plus-icon.png", "image/png");
+  });
+  server.on("/delete", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->send(SPIFFS, "/delete.png", "image/png");
   });
 
   server.on("/settings", HTTP_GET,

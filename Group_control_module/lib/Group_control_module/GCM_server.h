@@ -10,12 +10,14 @@
 #include <SPIFFS.h> //библиотека файловой системы SPIFFS
 #include <WiFi.h> //библиотека для использования Wi-Fi на esp
 
-// #define WIFI_SSID "Green_Pro"    //имя Wi-Fi сети
-// #define WIFI_PASSWORD "12341234" //пароль Wi-Fi сети
-// #define WIFI_SSID "a202"         //имя Wi-Fi сети
-// #define WIFI_PASSWORD "gamma113" //пароль Wi-Fi сети
-#define WIFI_SSID "213_Guest"         //имя Wi-Fi сети
-#define WIFI_PASSWORD "11081975" //пароль Wi-Fi сети
+// #define WIFI_SSID "Green_Pro"    // имя Wi-Fi сети
+// #define WIFI_PASSWORD "12341234" // пароль Wi-Fi сети
+// #define WIFI_SSID "a202"         // имя Wi-Fi сети
+// #define WIFI_PASSWORD "gamma113" // пароль Wi-Fi сети
+#define WIFI_SSID "213_Guest"       // имя Wi-Fi сети
+#define WIFI_PASSWORD "11081975"    // пароль Wi-Fi сети
+// #define WIFI_SSID "TP-Link_3E3C" // имя Wi-Fi сети
+// #define WIFI_PASSWORD "56509953" // пароль Wi-Fi сети
 #define esp32_id "123" //Номер платы esp32
 
 // creating a local server
@@ -44,8 +46,10 @@ namespace lsc {
         // Список зарегестрированных модулей
         void modules_registered(AsyncWebServerRequest *request);   // "/devices/registered/get"
 
-        // Отправка информации о модуле
-        void module_data(AsyncWebServerRequest *request);          // "/registered_device/get"
+        // Отправка информации о зарегистрированном модуле
+        void module_registered_data(AsyncWebServerRequest *request);   // "/registered_device/get"
+        // Отправка информации о незарегистрированном модуле
+        void module_unregistered_data(AsyncWebServerRequest *request); // "/unregistered_device/get"
         // Регистрация модуля
         void module_registration(AsyncWebServerRequest *request);  // "/registered_device/add"
         // Изменение модуля
