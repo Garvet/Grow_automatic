@@ -143,6 +143,16 @@ public:
     // Проверить совподает ли содержимое модулей, без учёта настроек (для отфильтровывания среди неподходящих)
     bool filter(Grow_device &device); // (-) ----- убрать привязку к порядку
 
+    // --- \/ \/ \/ Костыль \/ \/ \/ ---
+    bool setting_change_period{false};
+    bool get_setting_change_period() const;
+    void set_setting_change_period(bool set_setting);
+
+    bool setting_change_mode{false};
+    bool get_setting_change_mode() const;
+    void set_setting_change_mode(bool set_setting);
+    // --- /\ /\ /\ Костыль /\ /\ /\ ---
+
 #if defined (SERIAL_LOG_OUTPUT)
     /// вывод класса в Serial
     void print();

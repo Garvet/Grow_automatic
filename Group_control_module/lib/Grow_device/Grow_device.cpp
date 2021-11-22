@@ -210,6 +210,22 @@ bool Grow_device::filter(Grow_device &device) {
     return true;
 }
 
+// --- \/ \/ \/ Костыль \/ \/ \/ ---
+bool Grow_device::get_setting_change_period() const {
+    return setting_change_period;
+}
+void Grow_device::set_setting_change_period(bool set_setting) {
+    setting_change_period = set_setting;
+}
+
+bool Grow_device::get_setting_change_mode() const {
+    return setting_change_mode;
+}
+void Grow_device::set_setting_change_mode(bool set_setting) {
+    setting_change_mode = set_setting;
+}
+// --- /\ /\ /\ Костыль /\ /\ /\ ---
+
 #if defined(SERIAL_LOG_OUTPUT)
 const char *device_component_name[] =
     {"Signal_PWM", "Signal_digital", "Fan_PWM", "Pumping_system", "Phytolamp_digital", "Phytolamp_PWM"};

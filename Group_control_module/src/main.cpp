@@ -351,6 +351,7 @@ void setup() {
 
 ulong time_interval = 3600000;
 void loop() {
+    delay(1000000);
     if (!button_control) {        
         while(!end_serial) {
             switch (use_type()) {
@@ -583,7 +584,7 @@ void set_start_components() {
                     channel.set_duration_on(60);
                     channel.set_duration_off(60*4);
                     time_channel[0].bind_channel(channel);
-                    time_channel[0].set_send_server_value(25);
+                    time_channel[0].set_send_value(25);
                     break;
                 }
                 case Pumping_system: {
@@ -593,7 +594,7 @@ void set_start_components() {
                     channel.set_duration_on(60);
                     channel.set_duration_off(60*4);
                     time_channel[0].bind_channel(channel);
-                    time_channel[0].set_send_server_value(100);
+                    time_channel[0].set_send_value(100);
 
                     time_channel.push_back(dtc::Grow_timer{});
                     time_channel[1].set_start_time({22, 00, 01});
@@ -601,7 +602,7 @@ void set_start_components() {
                     channel.set_duration_on(60);
                     channel.set_duration_off(60*6);
                     time_channel[1].bind_channel(channel);
-                    time_channel[1].set_send_server_value(100);
+                    time_channel[1].set_send_value(100);
                     break;
                 }
                 case Phytolamp_digital: {
@@ -611,7 +612,7 @@ void set_start_components() {
                     channel.set_duration_on(1);
                     channel.set_duration_off(0);
                     time_channel[0].bind_channel(channel);
-                    time_channel[0].set_send_server_value(100);
+                    time_channel[0].set_send_value(100);
                     break;
                 }
                 case Signal_PWM: {
@@ -624,7 +625,7 @@ void set_start_components() {
                     channel.set_duration_on(50);
                     channel.set_duration_off(10);
                     time_channel[0].bind_channel(channel);
-                    time_channel[0].set_send_server_value(100);
+                    time_channel[0].set_send_value(100);
 
                     time_channel.push_back(dtc::Grow_timer{});
                     time_channel[1].set_start_time({16, 00, 01});
@@ -632,7 +633,7 @@ void set_start_components() {
                     channel.set_duration_on(50);
                     channel.set_duration_off(10);
                     time_channel[1].bind_channel(channel);
-                    time_channel[1].set_send_server_value(75);
+                    time_channel[1].set_send_value(75);
 
                     time_channel.push_back(dtc::Grow_timer{});
                     time_channel[2].set_start_time({22, 00, 01});
@@ -640,7 +641,7 @@ void set_start_components() {
                     channel.set_duration_on(50);
                     channel.set_duration_off(10);
                     time_channel[2].bind_channel(channel);
-                    time_channel[2].set_send_server_value(50);
+                    time_channel[2].set_send_value(50);
                     break;
                 }
                 case Phytolamp_PWM: {
@@ -650,7 +651,7 @@ void set_start_components() {
                     channel.set_duration_on(1);
                     channel.set_duration_off(0);
                     time_channel[0].bind_channel(channel);
-                    time_channel[0].set_send_server_value(50);
+                    time_channel[0].set_send_value(50);
 
                     time_channel.push_back(dtc::Grow_timer{});
                     time_channel[1].set_start_time({13, 00, 01});
@@ -658,7 +659,7 @@ void set_start_components() {
                     channel.set_duration_on(1);
                     channel.set_duration_off(0);
                     time_channel[1].bind_channel(channel);
-                    time_channel[1].set_send_server_value(100);
+                    time_channel[1].set_send_value(100);
 
                     time_channel.push_back(dtc::Grow_timer{});
                     time_channel[2].set_start_time({18, 00, 01});
@@ -666,7 +667,7 @@ void set_start_components() {
                     channel.set_duration_on(1);
                     channel.set_duration_off(0);
                     time_channel[2].bind_channel(channel);
-                    time_channel[2].set_send_server_value(50);
+                    time_channel[2].set_send_value(50);
                     break;
                 }
                 default:

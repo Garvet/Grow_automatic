@@ -85,6 +85,7 @@ namespace dtc {
         // Отвязать канал
         bool unbind_channel();
         // Получить данные канала
+        Time_channel get_channel();
         const Time_channel& get_channel() const;
 
         // Работа с сигналом, связанным с изменением полей (для передачи на узел)
@@ -95,12 +96,12 @@ namespace dtc {
 
 
         // (-) ----- (!) ----- \/ \/ \/ КОСТЫЛЬ
-        uint16_t send_server_value{0xFFFF};
+        uint16_t send_value{100};
 
         // Получить флаг изменения установленного значения
-        bool set_send_server_value(uint16_t val);
-        uint16_t get_send_server_value() const;
-        void clear_send_server_value();
+        bool set_send_value(uint16_t val);
+        uint16_t get_send_value() const;
+        void clear_send_value();
         // (-) ----- (!) ----- /\ /\ /\ КОСТЫЛЬ
     };
 #endif

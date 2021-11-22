@@ -1581,6 +1581,107 @@ bool Group_control_module::handler_devices() {
         }
     }
 
+    // Установка контроля периодов
+    {
+        // Поиск среди устройств
+        int send_setting_period = -1;
+        for(int i = 0; i < devices_.size(); ++i) {
+            if (devices_[i].get_setting_change_period()) {
+                send_setting_period = i;
+                // dev_st = devices_[i].get_state___();
+                break;
+            }
+        }
+    #if defined (BUILD_TESTING_CODE_409)
+        send_setting_period = -1; // Для тестирования нет необходимости в установке времени
+    #endif
+        // Если устройство найдено
+        send_setting_period = -1; // Для тестирования нет необходимости в установке времени
+        if(send_setting_period != -1) {
+            last_purpose_contact = Purpose_contact::set_sync_rtc;
+            LoRa_address connect_adr = devices_[send_setting_period].get_address(); // not adr.branch
+                                                                                                                                                                                            // (*)-(*)-(*)-(*)-(*)
+                                                                                                                                                                                            // Serial.println("send_time_devices");
+                                                                                                                                                                                            // (*)-(*)-(*)-(*)-(*)
+
+            // (-) ----- создание пакета установки периодов
+            LoRa_packet packet;
+            uint8_t size, obj, com, num;
+
+            // uint8_t size = 0;
+            // uint8_t obj = 0x06; // RTC
+            // uint8_t com = 0x02; // set time (0x03 set date)
+            // uint8_t num = 0;
+
+            // Установка количества периодов
+            // data[0] = X    { X = device.component_[i].get_timer().size() }
+            // Настройка периодов
+            // for(X)
+            //     data[] = ?
+            // Установка количества каналов времени
+            // data[0] = X
+            // Настройка каналов времени
+            // for(X)
+            //     data[] = ?
+            // Установка связей периодов-каналов
+            // for(X)
+            //     data[] = ?
+            // Установка связей каналов-устройств
+            // for(X)
+            //     data[] = ?
+
+            // devices_[i].set_setting_change_period()
+
+
+            packet_device.get_size_by_data(&obj, &com, size);
+            uint8_t data[3];
+            get_date_time();
+            data[0] = date_time_.Second();
+            data[1] = date_time_.Minute();
+            data[2] = date_time_.Hour();
+
+            // packet_device.set_setting(devices_[send_rtc_sync].get_setting());
+
+            packet_device.set_dest_adr(packet, connect_adr);
+            packet_device.set_sour_adr(packet, contact_data_.get_my_adr());
+            packet_device.set_packet_type(packet, Packet_Type::DEVICE);
+            packet_device.set_packet_data(packet, &obj, &num, &com, data, &size);
+            contact_data_.init_contact(connect_adr);
+            contact_data_.add_packet(packet);
+
+
+            if(contact_data_.start_transfer())
+                Serial.println("Error start transfer sync devices time");
+            // () ----- создание пакета установки периодов
+
+            // // (-) ----- создание пакета установки времени
+            // LoRa_packet packet;
+            // uint8_t size = 0;
+            // uint8_t obj = 0x06; // RTC
+            // uint8_t com = 0x02; // set time (0x03 set date)
+            // uint8_t num = 0;
+            // packet_device.get_size_by_data(&obj, &com, size);
+            // uint8_t data[3];
+            // get_date_time();
+            // data[0] = date_time_.Second();
+            // data[1] = date_time_.Minute();
+            // data[2] = date_time_.Hour();
+
+            // packet_device.set_setting(devices_[send_rtc_sync].get_setting());
+
+            // packet_device.set_dest_adr(packet, connect_adr);
+            // packet_device.set_sour_adr(packet, contact_data_.get_my_adr());
+            // packet_device.set_packet_type(packet, Packet_Type::DEVICE);
+            // packet_device.set_packet_data(packet, &obj, &num, &com, data, &size);
+            // contact_data_.init_contact(connect_adr);
+            // contact_data_.add_packet(packet);
+            // if(contact_data_.start_transfer())
+            //     Serial.println("Error start transfer sync devices time");
+            // // () ----- создание пакета установки времени
+            return false; // false - был контакт
+        }
+    }
+
 
     // Проверка периода считывания устройства
     {

@@ -8,6 +8,9 @@
 #define SERIAL_PRINT_MODULES
 #define SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA
 // #define SERIAL_PRINT_TIME
+#define SERIAL_PRINT_MODULE_EDIT_SEND_DATA
+#define SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_1
+#define SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2
 
 namespace lsc {
 
@@ -161,8 +164,83 @@ namespace lsc {
             return len;
         }
 
+        uint8_t get_value(const uint8_t* where, uint32_t* whence, uint8_t& end_index) {
+            uint8_t amount = 0;
+            whence[amount] = 0;
+            uint8_t start_index = end_index;
+            bool end_data = false;
+            while(1) {
+                if(where[end_index] == '\0') {
+                    if(start_index == end_index)
+                        --amount;
+                    ++end_index;
+                    break;
+                }
+                else if(where[end_index] == ';') {
+                    if(start_index == end_index)
+                        --amount;
+                    ++end_index;
+                    break;
+                } else if(where[end_index] == ',') {
+                    ++end_index;
+                    ++amount;
+                    end_data = false;
+                    whence[amount] = 0;
+                } else if (end_data) {
+                    ++end_index;
+                } else if( ('0' <= where[end_index]) && (where[end_index] <= '9') ) {
+                    whence[amount] = whence[amount] * 10 + where[end_index] - '0';
+                    ++end_index;
+                } else {
+                    end_data = true;
+                }
+            }
+            return ++amount;
+        }
+        uint8_t get_value(const uint8_t* where, uint32_t* whence) {
+            uint8_t empty_data = 0;
+            return get_value(where, whence, empty_data);
+        }
+        uint8_t get_time_value(const uint8_t* where, uint32_t* whence, uint8_t& end_index) {
+            uint8_t amount = 0;
+            whence[amount] = 0;
+            uint8_t start_index = end_index;
+            bool end_data = false;
+            while(1) {
+                if(where[end_index] == '\0') {
+                    if(start_index == end_index)
+                        --amount;
+                    ++end_index;
+                    break;
+                } else if(where[end_index] == ';') {
+                    if(start_index == end_index)
+                        --amount;
+                    ++end_index;
+                    break;
+                } else if(where[end_index] == ':') {
+                    ++end_index;
+                    whence[amount] = whence[amount] * 10;
+                } else if(where[end_index] == ',') {
+                    ++end_index;
+                    ++amount;
+                    end_data = false;
+                    whence[amount] = 0;
+                } else if (end_data) {
+                    ++end_index;
+                } else if( ('0' <= where[end_index]) && (where[end_index] <= '9') ) {
+                    whence[amount] = whence[amount] * 10 + where[end_index] - '0';
+                    ++end_index;
+                } else {
+                    end_data = true;
+                }
+            }
+            return ++amount;
+        }
+
+
         AsyncWebServer server{80};
         uint8_t buffer[1024]{};
+        uint32_t input_value[25]{};
         uint16_t buf_size = 0;
         Group_control_module *gcm=nullptr;
 
@@ -672,10 +750,10 @@ namespace lsc {
                 else {
                     // ----- sensors -----
                     response->addHeader("count_of_sensor_modules", "0");
-                    response->addHeader("sensors_names", "-, -");
-                    response->addHeader("sensors_ids", "0, 0");
-                    response->addHeader("sensor_indications", "0, 0");
-                    response->addHeader("sensor_values", "0, 0");
+                    response->addHeader("sensors_names", "");
+                    response->addHeader("sensors_ids", "");
+                    response->addHeader("sensor_indications", "");
+                    response->addHeader("sensor_values", "");
                     // ----- devices -----
                     // Добавление количества компонентов
                     buf_size = 0;
@@ -745,7 +823,7 @@ namespace lsc {
                     buf_size = 0;
                     for(int i = 0; i < amt_components; ++i) {
                         for(int j = 0; j < m_device->get_component(i).get_timer().size(); ++j) {
-                            value = m_device->get_component(i).get_timer()[j].get_send_server_value();
+                            value = m_device->get_component(i).get_timer()[j].get_send_value();
                             add_number(value, buffer, buf_size);
                             buffer[buf_size++] = ',';
                         }
@@ -1327,7 +1405,7 @@ namespace lsc {
                     buf_size = 0;
                     for(int i = 0; i < amt_components; ++i) {
                         for(int j = 0; j < m_device->get_component(i).get_timer().size(); ++j) {
-                            value = m_device->get_component(i).get_timer()[j].get_send_server_value();
+                            value = m_device->get_component(i).get_timer()[j].get_send_value();
                             add_number(value, buffer, buf_size);
                             buffer[buf_size++] = ',';
                         }
@@ -1854,30 +1932,47 @@ namespace lsc {
             // request->send(response);
         }
         // Изменение модуля | "/registered_device/edit"
-        void module_editing(AsyncWebServerRequest *request) { // (-) -----
+        void module_editing(AsyncWebServerRequest *request) { // (+?) -----
             static std::array<uint8_t, scs::AMT_BYTES_ID> id;
             static const scs::System_component* module;
-            static const Grow_device* m_device;
-            static const Grow_sensor* m_sensor;
+            static Grow_device* m_device;
+            static Grow_sensor* m_sensor;
             static bool device = false;
+            static uint16_t amt_counter;
             static uint16_t amt_components;
+            static uint8_t type_component;
             static int value;
+            static bool error;
+            static std::vector<dtc::Grow_timer> channel_data[25];
 
             module = nullptr;
+            amt_counter = 0;
+            amt_components = 0;
+            error = false;
             int paramsNr = request->params();
-            Serial.println("  (-) ----- \"/registered_device/edit\"");
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA)
+            Serial.println("  (+?) ----- \"/registered_device/edit\"");
             Serial.print("paramsNr = ");
             Serial.println(paramsNr);
-            // Просмотр всех параметров
+#endif
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_1)
             for (int i = 0; i < paramsNr; i++) {
                 AsyncWebParameter *p = request->getParam(i);
                 Serial.print("Param name: ");
-                // Serial.println(p->name());
-                // Serial.print("Param value: ");
-                // Serial.println(p->value());
-                // Serial.println("------");
+                Serial.println(p->name());
+                Serial.print("Param value: ");
+                Serial.println(p->value());
+                Serial.println("------");
+            }
+#endif
 
+            // Просмотр всех параметров
+            for (int i = 0; i < paramsNr; i++) {
+                AsyncWebParameter *p = request->getParam(i);
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
+                Serial.print("Param name: ");
                 Serial.print(p->name());
+#endif
                 String param_name = p->name();
                 if (param_name == "device_id") { // id всего модуля
                     String device_id = p->value();
@@ -1892,6 +1987,9 @@ namespace lsc {
                                 m_sensor = &gcm->sensors_[number];
                                 device = false;
                             }
+                            else {
+                                error = true;
+                            }
                         }
                         else {
                             module = &gcm->devices_[number];
@@ -1900,62 +1998,449 @@ namespace lsc {
                             device = true;
                         }
                     }
-                }
-                else if (param_name == "count_of_sensor_modules") {
-                    // кол-во сенсоров, подключенных к модулю
-                    String count_of_sensor_modules = p->value();
-                    amt_components = count_of_sensor_modules[0] - '0';    // (--) -----
-                } else if (param_name == "sensors_names") {               // (-?) -----
-                    // Типы сенсоров, подключенных к модулю
-                    String sensors_ids = p->value();
-                    //                                                    // (--) -----
-                } else if (param_name == "sensors_ids") { 
-                    // id сенсоров, подключенных к модулю
-                    String sensors_ids = p->value();
-                    //                                                    // (--) -----
-                } else if (param_name ==
-                            "sensors_values") { // периоды снятия показаний с датчиков
-                                                // '1600,2000'
-                    String sensors_values = p->value();
-                    //                                                    // (--) -----
-                } else if (param_name == "mech_devices_names") {          // (-?) -----
-                    // Типы устройств, подключенных к модулю
-                    String sensors_ids = p->value();
-                    //                                                    // (--) -----
-                } else if (param_name == "mech_devices_ids") {            // (-?) -----
-                    // id устройств (насосов, дим ламп и т.д.)
-                    String mech_devices_ids = p->value();
-                    //                                                    // (--) -----
-                } else if (param_name == "pwm_powers") {
-                    // значения ШИМ '10,20,30;10,5'
-                    String pwm_powers = p->value();
-                    //                                                    // (--) -----
-                } else if (param_name == "cycle_begin") {
-                    // начало цикла ШИМ - '21:15,12:20,05:00;10:00,20:00'
-                    String cycle_begin = p->value();
-                    // GT.S                                               // (--) -----
-                } else if (param_name == "cycle_end") {
-                    // конец цикла ШИМ - '21:15,12:20,05:00;10:00,20:00'
-                    String cycle_end = p->value();
-                    // GT.E                                               // (--) -----
-                } else if (param_name == "turn_on") { 
-                    // время включения цикла ШИМ
-                    // '600,300,3;7200,7200'
-                    String turn_on = p->value();
-                    // TC.ON                                              // (--) -----
-                } else if (param_name == "turn_off") { 
-                    // время включения цикла ШИМ
-                    // '600,300,3;7200,7200'
-                    String turn_off = p->value();
-                    // TC.OFF                                             // (--) -----
+                    else {
+                        error = true;
+                    }
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
+                    Serial.println();
+                    Serial.print("Param value: ");
+                    Serial.println(p->value());
+                    Serial.println("------");
+                    if(error) {
+                        Serial.println("Error!!!");
+                    }
+#endif
+                    if(error) {
+                        break;
+                    }
                 }
                 else {
-                    Serial.print(" -!-");
+                    if(module == nullptr) {
+                        // (-) ----- обработка ситуации "не первого заголовка"
+                    }
+                    else if (param_name == "count_of_sensor_modules") {          // (+) -----
+                        // кол-во сенсоров, подключенных к модулю
+                        String count_of_sensor_modules = p->value();
+                        if(!device) {
+                            amt_components = count_of_sensor_modules[0] - '0'; // (--) -----
+                            if(m_sensor->get_count_component() != amt_components) {
+                                error = true;
+                            }
+                        }
+                    }
+                    else if (param_name == "sensors_names") {                    // (+) -----
+                        // Типы сенсоров, подключенных к модулю
+                        String sensors_names = p->value();
+                        if(!device && (amt_components != 0)) {
+                            amt_counter = get_value((uint8_t*)&sensors_names[0], input_value);
+                            if(amt_counter == amt_components) {
+                                for(int i = 0; i < amt_counter; ++i) {
+                                    if(!m_sensor->get_type(i, type_component)) {
+                                        if(input_value[i] != type_component)
+                                            error = true;
+                                        else {
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
+                                            Serial.print("    s_names[");
+                                            Serial.print(i);
+                                            Serial.print("] = ");
+                                            Serial.print(type_component);
+                                            Serial.print("   ");
+#endif
+                                        }
+                                    }
+                                    else {
+                                        error = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else if (param_name == "sensors_ids") {                      // (+) -----
+                        // id сенсоров, подключенных к модулю
+                        String sensors_ids = p->value();
+                        if(!device && (amt_components != 0)) {
+                            amt_counter = get_value((uint8_t*)&sensors_ids[0], input_value);
+                            if(amt_counter == amt_components) {
+                                for(int i = 0; i < amt_counter; ++i) {
+                                    if(!m_sensor->get_id(i, type_component)) {
+                                        if(input_value[i] != type_component)
+                                            error = true;
+                                        else {
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
+                                            Serial.print("    s_id[");
+                                            Serial.print(i);
+                                            Serial.print("] = ");
+                                            Serial.print(type_component);
+                                            Serial.print("   ");
+#endif
+                                        }
+                                    }
+                                    else {
+                                        error = true;
+                                    }
+                                }
+                            }
+                            else {
+                                error = true;
+                            }
+                        }
+                    }
+                    else if (param_name == "sensors_values") {                   // (+) -----
+                        // периоды снятия показаний с датчиков, '1600,2000'
+                        String sensors_values = p->value();
+                        if(!device && (amt_components != 0)) {
+                            amt_counter = get_value((uint8_t*)&sensors_values[0], input_value);
+                            if(amt_counter == amt_components) {
+                                for(int i = 0; i < amt_counter; ++i) {
+
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
+                                    Serial.print("    s_time[");
+                                    Serial.print(i);
+                                    Serial.print("] = ");
+                                    Serial.print(input_value[i]);
+                                    Serial.print("   ");
+#endif
+
+                                    if(input_value[0] > input_value[i])
+                                        input_value[0] = input_value[i];
+                                }
+                                Serial.print(input_value[0]);
+                                m_sensor->set_period(input_value[0] * 1000);
+                            }
+                            else {
+                                error = true;
+                            }
+                        }
+
+                    }
+                    else if (param_name == "count_of_device_modules") {          // (+) -----
+                        // кол-во устройств, подключенных к модулю
+                        String count_of_device_modules = p->value();
+                        if(device) {
+                            amt_components = count_of_device_modules[0] - '0'; // (--) -----
+                            if(m_device->get_count_component() != amt_components) {
+                                // Serial.print("     ~");
+                                // Serial.print(m_device->get_count_component());
+                                // Serial.print(" != ");
+                                // Serial.print(amt_components);
+                                // Serial.print("~");
+                                // // error = true;
+                                // amt_components = m_device->get_count_component();
+
+                                error = true;
+                            }
+                        }
+                    }
+                    else if (param_name == "count_of_cycles_in_device_moduls") { // (+?) -----
+                        // Количество циклов, подключенных к модулю
+                        String count_cycles = p->value();
+                        if(device && (amt_components != 0)) {
+                            amt_counter = get_value((uint8_t*)&count_cycles[0], input_value);
+                            if(amt_counter == amt_components) {
+                                for(int i = 0; i < amt_counter; ++i) {
+                                    channel_data[i] = m_device->get_component(i).get_timer();
+                                    while(channel_data[i].size() != input_value[i]) {
+                                        if(channel_data[i].size() < input_value[i]) {
+                                            channel_data[i].push_back(dtc::Grow_timer{});
+                                        }
+                                        else {
+                                            channel_data[i].pop_back();
+                                        }
+                                    }
+                                }
+                            }
+                            else {
+                                // Serial.print("     ~");
+                                // Serial.print(amt_components);
+                                // Serial.print(" != ");
+                                // Serial.print(amt_counter);
+                                // Serial.print("~");
+                                error = true;
+                            }
+                        }
+                    }
+                    else if (param_name == "devices_names") {                    // (+) -----
+                        // Типы устройств, подключенных к модулю
+                        String devices_names = p->value();
+                        // // (--) -----
+                        if(device && (amt_components != 0)) {
+                            amt_counter = get_value((uint8_t*)&devices_names[0], input_value);
+                            if(amt_counter == amt_components) {
+                                for(int i = 0; i < amt_counter; ++i) {
+                                    if(!m_device->get_type(i, type_component)) {
+                                        if(input_value[i] != type_component)
+                                            error = true;
+                                    }
+                                    else {
+                                        error = true;
+                                    }
+                                }
+                            }
+                            else {
+                                error = true;
+                            }
+                        }
+                    }
+                    else if (param_name == "mech_devices_names") {               // - (--) -----
+                        // Типы устройств, подключенных к модулю
+                        String sensors_ids = p->value();
+                        // // (--) -----
+                    }
+                    else if (param_name == "mech_devices_ids") {                 // (+) -----
+                        // id устройств (насосов, дим ламп и т.д.)
+                        String mech_devices_ids = p->value();
+                        // // (+?) -----
+                        if(device && (amt_components != 0)) {
+                            amt_counter = get_value((uint8_t*)&mech_devices_ids[0], input_value);
+                            if(amt_counter == amt_components) {
+                                for(int i = 0; i < amt_counter; ++i) {
+                                    if(!m_device->get_id(i, type_component)) {
+                                        if(input_value[i] != type_component)
+                                            error = true;
+                                    }
+                                    else {
+                                        error = true;
+                                    }
+                                }
+                            }
+                            else {
+                                error = true;
+                            }
+                        }
+                    }
+                    else if (param_name == "pwm_powers") {                       // (+-) -----
+                        // значения ШИМ '10,20,30;10,5'
+                        String pwm_powers = p->value();
+                        uint8_t iter = 0;
+                        uint8_t index = 0;
+                        dtc::Time_channel channel;
+                        // TC.OFF // (--) -----
+                        if(device && (amt_components != 0)) {
+                            while((index < pwm_powers.length()) && (iter < amt_components) ) {
+                                amt_counter = get_value((uint8_t*)&pwm_powers[0], input_value, index);
+                                for(int j = 0; j < amt_counter; ++j) {
+                                    channel_data[iter][j].set_send_value(input_value[j]);
+                                }
+                                ++iter;
+                            }
+                        }
+                    }
+                    else if (param_name == "cycle_begin") {                      // (+?) -----
+                        // начало цикла ШИМ - '21:15,12:20,05:00;10:00,20:00'
+                        String cycle_begin = p->value();
+                        uint8_t iter = 0;
+                        uint8_t index = 0;
+                        // GT.S // (--) -----
+                        if(device && (amt_components != 0)) {
+                            while((index < cycle_begin.length()) && (iter < amt_components) ) {
+                                amt_counter = get_time_value((uint8_t*)&cycle_begin[0], input_value, index);
+                                for(int j = 0; j < amt_counter; ++j) {
+                                    channel_data[iter][j].set_start_hours(input_value[j] / 1000);
+                                    channel_data[iter][j].set_start_minutes(input_value[j] % 1000);
+                                    channel_data[iter][j].set_start_seconds(0);
+                                }
+                                ++iter;
+                            }
+                        }
+                    }
+                    else if (param_name == "cycle_end") {                        // (+?) -----
+                        // конец цикла ШИМ - '21:15,12:20,05:00;10:00,20:00'
+                        String cycle_end = p->value();
+                        uint8_t iter = 0;
+                        uint8_t index = 0;
+                        // GT.E // (--) -----
+                        if(device && (amt_components != 0)) {
+                            while((index < cycle_end.length()) && (iter < amt_components) ) {
+                                amt_counter = get_time_value((uint8_t*)&cycle_end[0], input_value, index);
+                                for(int j = 0; j < amt_counter; ++j) {
+                                    channel_data[iter][j].set_end_hours(input_value[j] / 1000);
+                                    channel_data[iter][j].set_end_minutes(input_value[j] % 1000);
+                                    channel_data[iter][j].set_end_seconds(0);
+                                }
+                                ++iter;
+                            }
+                        }
+                    }
+                    else if (param_name == "turn_on") {                          // (+?) -----
+                        // время включения цикла ШИМ
+                        // '600,300,3;7200,7200'
+                        String turn_on = p->value();
+                        uint8_t iter = 0;
+                        uint8_t index = 0;
+                        dtc::Time_channel channel;
+                        // TC.ON // (--) -----
+                        if(device && (amt_components != 0)) {
+                            while((index < turn_on.length()) && (iter < amt_components) ) {
+                                amt_counter = get_value((uint8_t*)&turn_on[0], input_value, index);
+                                for(int j = 0; j < amt_counter; ++j) {
+                                    channel = channel_data[iter][j].get_channel();
+                                    channel.set_duration_on(input_value[j]);
+                                    channel_data[iter][j].bind_channel(channel);
+                                }
+                                ++iter;
+                            }
+                        }
+                    }
+                    else if (param_name == "turn_off") {                         // (+?) -----
+                        // время включения цикла ШИМ
+                        // '600,300,3;7200,7200'
+                        String turn_off = p->value();
+                        uint8_t iter = 0;
+                        uint8_t index = 0;
+                        dtc::Time_channel channel;
+                        // TC.OFF // (--) -----
+                        if(device && (amt_components != 0)) {
+                            while((index < turn_off.length()) && (iter < amt_components) ) {
+                                amt_counter = get_value((uint8_t*)&turn_off[0], input_value, index);
+                                for(int j = 0; j < amt_counter; ++j) {
+                                    channel = channel_data[iter][j].get_channel();
+                                    channel.set_duration_off(input_value[j]);
+                                    channel_data[iter][j].bind_channel(channel);
+                                }
+                                ++iter;
+                            }
+                        }
+                    }
+                    else {
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
+                        Serial.print(" -!-");
+#endif
+                    }
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
+                    Serial.println();
+                    Serial.print("Param value: ");
+                    Serial.println(p->value());
+                    Serial.println("------");
+#endif
                 }
-                Serial.println();
-                Serial.print("Param value: ");
-                Serial.println(p->value());
-                Serial.println("------");
+                if(error) {
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
+                    Serial.println("Error!!!");
+#endif
+                    break;
+                }
+            }
+            if(!error) {
+                if(device) {
+                    for(int i = 0; i < amt_components; ++i) {
+                        m_device->component_[i].set_timer(channel_data[i]);
+                    }
+                    m_device->set_setting_change_period(true);
+
+
+#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA)
+                    char mas[25];
+                    uint16_t len = byte_to_hex((uint8_t*)&(m_device->get_system_id()[0]), (uint8_t*)mas, 12);
+                    mas[24] = '\0';
+                    Serial.print("<<< ");
+                    Serial.print(mas);
+                    Serial.println(" >>>");
+                    amt_components = m_device->get_count_component();
+                    Serial.print("count_of_device_modules: ");
+                    Serial.println(amt_components);
+
+                    Serial.print("count_cycles: "); // count_of_cycles_in_device_moduls
+                    for(int i = 0; i < amt_components; ++i) {
+                        Serial.print(m_device->component_[i].get_timer().size());
+                        if(i < amt_components - 1)
+                            Serial.print(",");
+                    }
+                    Serial.println(); 
+
+                    Serial.print("device_type: "); // devices_names
+                    for(int i = 0; i < amt_components; ++i) {
+                        Serial.print((uint8_t)m_device->component_[i].get_type());
+                        if(i < amt_components - 1)
+                            Serial.print(",");
+                    }
+                    Serial.println(); 
+
+                    Serial.print("device_id: "); // mech_devices_ids
+                    for(int i = 0; i < amt_components; ++i) {
+                        Serial.print((uint8_t)m_device->component_[i].get_id());
+                        if(i < amt_components - 1)
+                            Serial.print(",");
+                    }
+                    Serial.println(); 
+
+
+                    Serial.print("pwm_powers: "); // pwm_powers
+                    for(int i = 0; i < amt_components; ++i) {
+                        for(int j = 0; j < m_device->component_[i].get_timer().size(); ++j) {
+                            Serial.print(m_device->component_[i].get_timer()[j].get_send_value());
+                            if(j < m_device->component_[i].get_timer().size() - 1)
+                                Serial.print(",");
+                        }
+                        if(i < amt_components - 1)
+                            Serial.print(";");
+                    }
+                    Serial.println(); 
+
+                    Serial.print("cycle_begin: "); // cycle_begin
+                    for(int i = 0; i < amt_components; ++i) {
+                        for(int j = 0; j < m_device->component_[i].get_timer().size(); ++j) {
+
+                            if(m_device->component_[i].get_timer()[j].get_start_hours() < 10)
+                                Serial.print("0");
+                            Serial.print(m_device->component_[i].get_timer()[j].get_start_hours());
+
+                            if(m_device->component_[i].get_timer()[j].get_start_minutes() < 10)
+                                Serial.print("0");
+                            Serial.print(m_device->component_[i].get_timer()[j].get_start_minutes());
+
+                            if(j < m_device->component_[i].get_timer().size() - 1)
+                                Serial.print(",");
+                        }
+                        if(i < amt_components - 1)
+                            Serial.print(";");
+                    }
+                    Serial.println(); 
+
+                    Serial.print("cycle_end: "); // cycle_end
+                    for(int i = 0; i < amt_components; ++i) {
+                        for(int j = 0; j < m_device->component_[i].get_timer().size(); ++j) {
+                            
+                            if(m_device->component_[i].get_timer()[j].get_end_hours() < 10)
+                                Serial.print("0");
+                            Serial.print(m_device->component_[i].get_timer()[j].get_end_hours());
+
+                            if(m_device->component_[i].get_timer()[j].get_end_minutes() < 10)
+                                Serial.print("0");
+                            Serial.print(m_device->component_[i].get_timer()[j].get_end_minutes());
+
+                            if(j < m_device->component_[i].get_timer().size() - 1)
+                                Serial.print(",");
+                        }
+                        if(i < amt_components - 1)
+                            Serial.print(";");
+                    }
+                    Serial.println(); 
+
+                    Serial.print("turn_on: "); // turn_on
+                    for(int i = 0; i < amt_components; ++i) {
+                        for(int j = 0; j < m_device->component_[i].get_timer().size(); ++j) {
+                            Serial.print(m_device->component_[i].get_timer()[j].get_channel().get_duration_on());
+                            if(j < m_device->component_[i].get_timer().size() - 1)
+                                Serial.print(",");
+                        }
+                        if(i < amt_components - 1)
+                            Serial.print(";");
+                    }
+                    Serial.println(); 
+
+                    Serial.print("turn_off: "); // turn_off
+                    for(int i = 0; i < amt_components; ++i) {
+                        for(int j = 0; j < m_device->component_[i].get_timer().size(); ++j) {
+                            Serial.print(m_device->component_[i].get_timer()[j].get_channel().get_duration_off());
+                            if(j < m_device->component_[i].get_timer().size() - 1)
+                                Serial.print(",");
+                        }
+                        if(i < amt_components - 1)
+                            Serial.print(";");
+                    }
+                    Serial.println(); 
+#endif
+                }
             }
             // somefunction(p->value) какая то функция, которая получает информацию
             // о модуле

@@ -140,6 +140,9 @@ namespace dtc {
         return false;
     }
     // Получить данные канала
+    Time_channel Grow_timer::get_channel() {
+        return channel;
+    }
     const Time_channel& Grow_timer::get_channel() const {
         return channel;
     }
@@ -172,18 +175,18 @@ namespace dtc {
 
     // (-) ----- (!) ----- \/ \/ \/ КОСТЫЛЬ
     /// Контроль значения
-    bool Grow_timer::set_send_server_value(uint16_t val) {
-        if(4095 < val)
+    bool Grow_timer::set_send_value(uint16_t val) {
+        if(100 < val)
             return true;
         change = true;
-        send_server_value = val;
+        send_value = val;
         return false;
     }
-    uint16_t Grow_timer::get_send_server_value() const {
-        return send_server_value;
+    uint16_t Grow_timer::get_send_value() const {
+        return send_value;
     }
-    void Grow_timer::clear_send_server_value() {
-        send_server_value = 0xFFFF;
+    void Grow_timer::clear_send_value() {
+        send_value = 0xFFFF;
         change = true;
     }
     // (-) ----- (!) ----- /\ /\ /\ КОСТЫЛЬ
