@@ -195,7 +195,7 @@ void setup() {
     // GT_print();
     // Serial.println();
 
-#define AUTO_REG
+// #define AUTO_REG
 #if defined (AUTO_REG) // добавляет модули в запрос регистрации
     // packet = { 01, 00, 00, 01, 03, 02, 03, 11, 12, 00, 2, 1, 4, 3};
     packet = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 03, 01, 12, 00, 

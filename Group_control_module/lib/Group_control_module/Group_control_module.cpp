@@ -1604,29 +1604,117 @@ bool Group_control_module::handler_devices() {
                                                                                                                                                                                             // Serial.println("send_time_devices");
                                                                                                                                                                                             // (*)-(*)-(*)-(*)-(*)
 
-            // (-) ----- создание пакета установки периодов
-            LoRa_packet packet;
-            uint8_t size, obj, com, num;
+            // (-) ----- создание пакетов установки периодов
+            static LoRa_packet packet;
+            static uint8_t size, obj, com, num, data[10];
+            static uint8_t amount_period, number_period;
+            static uint8_t amount_timer, number_timer;
+            static uint32_t buf_value;
 
-            // uint8_t size = 0;
-            // uint8_t obj = 0x06; // RTC
-            // uint8_t com = 0x02; // set time (0x03 set date)
-            // uint8_t num = 0;
+            contact_data_.init_contact(connect_adr);
+            packet_device.set_setting(devices_[send_setting_period].get_setting());
+            packet_device.set_dest_adr(packet, connect_adr);
+            packet_device.set_sour_adr(packet, contact_data_.get_my_adr());
+            packet_device.set_packet_type(packet, Packet_Type::DEVICE);
+            // ----- Установка количества периодов -----
+            {
+                size = 0;
+                obj = 0x08;
+                com = 0x01;
+                num = 0;
+                packet_device.get_size_by_data(&obj, &com, size);
 
-            // Установка количества периодов
-            // data[0] = X    { X = device.component_[i].get_timer().size() }
-            // Настройка периодов
+                amount_period = 0;
+                for(int i = 0; i < devices_[send_setting_period].component_.size(); ++i)
+                    amount_period += devices_[send_setting_period].component_[i].get_timer().size();
+                data[0] = amount_period;
+                // data[0] = X    { X = sum по i (device.component_[i].get_timer().size()) }
+                packet_device.set_packet_data(packet, &obj, &num, &com, data, &size);
+                contact_data_.add_packet(packet);
+            }
+            // ----- Установка количества каналов времени -----
+            {
+                size = 0;
+                obj = 0x07;
+                com = 0x01;
+                num = 0;
+                packet_device.get_size_by_data(&obj, &com, size);
+
+                amount_timer = 0;
+                for(int i = 0; i < devices_[send_setting_period].component_.size(); ++i)
+                    amount_timer += devices_[send_setting_period].component_[i].get_timer().size();
+                data[0] = amount_timer;
+                // data[0] = X    { X = sum по i (device.component_[i].get_timer().size()) }
+                packet_device.set_packet_data(packet, &obj, &num, &com, data, &size);
+                contact_data_.add_packet(packet);
+            }
+            // ----- Настройка периодов -----
+            {
+                size = 0;
+                obj = 0x08;
+                com = 0x03;
+                num = 0;
+                packet_device.get_size_by_data(&obj, &com, size);
+                // for(X)
+                //     data[] = ?
+                number_period = 0;
+                for(int i = 0; i < devices_[send_setting_period].component_.size(); ++i) {
+                    // очистка буфера
+                    for(int k = 0; k < size; ++k)
+                        data[k] = 0;
+                    // заполнение новыми данными
+                    for(int j = 0; j < devices_[send_setting_period].component_[i].get_timer().size(); ++j) {
+                        data[0] = number_period++; // смещаем период, после заполнения
+                        data[1] = devices_[send_setting_period].component_[i].get_timer()[j].get_start_seconds();
+                        data[2] = devices_[send_setting_period].component_[i].get_timer()[j].get_start_minutes();
+                        data[3] = devices_[send_setting_period].component_[i].get_timer()[j].get_start_hours();
+                        data[4] = devices_[send_setting_period].component_[i].get_timer()[j].get_end_seconds();
+                        data[5] = devices_[send_setting_period].component_[i].get_timer()[j].get_end_minutes();
+                        data[6] = devices_[send_setting_period].component_[i].get_timer()[j].get_end_hours();
+                        // добавление пакета
+                        packet_device.set_packet_data(packet, &obj, &num, &com, data, &size);
+                        contact_data_.add_packet(packet);
+                    }
+                }
+            }
+            // ----- Настройка каналов времени -----
+            {
+                size = 0;
+                obj = 0x07;
+                com = 0x03;
+                num = 0;
+                packet_device.get_size_by_data(&obj, &com, size);
+                // for(X)
+                //     data[] = ?
+                number_timer = 0;
+                for(int i = 0; i < devices_[send_setting_period].component_.size(); ++i) {
+                    // очистка буфера
+                    for(int k = 0; k < size; ++k)
+                        data[k] = 0;
+                    // заполнение новыми данными
+                    for(int j = 0; j < devices_[send_setting_period].component_[i].get_timer().size(); ++j) {
+                        data[0] = number_timer++; // смещаем период, после заполнения
+                        buf_value = devices_[send_setting_period].component_[i].get_timer()[j].get_channel().get_duration_on();
+                        data[1] = (buf_value >> 24) & 0xFF;
+                        data[2] = (buf_value >> 16) & 0xFF;
+                        data[3] = (buf_value >>  8) & 0xFF;
+                        data[4] = (buf_value >>  0) & 0xFF;
+                        buf_value = devices_[send_setting_period].component_[i].get_timer()[j].get_channel().get_duration_off();
+                        data[5] = (buf_value >> 24) & 0xFF;
+                        data[6] = (buf_value >> 16) & 0xFF;
+                        data[7] = (buf_value >>  8) & 0xFF;
+                        data[8] = (buf_value >>  0) & 0xFF;
+                        // добавление пакета
+                        packet_device.set_packet_data(packet, &obj, &num, &com, data, &size);
+                        contact_data_.add_packet(packet);
+                    }
+                }
+            }
+            // ----- Установка связей периодов-каналов -----
             // for(X)
             //     data[] = ?
-            // Установка количества каналов времени
-            // data[0] = X
-            // Настройка каналов времени
-            // for(X)
-            //     data[] = ?
-            // Установка связей периодов-каналов
-            // for(X)
-            //     data[] = ?
-            // Установка связей каналов-устройств
+            //     В 0x08 (GrowTimer) - 0x06 (привязка) - data[2] = {i[0,X], i[0,X]}
+            // ----- Установка связей каналов-устройств -----
             // for(X)
             //     data[] = ?
 
@@ -1634,7 +1722,7 @@ bool Group_control_module::handler_devices() {
 
 
             packet_device.get_size_by_data(&obj, &com, size);
-            uint8_t data[3];
+            // uint8_t data[3];
             get_date_time();
             data[0] = date_time_.Second();
             data[1] = date_time_.Minute();
@@ -1652,7 +1740,11 @@ bool Group_control_module::handler_devices() {
 
             if(contact_data_.start_transfer())
                 Serial.println("Error start transfer sync devices time");
-            // () ----- создание пакета установки периодов
+            // () ----- создание пакетов установки периодов
+
+
+
+
 
             // // (-) ----- создание пакета установки времени
             // LoRa_packet packet;

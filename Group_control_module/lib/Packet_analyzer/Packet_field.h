@@ -110,7 +110,7 @@ const uint8_t device_com_data_0[DEVICE_COMMAND[0]] = {0, 2},                    
               device_com_data_5[DEVICE_COMMAND[5]] = {0, 2},                      // Фитолампа (ШИМ)
               device_com_data_6[DEVICE_COMMAND[6]] = {0, 0, 3, 3},                // RTC
               device_com_data_7[DEVICE_COMMAND[7]] = {0, 1, 1, 9, 0, 0xFF, 3, 3}, // TimeChannel
-              device_com_data_8[DEVICE_COMMAND[8]] = {0, 1, 1, 3, 0, 0xFF, 2, 2}; // Grow_timer | Day_management
+              device_com_data_8[DEVICE_COMMAND[8]] = {0, 1, 1, 7, 0, 0xFF, 2, 2}; // Grow_timer | Day_management
 
 const uint8_t* device_object_data[DEVICE_OBJECT] = {device_com_data_0, device_com_data_1, device_com_data_2,
                                                     device_com_data_3, device_com_data_4, device_com_data_5,

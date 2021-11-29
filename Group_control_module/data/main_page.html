@@ -441,7 +441,6 @@
     .then(response => {
         document.getElementById("register_device_window").style.height = "100px"
         document.getElementById("register_device_popup").style.height = "200%"
-        console.log("get_info_registered_device")
         let count_of_sensor_modules = response.headers.get('count_of_sensor_modules')
         let sensors_names = response.headers.get('sensors_names').split(',')
         let sensors_ids = response.headers.get('sensors_ids').split(',')
@@ -477,7 +476,8 @@
             cycle_begin[i],
             cycle_end[i],
             turn_on[i],
-            turn_off[i]
+            turn_off[i],
+            device_id
           )
 
         }
@@ -536,7 +536,7 @@
         for (let i = 0; i < count_of_device_modules; i++){
           addMechDevice(
             'edit',
-            mech_devices_ids[i] + device_name,
+            mech_devices_ids[i]+ devices_names[i],
             devices_names[i],
             count_of_cycles_in_device_moduls[i],
             pwm_powers[i],
@@ -546,7 +546,8 @@
             cycle_begin[i],
             cycle_end[i],
             turn_on[i],
-            turn_off[i]
+            turn_off[i],
+            device_id
           )
 
         }
@@ -654,7 +655,9 @@
   }
 
   function create_change_device_mode_window(evt){
+    let device_name = evt.currentTarget.device_name
     let device_id = evt.currentTarget.device_id
+    let parent_device_id = evt.currentTarget.parent_device_id
     let work_mode = evt.currentTarget.work_mode
     let manual_value = evt.currentTarget.manual_value
     let status = evt.currentTarget.status
@@ -742,6 +745,8 @@
     save_button.textContent = "Сохранить"
     save_button.type = "button"
     save_button.device_id = device_id
+    save_button.device_name = device_name
+    save_button.parent_device_id = parent_device_id
     form.appendChild(save_button)
     fill_pwd_input(param_input.id)
     change_device_mode_window.style.height = "400px"
@@ -945,7 +950,8 @@
     cycle_begin,
     cycle_end,
     turn_on,
-    turn_off
+    turn_off,
+    parent_device_id
   ){
 
     let config_window = document.getElementById('register_device_form');
@@ -978,6 +984,7 @@
       working_mode_button.status = status
       working_mode_button.manual_value = manual_value
       working_mode_button.work_mode = work_mode
+      working_mode_button.parent_device_id = parent_device_id
       working_mode_button.type = 'button'
       working_mode_div.appendChild(sub_div);
       working_mode_div.appendChild(working_mode_button);
@@ -1061,7 +1068,7 @@
 
 
     add_row_button.onclick = function (event){
-      addRowToMechDevice(table.id, device_id, 0, "00:00", "00:00", "0", "0")
+      addRowToMechDevice(table.id, device_name,device_id, 0, "00:00", "00:00", "0", "0")
     }
     let register_device_window_height = document.getElementById("register_device_window").style.height;
     register_device_window_height=register_device_window_height.replace("px","");
@@ -1201,8 +1208,6 @@
   }
   function save_form(device_id){
     let form_elems = document.getElementById("register_device_form").elements
-    console.log(document.getElementById("register_device_form").children)
-    console.log(form_elems)
      // for (let i = 0; i <= document.getElementById("register_device_form").children.length; i++){
      //  if (document.getElementById("register_device_form").children[i].id.includes('sensor_name_')) {
      //    sensor_name = i.id.replace('sensor_name_', '')
@@ -1248,7 +1253,6 @@
         if (form_elems[i].id.includes('channel_time_value')){
           sensor_name = form_elems[i].device_name
           sensor_id = form_elems[i].id.replace('channel_time_value','').replace(sensor_name,'')
-          console.log(sensor_name)
           if(sensors_ids === ''){
             sensors_ids += sensor_id
           }
@@ -1272,7 +1276,7 @@
           else{sensors_values += ',' + channel_time_value}
         }
         if (form_elems[i].id.includes('pwd_input')){
-          if (mech_device_id !== form_elems[i].id.replace('pwd_input','') && mech_devices_ids !== ''){
+          if (mech_device_id !== form_elems[i].id.replace('pwd_input','').replace(form_elems[i].device_name,'') && mech_devices_ids !== ''){
             total_count_of_cycles += count_of_cycles.toString()
             pwm_powers += ';'
             cycle_begins += ';'
@@ -1392,12 +1396,15 @@
 
   }
   function saveDeviceMode(evt){
-    let device_id  = evt.currentTarget.device_id
+    let device_name  = evt.currentTarget.device_name
+    let device_id  = evt.currentTarget.device_id.replace(device_name, '')
+    let parent_device_id  = evt.currentTarget.parent_device_id
     let form_elems = document.getElementById("change_device_mode_form").elements
     const formData = new FormData(document.getElementById("change_device_mode_form"))
 
     let data = {}
     data["device_id"] = device_id
+    data["parent_device_id"] = parent_device_id
     for (let i = 0; i <= form_elems.length; i++){
       if (form_elems[i]){
         if (form_elems[i].id === "manual_mode_switch"){

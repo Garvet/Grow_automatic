@@ -6,10 +6,10 @@
 // #define SERIAL_PRINT_1
 // #define SERIAL_PRINT_REG_MODULES
 #define SERIAL_PRINT_MODULES
-#define SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA
+// #define SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA
 // #define SERIAL_PRINT_TIME
 #define SERIAL_PRINT_MODULE_EDIT_SEND_DATA
-#define SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_1
+// #define SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_1
 #define SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2
 
 namespace lsc {
@@ -2038,15 +2038,6 @@ namespace lsc {
                                     if(!m_sensor->get_type(i, type_component)) {
                                         if(input_value[i] != type_component)
                                             error = true;
-                                        else {
-#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
-                                            Serial.print("    s_names[");
-                                            Serial.print(i);
-                                            Serial.print("] = ");
-                                            Serial.print(type_component);
-                                            Serial.print("   ");
-#endif
-                                        }
                                     }
                                     else {
                                         error = true;
@@ -2065,15 +2056,6 @@ namespace lsc {
                                     if(!m_sensor->get_id(i, type_component)) {
                                         if(input_value[i] != type_component)
                                             error = true;
-                                        else {
-#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
-                                            Serial.print("    s_id[");
-                                            Serial.print(i);
-                                            Serial.print("] = ");
-                                            Serial.print(type_component);
-                                            Serial.print("   ");
-#endif
-                                        }
                                     }
                                     else {
                                         error = true;
@@ -2092,15 +2074,6 @@ namespace lsc {
                             amt_counter = get_value((uint8_t*)&sensors_values[0], input_value);
                             if(amt_counter == amt_components) {
                                 for(int i = 0; i < amt_counter; ++i) {
-
-#if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
-                                    Serial.print("    s_time[");
-                                    Serial.print(i);
-                                    Serial.print("] = ");
-                                    Serial.print(input_value[i]);
-                                    Serial.print("   ");
-#endif
-
                                     if(input_value[0] > input_value[i])
                                         input_value[0] = input_value[i];
                                 }
@@ -2326,15 +2299,58 @@ namespace lsc {
                         m_device->component_[i].set_timer(channel_data[i]);
                     }
                     m_device->set_setting_change_period(true);
-
+                }
 
 #if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA)
+                // Вывод ID
+                if(!device) {
                     char mas[25];
-                    uint16_t len = byte_to_hex((uint8_t*)&(m_device->get_system_id()[0]), (uint8_t*)mas, 12);
+                    byte_to_hex((uint8_t*)&(m_sensor->get_system_id()[0]), (uint8_t*)mas, 12);
                     mas[24] = '\0';
                     Serial.print("<<< ");
                     Serial.print(mas);
                     Serial.println(" >>>");
+                }
+                if(device) {
+                    char mas[25];
+                    byte_to_hex((uint8_t*)&(m_device->get_system_id()[0]), (uint8_t*)mas, 12);
+                    mas[24] = '\0';
+                    Serial.print("<<< ");
+                    Serial.print(mas);
+                    Serial.println(" >>>");
+                }
+                // Вывод характеристик датчиков
+                if(!device) {
+                    // m_sensor->set_period(input_value[0] * 1000);
+                    amt_components = m_sensor->get_count_component();
+                    Serial.print("count_of_sensor_modules: ");
+                    Serial.println(amt_components);
+
+
+                    Serial.print("sensor_type: "); // sensors_names
+                    for(int i = 0; i < amt_components; ++i) {
+                        Serial.print((uint8_t)m_sensor->get_type()[i]);
+                        if(i < amt_components - 1)
+                            Serial.print(",");
+                    }
+                    Serial.println(); 
+
+                    Serial.print("sensor_id: "); // sensors_ids
+                    for(int i = 0; i < amt_components; ++i) {
+                        Serial.print((uint8_t)m_sensor->get_id()[i]);
+                        if(i < amt_components - 1)
+                            Serial.print(",");
+                    }
+                    Serial.println(); 
+
+                    Serial.print("sensor_time: "); // sensors_values
+                    Serial.print((uint32_t)m_sensor->get_period() / 1000);
+                    Serial.println(" sec"); 
+
+
+                }
+                // Вывод характеристик устройств
+                if(device) {
                     amt_components = m_device->get_count_component();
                     Serial.print("count_of_device_modules: ");
                     Serial.println(amt_components);
@@ -2383,7 +2399,7 @@ namespace lsc {
                             if(m_device->component_[i].get_timer()[j].get_start_hours() < 10)
                                 Serial.print("0");
                             Serial.print(m_device->component_[i].get_timer()[j].get_start_hours());
-
+                            Serial.print(":");
                             if(m_device->component_[i].get_timer()[j].get_start_minutes() < 10)
                                 Serial.print("0");
                             Serial.print(m_device->component_[i].get_timer()[j].get_start_minutes());
@@ -2403,7 +2419,7 @@ namespace lsc {
                             if(m_device->component_[i].get_timer()[j].get_end_hours() < 10)
                                 Serial.print("0");
                             Serial.print(m_device->component_[i].get_timer()[j].get_end_hours());
-
+                            Serial.print(":");
                             if(m_device->component_[i].get_timer()[j].get_end_minutes() < 10)
                                 Serial.print("0");
                             Serial.print(m_device->component_[i].get_timer()[j].get_end_minutes());
@@ -2449,9 +2465,6 @@ namespace lsc {
             response->addHeader("Access-Control-Allow-Origin", "*");
             response->addHeader("Access-Control-Expose-Headers", "*");
             request->send(response);
-
-
-
 
             // Serial.println("get_info_registered_device");
             // int paramsNr = request->params();
