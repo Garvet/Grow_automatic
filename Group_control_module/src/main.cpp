@@ -351,7 +351,9 @@ void setup() {
 
 ulong time_interval = 3600000;
 void loop() {
+#if defined( CREATE_SERVER )
     delay(1000000);
+#endif
     if (!button_control) {        
         while(!end_serial) {
             switch (use_type()) {

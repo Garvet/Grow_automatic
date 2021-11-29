@@ -12,6 +12,8 @@
 // #define SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_1
 #define SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2
 
+#define NOT_SEND_DEVICE_DATA // (-) ----- (!) ----- Отключение использования устройств на сервере
+
 namespace lsc {
 
     namespace server_GCM {
@@ -465,6 +467,7 @@ namespace lsc {
             // response->addHeader("device_types", "sensor, lamp");
             // request->send(response);
         }
+        // (-) ----- (!) ----- Не отправляет данные об устройствах
         // Список зарегестрированных модулей | "/devices/registered/get"
         void modules_registered(AsyncWebServerRequest *request) {
             AsyncWebServerResponse *response =
@@ -474,8 +477,12 @@ namespace lsc {
             // Получение количества
             uint16_t amt{0};
             buf_size = 0;
-            if(gcm != nullptr)
-                amt = gcm->devices_.size() + gcm->sensors_.size();
+            if(gcm != nullptr) {
+#ifndef NOT_SEND_DEVICE_DATA // (!) -----
+                amt = gcm->devices_.size();
+#endif
+                amt += gcm->sensors_.size();
+            }
             add_number(amt, buffer, buf_size); // Количество компонентов
             buffer[buf_size++] = '\0';
             // Отправка количества
@@ -484,9 +491,11 @@ namespace lsc {
             buf_size = 0;
             if(gcm != nullptr) {
                 
+#ifndef NOT_SEND_DEVICE_DATA // (!) -----
                 for(int i = 0; i < gcm->devices_.size(); ++i) {
                     add_module_id(&gcm->devices_[i], buffer, buf_size, true);
                 }
+#endif
                 for(int i = 0; i < gcm->sensors_.size(); ++i) {
                     add_module_id(&gcm->sensors_[i], buffer, buf_size, true);
                 }
@@ -516,9 +525,11 @@ namespace lsc {
             // Получение имён
             buf_size = 0;
             if(gcm != nullptr) {
+#ifndef NOT_SEND_DEVICE_DATA // (!) -----
                 for(int i = 0; i < gcm->devices_.size(); ++i) {
                     add_module_name(&gcm->devices_[i], buffer, buf_size, true);
                 }
+#endif
                 for(int i = 0; i < gcm->sensors_.size(); ++i) {
                     add_module_name(&gcm->sensors_[i], buffer, buf_size, true);
                 }
@@ -573,6 +584,7 @@ namespace lsc {
             // request->send(response);
         }
 
+        // (-) ----- (!) ----- Не отправляет данные об устройствах
         // Отправка информации о исп. модуле | "/registered_device/get"
         void module_registered_data(AsyncWebServerRequest *request) { // (?) -----
             static std::array<uint8_t, scs::AMT_BYTES_ID> id;
@@ -604,7 +616,10 @@ namespace lsc {
                     // }
 
                     if(gcm != nullptr) {
-                        int number = gcm->search_device(id);
+                        int number = -1; 
+#ifndef NOT_SEND_DEVICE_DATA // (!) -----
+                        number = gcm->search_device(id);
+#endif
                         if(number == -1) {
                             number = gcm->search_sensor(id);
                             if(number != -1) {
