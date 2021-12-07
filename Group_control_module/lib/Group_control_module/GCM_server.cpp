@@ -1,7 +1,7 @@
 #include "GCM_server.h"
 
-#define START_WIFI_CONNECT
-// #define START_WIFI_CREATE
+// #define START_WIFI_CONNECT
+#define START_WIFI_CREATE
 
 // #define TEST_CODE_15_10_2021
 
@@ -136,13 +136,13 @@ namespace lsc {
             num *= sign;
             return num;
         }
-        uint16_t add_number(int number, uint8_t* whence, uint16_t& bias, bool use_sign) {
+        uint16_t add_number(int number, uint8_t* whence, uint16_t& bias, bool use_sign, bool print_plus) {
             uint16_t size = 0;
             // Знак
             if(use_sign) {
                 ++size;
                 if(number < 0) whence[bias++] = '-';
-                else           whence[bias++] = '+';
+                else if(print_plus) whence[bias++] = '+';
             }
             if(number < 0)     number *= -1;
             // Получение количества десятков
@@ -732,7 +732,7 @@ namespace lsc {
                     buf_size = 0;
                     for(int i = 0; i < amt_components; ++i) {
                         value = m_sensor->get_component(i).get_value();
-                        add_number(value, buffer, buf_size, true);
+                        add_number(value, buffer, buf_size, true, false);
                         buffer[buf_size++] = '.';
                         value = m_sensor->get_component(i).get_value() * 1000;
                         value %= 1000;
@@ -1314,7 +1314,7 @@ namespace lsc {
                     buf_size = 0;
                     for(int i = 0; i < amt_components; ++i) {
                         value = m_sensor->get_component(i).get_value();
-                        add_number(value, buffer, buf_size, true);
+                        add_number(value, buffer, buf_size, true, false);
                         buffer[buf_size++] = '.';
                         value = m_sensor->get_component(i).get_value() * 1000;
                         value %= 1000;

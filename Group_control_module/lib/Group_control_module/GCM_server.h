@@ -33,7 +33,7 @@ namespace lsc {
         bool hex_to_byte(const uint8_t* where, std::array<uint8_t, scs::AMT_BYTES_ID>& whence);
         uint16_t byte_to_hex(const uint8_t* where, uint8_t* whence, size_t len);
         int  get_number (const uint8_t* where, uint16_t& bias, bool use_sign=false);
-        uint16_t add_number(int number, uint8_t* whence, uint16_t& bias, bool use_sign=false);
+        uint16_t add_number(int number, uint8_t* whence, uint16_t& bias, bool use_sign=false, bool print_plus=true);
         uint8_t add_module_id(const scs::System_component* where, uint8_t* whence, uint16_t& bias, bool delimiter=false);
         uint8_t add_module_name(const scs::System_component* where, uint8_t* whence, uint16_t& bias, bool delimiter=false);
 
