@@ -10,6 +10,13 @@
 #include <Group_control_module.h>
 // #include <Grow_sensor.h>
 
+#if defined( USING_UART_SET )
+#include <UART_controller.hpp>
+// #define USING_UART_SERIAL
+void UART_setup();
+void UART_loop();
+#endif
+
 #define TYPE_DEVICE_ONE
 
 #if defined( TYPE_DEVICE_ONE )
@@ -147,7 +154,11 @@ bool button_control = false;
 void setup() {
     Serial.begin(115200);
     while(!Serial){}
-    delay(2000);
+#if defined( USING_UART_SET )
+    UART_setup();
+#endif
+    // delay(2000);
+    delay(7500);
 
 #if defined (BUILD_S0_D1_60s_SPECIALIZED)
     serial_loop_control = true;
@@ -345,14 +356,29 @@ void setup() {
     }
     */
     
+#if defined( CREATE_SERVER )
+    delay(1000);
+    // delay(1000000);
+#endif
 }
 
 
+extern volatile DRAM_ATTR bool lora_interrupt_flag;
+// (!) ----- Переделать в нормальный вид (pin -> тот или иной GT)
+// static Group_control_module* group_control_module_interrupt;
+// void IRAM_ATTR lora_interrupt() {
+//     lora_interrupt_flag = true;
+//     group_control_module_interrupt->LoRa_interrupt();
+// }
 
 ulong time_interval = 3600000;
 void loop() {
-#if defined( CREATE_SERVER )
-    delay(1000000);
+    if(lora_interrupt_flag) {
+        lora_interrupt_flag = false;
+        __GCM__.LoRa_interrupt();
+    }
+#if defined( USING_UART_SET )
+    UART_loop();
 #endif
     if (!button_control) {        
         while(!end_serial) {
@@ -694,6 +720,231 @@ void set_start_components() {
     lsc::server_GCM::init(__GCM__);
     #endif
 }
+
+
+
+#if defined( USING_UART_SET )
+
+#define SERIAL2_RX GPIO_NUM_25 // TX in STM
+#define SERIAL2_TX GPIO_NUM_22 // RX in STM
+void send_in_uart(uint8_t &send_byte);
+bool end_send = false;
+void receive_from_uart(uint8_t &receive_byte);
+uint32_t RECEIVE_TIME = 200;
+// uint32_t RECEIVE_TIME = 0xFFFFFFFF;
+uint32_t receive_time;
+uint8_t *adr_receive_byte;
+bool start_recieve = false;
+void contact();
+uint8_t receive_buffer[dtp::BUFFER_SIZE]{};
+uint8_t receive_len = 0;
+bool end_recieve = false;
+uint16_t read_pwm();
+uint16_t pwm = 0;
+
+#if defined( USING_UART_SERIAL )
+static const char mas_status[(int)dtp::Status::AMT_COMPONENTS][100] = {
+    {"Ok (Передача/приём завершена и обработана)"},
+    {"Exit (Передача/приём завершена и не обработана)"},
+    {"Error (Передача/приём завершена с ошибкой)"},
+    {"Postponed (Передача ожидает завершения приёма)"}
+};
+#endif
+
+dtp::UART_controller uart(send_in_uart, receive_from_uart);
+
+#if defined( USING_UART_SERIAL )
+void serial_print_hex(uint8_t num) {
+    const char name[16]{'0', '1', '2', '3', '4', '5', '6', '7',
+                        '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    Serial.print(name[(num >> 4) & 0xF]);
+    Serial.print(name[ num       & 0xF]);
+}
+#endif
+
+bool receive_ignore = false;
+uint8_t receive_ignorein_type = 0b10; // RS
+uint8_t num_contact = 0;
+uint8_t NUM_CONTACT = 13;
+uint8_t erase_byte[14]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0};
+
+
+
+void UART_setup() {
+    Serial2.begin(38400, SERIAL_8N1, SERIAL2_RX, SERIAL2_TX);
+    uart.begin();
+}
+
+void UART_loop() {
+    contact();
+    if(end_recieve) {
+        end_recieve = false;
+#if defined( USING_UART_SERIAL )
+        Serial.print("SR3[");
+        Serial.print((int)receive_len);
+        Serial.print("] = {");
+        for(int i = 0; i < receive_len; ++i) {
+            serial_print_hex(receive_buffer[i]);
+            if(i != receive_len-1) Serial.print(", ");
+        }
+        Serial.print("} = ");
+        for(int i = 0; i < receive_len; ++i) {
+            Serial.print((char)receive_buffer[i]);
+        }
+        Serial.println();
+#endif
+        uint16_t new_pwm = read_pwm();
+        if(new_pwm != 0xFFFF) {
+            pwm = new_pwm;
+#if defined( USING_UART_SERIAL )
+            Serial.print("PWM = ");
+            Serial.println(new_pwm);
+#endif
+            // set pwm in the object + send
+            for(int i = 0; i < __GCM__.devices_.size(); ++i) {
+                for(int j = 0; j < __GCM__.devices_[i].get_count_component(); ++j) {
+                    // if(__GCM__.devices_[i].get_type()[j] == Pumping_system) {
+                    //     Serial.print("__GCM__.devices_[");
+                    //     Serial.print(i);
+                    //     Serial.print("].get_type()[");
+                    //     Serial.print(j);
+                    //     Serial.println("] == Pumping_system");
+                    // }
+                    if(__GCM__.devices_[i].get_type()[j] == Pumping_system && i == 2) {
+                        __GCM__.devices_[i].set_send_server_value(pwm);
+                    }
+                }
+            }
+        }
+#if defined( USING_UART_SERIAL )
+        else {
+            Serial.println("Error set pwm");
+        }
+#endif
+    }
+}
+
+
+
+void send_in_uart(uint8_t &send_byte) {
+    Serial2.write(send_byte);
+    end_send = true;
+#if defined( USING_UART_SERIAL )
+    Serial.print("(");
+    serial_print_hex(send_byte);
+    Serial.println(") >>");
+#endif
+}
+void receive_from_uart(uint8_t &receive_byte) {
+    receive_time = millis();
+    start_recieve = true;
+    adr_receive_byte = &receive_byte;
+}
+void contact() {
+    if(end_send) {
+        end_send = false;
+        uart.end_send();
+    }
+    if(start_recieve) {
+        if(Serial2.available() != 0) {
+            if(receive_ignore) {
+                // test ignore
+                if(erase_byte[num_contact] != 1) {
+                    start_recieve = false;
+                    *adr_receive_byte = Serial2.read();
+#if defined( USING_UART_SERIAL )
+                    Serial.print("      << (");
+                    serial_print_hex(*adr_receive_byte);
+                    Serial.println(")");
+#endif
+                    uart.end_receive();
+                    if(erase_byte[num_contact] != 0)
+                        --erase_byte[num_contact];
+                }
+                else {
+#if defined( USING_UART_SERIAL )
+                    Serial.print("      X  {");
+                    serial_print_hex(Serial2.read());
+                    Serial.println("}");
+#endif
+                    if(erase_byte[num_contact] != 0)
+                        --erase_byte[num_contact];
+                }
+            }
+            else {
+                start_recieve = false;
+                *adr_receive_byte = Serial2.read();
+#if defined( USING_UART_SERIAL )
+                Serial.print("      << (");
+                serial_print_hex(*adr_receive_byte);
+                Serial.println(")");
+#endif
+                uart.end_receive();
+            }
+        }
+        else {
+            if(uart.get_stage() != dtp::Stage::No_transmission)
+                if(millis() - receive_time > RECEIVE_TIME) {
+                    start_recieve = false;
+                    uart.receive_timeout();
+                }
+        }
+    }
+
+    if(uart.get_send_status() != dtp::Status::Ok) {
+#if defined( USING_UART_SERIAL )
+        Serial.print("Send status = ");
+        Serial.println(mas_status[(int)uart.get_send_status()]);
+#endif
+        uart.clear_send_status();
+        // test ignore
+        if(receive_ignore && ((receive_ignorein_type & 0b01) != 0)) {
+            if(num_contact < NUM_CONTACT)
+                ++num_contact;
+        }
+    }
+    if(uart.get_receive_status() != dtp::Status::Ok) {
+#if defined( USING_UART_SERIAL )
+        Serial.print("Receive status = ");
+        Serial.println(mas_status[(int)uart.get_receive_status()]);
+#endif
+        if(uart.get_receive_status() == dtp::Status::Exit) {
+            receive_len = uart.receive_data(receive_buffer, dtp::BUFFER_SIZE);
+            end_recieve = true;
+        }
+        uart.clear_receive_status();
+        uart.begin();
+        // test ignore
+        if(receive_ignore && ((receive_ignorein_type & 0b10) != 0)) {
+            if(num_contact < NUM_CONTACT)
+                ++num_contact;
+        }
+    }
+}
+
+uint16_t read_pwm() {
+    static const uint8_t str_len = 5;
+    static const char PWM_str[] = "SPWM:";
+    for(int i = 0; i < 5; ++i) {
+        if(receive_buffer[i] != PWM_str[i])
+            return 0xFFFF;
+    }
+    uint16_t result = 0;
+    for(int i = 0; i < 4; ++i) {
+        result *= 10;
+        result += receive_buffer[i + str_len] - '0';
+    }
+    if(4095 < result)
+        return 0xFFFF;
+    if(receive_buffer[9] != '.')
+        return 0xFFFF;
+    return result;
+}
+
+
+#endif
+
+
 
 void GT_print_NR_S() {
     if(__GCM__.sensors_.size() != 0) {

@@ -109,7 +109,7 @@
         /*bottom: 0;*/
         left: 0;
         margin: auto;
-        background: #fff;,
+        background: #fff;/*,*/
         position:absolute;
         top:1px;
       }
@@ -214,6 +214,8 @@
     <h1 class="h1" id='id' style="font-size: 24px; align-self: center"> Модуль {}</h1>
   </div>
   <div class="div">
+    <!-- 
+    {(!) ----- Временно \/ 2.1 (1/4)}
     <table id="unregistered_devices" class="styled-table">
       <caption>
         <div style="display: flex; flex-direction:row; justify-content: center">
@@ -237,15 +239,21 @@
         </tr>
       </tbody>
     </table>
+    {(!) ----- Временно /\ 2.1 (1/4)}
+    -->
     <table id="registered_devices" class="styled-table">
       <caption style="align-self: center">
         <div style="display: flex; flex-direction:row; justify-content: center">
           <p style="font-size: 18px">
             Зарегистрированные устройства
           </p>
+          <!-- 
+          {(!) ----- Временно \/ 2.3}
           <button style="border: none; background-color: white; margin-bottom: 15px">
             <img src="refresh" style="width: 30px; height: 30px; " onclick="fetch_registered_devices()">
           </button>
+          {(!) ----- Временно /\ 2.3}
+          -->
         </div>
       </caption>
       <thead>
@@ -271,6 +279,8 @@
       <input style="margin-left: 10px; height: 30px; align-self: center" type="datetime-local" name="calendar" id="system_datetime">
       <input class="button" type="submit" value="Применить" onclick="set_system_time()">
     </div>
+      <!-- 
+      {(!) ----- Временно \/ 2.2 (1/4)}
       <div style="display: flex; flex-direction: row;">
         <h2 class="h1">Сетевые настройки</h2>
         <div id="zatemnenie">
@@ -325,6 +335,8 @@
         </div>
         <button class="button" onclick="get_system_settings();window.location.href='#zatemnenie'">Изменить</button>
       </div>
+      {(!) ----- Временно /\ 2.2 (1/4)}
+      -->
   </div>
     <div id="register_device_popup">
           <div id="register_device_window" style="height: 100px">
@@ -386,26 +398,29 @@
     'Вентиляция вытяжная',
     'Вентиляция приточно-вытяжная',
   ]
-  function fetch_unregistered_devices(){
-   fetch("http://" + location.hostname + "/devices/unregistered/get", { method: 'GET'})
 
-    .then(response => {
-        let tableRef = document.getElementById('unregistered_devices');
-        let new_tbody = document.createElement('tbody');
-        let old_tbody = tableRef.lastElementChild
-        tableRef.replaceChild(new_tbody, old_tbody)
-        let count_of_devices =  parseInt(response.headers.get('count_of_devices'), 10)
-        let device_ids = response.headers.get('device_ids')
-        device_ids = device_ids.split(',')
-        for (let i = 0; i < count_of_devices; i++){
-          addRowToUnregisteredDevices(new_tbody, device_ids[i]);
-        }
-    })
-    .catch(function(err) {
-        console.info(err + " url: " + "http://location.hostname/devices/unregistered/get");
-    });
-   console.log("/devices/unregistered/get")
-  }
+  // {(!) ----- Временно \/ 2.1 (2/4)}
+  // function fetch_unregistered_devices(){
+  //  fetch("http://" + location.hostname + "/devices/unregistered/get", { method: 'GET'})
+  //
+  //   .then(response => {
+  //       let tableRef = document.getElementById('unregistered_devices');
+  //       let new_tbody = document.createElement('tbody');
+  //       let old_tbody = tableRef.lastElementChild
+  //       tableRef.replaceChild(new_tbody, old_tbody)
+  //       let count_of_devices =  parseInt(response.headers.get('count_of_devices'), 10)
+  //       let device_ids = response.headers.get('device_ids')
+  //       device_ids = device_ids.split(',')
+  //       for (let i = 0; i < count_of_devices; i++){
+  //         addRowToUnregisteredDevices(new_tbody, device_ids[i]);
+  //       }
+  //   })
+  //   .catch(function(err) {
+  //       console.info(err + " url: " + "http://location.hostname/devices/unregistered/get");
+  //   });
+  //  console.log("/devices/unregistered/get")
+  // }
+  // {(!) ----- Временно /\ 2.1 (2/4)}
   function fetch_registered_devices(){
    fetch("http://" + location.hostname + "/devices/registered/get", { method: 'GET'  })
 
@@ -431,7 +446,9 @@
    console.log("/devices/registered/get")
   }
   fetch_registered_devices()
-  fetch_unregistered_devices()
+  // {(!) ----- Временно \/ 2.1 (3/4)}
+  // fetch_unregistered_devices()
+  // {(!) ----- Временно /\ 2.1 (3/4)}
   function fetch_info_unregistered_device(device_id){
    fetch("http://" + location.hostname + "/unregistered_device/get?device_id=" + device_id, {
      method: 'GET' ,
@@ -558,7 +575,10 @@
         let cancel_button = document.createElement("button")
         cancel_button.classList.add("button")
         cancel_button.addEventListener("click",go_back);
-        cancel_button.textContent = "Отменить"
+        // {(!) ----- Постоянно \/ 1.4}
+        // cancel_button.textContent = "Отменить"
+        cancel_button.textContent = "Закрыть"
+        // {(!) ----- Постоянно /\ 1.4}
         div3.appendChild(cancel_button)
         let save_button = document.createElement("button")
         save_button.classList.add("button")
@@ -572,32 +592,34 @@
 
   let id = "123123"
   document.getElementById('id').innerHTML = 'Модуль: ' + id;
-  function addRowToUnregisteredDevices(table_body, device_id) { //добавление записи в таблицу
-  // Get a reference to the table
-  let tableRef = document.getElementById('unregistered_devices');
-
-  // Insert a row in the table at row index 0
-  let newRow = table_body.insertRow(0);
-  // Insert a cell in the row at index 0
-  let newCell = newRow.insertCell(0);
-  let newCell2 = newRow.insertCell(1);
-
-  // Append a text node to the cell
-  let newText = document.createTextNode(device_id);
-  let button = document.createElement("button");
-  button.innerHTML = "Зарегистрировать устройство";
-  button.style.cssText = "      margin-top: 20px;\n" +
-    "      background: #4C5DB8;\n" +
-    "      box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);\n" +
-    "      border-radius: 15px;\n" +
-    "      width: 200px;\n" +
-    "      height: 39px;\n" +
-    "      margin-left: 40px;";
-  button.addEventListener ("click", register_new_device);
-  button.device_id = device_id
-  newCell.appendChild(newText);
-  newCell2.appendChild(button);
-  }
+  // {(!) ----- Временно \/ 2.1 (4/4)}
+  // function addRowToUnregisteredDevices(table_body, device_id) { //добавление записи в таблицу
+  // // Get a reference to the table
+  // let tableRef = document.getElementById('unregistered_devices');
+  //
+  // // Insert a row in the table at row index 0
+  // let newRow = table_body.insertRow(0);
+  // // Insert a cell in the row at index 0
+  // let newCell = newRow.insertCell(0);
+  // let newCell2 = newRow.insertCell(1);
+  //
+  // // Append a text node to the cell
+  // let newText = document.createTextNode(device_id);
+  // let button = document.createElement("button");
+  // button.innerHTML = "Зарегистрировать устройство";
+  // button.style.cssText = "      margin-top: 20px;\n" +
+  //   "      background: #4C5DB8;\n" +
+  //   "      box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);\n" +
+  //   "      border-radius: 15px;\n" +
+  //   "      width: 200px;\n" +
+  //   "      height: 39px;\n" +
+  //   "      margin-left: 40px;";
+  // button.addEventListener ("click", register_new_device);
+  // button.device_id = device_id
+  // newCell.appendChild(newText);
+  // newCell2.appendChild(button);
+  // }
+  // {(!) ----- Временно /\ 2.1 (4/4)}
 
   function addRowToRegisteredDevices(new_tbody, device_id, device_name) { //добавление записи в таблицу
   // Get a reference to the table
@@ -634,8 +656,10 @@
     "      height: 39px;\n" +
     "      margin-left: 0px;";
   button.addEventListener ("click", edit_registered_device);
-  button1.addEventListener ("click", delete_device, false);
-  button1.device_id = device_id
+  // {(!) ----- Временно \/ 2.4}
+  // button1.addEventListener ("click", delete_device, false);
+  // button1.device_id = device_id
+  // {(!) ----- Временно /\ 2.4}
   button.device_id = device_id
   newCell.appendChild(newText);
   newCell1.appendChild(newText1);
@@ -801,7 +825,10 @@
     let label = document.createElement("label")
     label.for = "device_name"
     label.style = "margin-left: 60px"
-    label.textContent = "Имя устройства управления"
+    // {(!) ----- Постоянно \/ 1.1}
+    // label.textContent = "Имя устройства управления"
+    label.textContent = "Имя узла"
+    // {(!) ----- Постоянно /\ 1.1}
     div1.appendChild(label)
     let input = document.createElement("input")
     input.id = "device_name"
@@ -848,22 +875,24 @@
     table.classList.add("styled-table");
     table.style = "margin-left: 50px; margin-top: 0px"
     config_window.appendChild(table);
-    let caption = document.createElement("caption");
-    caption.style = "align-self: center";
-    let caption_div = document.createElement("div");
-    caption_div.style = "display: flex; flex-direction:row; justify-content: center";
-    caption.appendChild(caption_div)
-    table.appendChild(caption)
-    let refresh_button = document.createElement("button");
-    refresh_button.style = "border: none; background-color: white; margin-left: 600px; margin-bottom: 15px"
-    refresh_button.type = "button"
-    refresh_button.sensor_id = device_id
-    refresh_button.addEventListener("click",refresh_sensor)
-    caption_div.appendChild(refresh_button);
-    let refresh_img = document.createElement("img");
-    refresh_img.src = "refresh"
-    refresh_img.style = "width: 30px; height: 30px; "
-    refresh_button.appendChild(refresh_img);
+    // {(!) ----- Временно \/ 1.3}
+    // let caption = document.createElement("caption");
+    // caption.style = "align-self: center";
+    // let caption_div = document.createElement("div");
+    // caption_div.style = "display: flex; flex-direction:row; justify-content: center";
+    // caption.appendChild(caption_div)
+    // table.appendChild(caption)
+    // let refresh_button = document.createElement("button");
+    // refresh_button.style = "border: none; background-color: white; margin-left: 600px; margin-bottom: 15px"
+    // refresh_button.type = "button"
+    // refresh_button.sensor_id = device_id
+    // refresh_button.addEventListener("click",refresh_sensor)
+    // caption_div.appendChild(refresh_button);
+    // let refresh_img = document.createElement("img");
+    // refresh_img.src = "refresh"
+    // refresh_img.style = "width: 30px; height: 30px; "
+    // refresh_button.appendChild(refresh_img);
+    // {(!) ----- Временно /\ 1.3}
     let thead = document.createElement("thead");
     table.appendChild(thead);
     let tr = document.createElement("tr")
@@ -874,6 +903,7 @@
       th1.textContent = "Последнее показание"
       tr.appendChild(th1);
     }
+    // {(?) ----- Временно \/ 1.2}
     let th2 = document.createElement("th")
     th2.textContent = "Частота отправки"
     tr.appendChild(th2);
@@ -889,6 +919,7 @@
       newCell1 = newRow.insertCell(1);
     }
     else{newCell = newRow.insertCell(0);}
+    // {(?) ----- Временно /\ 1.2}
 
     let input = document.createElement("select");
     let label = document.createElement("label");
@@ -1365,29 +1396,30 @@
     let dateControl = document.querySelector('input[type="datetime-local"]');
     dateControl.value = value;
   }
-
-  function save_system_settings(){
-    let form_elems = document.getElementById("system_settings_form").elements
-    let data = {}
-    let system_time_value
-    for (let i = 0; i <= form_elems.length; i++){
-      if (form_elems[i]){
-        if (form_elems[i].id === "system_time_value"){
-          system_time_value = form_elems[i].value
-        }
-        else if (form_elems[i].id === "system_time_options"){
-          if (form_elems[i].value === 'минуты'){system_time_value = parseInt(system_time_value,10)*60}
-          if (form_elems[i].value === 'часы'){system_time_value = parseInt(system_time_value,10)*3600}
-          data["sending_frequency"] = system_time_value
-        }
-        else {data[form_elems[i].id] = form_elems[i].value}
-      }
-    }
-    const params = new URLSearchParams(data)
-    go_back()
-    fetch("http://"+ location.hostname + "/system_settings/edit?" + params.toString(), { method: 'GET'  })
-    console.log("/system_settings/edit?" + params.toString())
-  }
+  // {(!) ----- Временно \/ 2.2 (2/4)}
+  // function save_system_settings(){
+  //   let form_elems = document.getElementById("system_settings_form").elements
+  //   let data = {}
+  //   let system_time_value
+  //   for (let i = 0; i <= form_elems.length; i++){
+  //     if (form_elems[i]){
+  //       if (form_elems[i].id === "system_time_value"){
+  //         system_time_value = form_elems[i].value
+  //       }
+  //       else if (form_elems[i].id === "system_time_options"){
+  //         if (form_elems[i].value === 'минуты'){system_time_value = parseInt(system_time_value,10)*60}
+  //         if (form_elems[i].value === 'часы'){system_time_value = parseInt(system_time_value,10)*3600}
+  //         data["sending_frequency"] = system_time_value
+  //       }
+  //       else {data[form_elems[i].id] = form_elems[i].value}
+  //     }
+  //   }
+  //   const params = new URLSearchParams(data)
+  //   go_back()
+  //   fetch("http://"+ location.hostname + "/system_settings/edit?" + params.toString(), { method: 'GET'  })
+  //   console.log("/system_settings/edit?" + params.toString())
+  // }
+  // {(!) ----- Временно /\ 2.2 (2/4)}
   function delete_row(evt) {
     let row_id  = evt.currentTarget.row_id
     let device_table_id  = evt.currentTarget.table_id
@@ -1429,42 +1461,44 @@
     fetch("http://"+ location.hostname + "/change_device_mode?" + params.toString(), { method: 'GET'  })
     console.log("/change_device_mode?" + params.toString())
   }
-  function get_system_settings() {
-    fetch("http://" + location.hostname + "/system_settings/get", {
-        method: 'GET'
-      }
-    )
+  // {(!) ----- Временно \/ 2.2 (3/4)}
+  // function get_system_settings() {
+  //   fetch("http://" + location.hostname + "/system_settings/get", {
+  //       method: 'GET'
+  //     }
+  //   )
 
-    .then(response => {
-        let count_of_devices =  parseInt(response.headers.get('count_of_devices'), 10)
-        let wifi_name = response.headers.get('wifi_name')
-        let wifi_pass = response.headers.get('wifi_pass')
-        let broker_ip = response.headers.get('broker_ip')
-        let broker_port = response.headers.get('broker_port')
-        let broker_username = response.headers.get('broker_username')
-        let broker_pass = response.headers.get('broker_pass')
-        let sending_frequency = response.headers.get('sending_frequency')
-        document.getElementById("wifi_name").value = wifi_name
-        document.getElementById("wifi_pass").value = wifi_pass
-        document.getElementById("broker_ip").value = broker_ip
-        document.getElementById("broker_port").value = broker_port
-        document.getElementById("broker_username").value = broker_username
-        document.getElementById("broker_pass").value = broker_pass
+  //   .then(response => {
+  //       let count_of_devices =  parseInt(response.headers.get('count_of_devices'), 10)
+  //       let wifi_name = response.headers.get('wifi_name')
+  //       let wifi_pass = response.headers.get('wifi_pass')
+  //       let broker_ip = response.headers.get('broker_ip')
+  //       let broker_port = response.headers.get('broker_port')
+  //       let broker_username = response.headers.get('broker_username')
+  //       let broker_pass = response.headers.get('broker_pass')
+  //       let sending_frequency = response.headers.get('sending_frequency')
+  //       document.getElementById("wifi_name").value = wifi_name
+  //       document.getElementById("wifi_pass").value = wifi_pass
+  //       document.getElementById("broker_ip").value = broker_ip
+  //       document.getElementById("broker_port").value = broker_port
+  //       document.getElementById("broker_username").value = broker_username
+  //       document.getElementById("broker_pass").value = broker_pass
 
-        if (sending_frequency % 3600 === 0){
-          document.getElementById("system_time_options").value = "часы"
-          sending_frequency = sending_frequency /3600
-        }
-        else if (sending_frequency % 60 === 0){
-          document.getElementById("system_time_options").value = "минуты"
-          sending_frequency = sending_frequency /60
-        }
-        else {document.getElementById("system_time_options").value = "секунды"}
-        document.getElementById("system_time_value").value = sending_frequency
-      }
-    )
-    console.log("/system_settings/get")
-  }
+  //       if (sending_frequency % 3600 === 0){
+  //         document.getElementById("system_time_options").value = "часы"
+  //         sending_frequency = sending_frequency /3600
+  //       }
+  //       else if (sending_frequency % 60 === 0){
+  //         document.getElementById("system_time_options").value = "минуты"
+  //         sending_frequency = sending_frequency /60
+  //       }
+  //       else {document.getElementById("system_time_options").value = "секунды"}
+  //       document.getElementById("system_time_value").value = sending_frequency
+  //     }
+  //   )
+  //   console.log("/system_settings/get")
+  // }
+  // {(!) ----- Временно /\ 2.2 (3/4)}
   function set_color_for_delete_img(device_table_id) {
     let table = document.getElementById(device_table_id)
     for (var i = 1, row; row = table.rows[i]; i++) {
@@ -1517,8 +1551,10 @@
       // register_devices.appendChild(option1);
     }
   }
-  fill_time_input("system_time_value")
-  fill_time_type_input("system_time_options")
+  // {(!) ----- Временно \/ 2.2 (4/4)}
+  // fill_time_input("system_time_value")
+  // fill_time_type_input("system_time_options")
+  // {(!) ----- Временно /\ 2.2 (4/4)}
   function fill_time_type_input(input_id )
   {
     let array = ["секунды","минуты","часы"];

@@ -388,6 +388,47 @@ uint8_t data[100] = {0x00, 0x01, // Address
                      0x03,                         // component.type[0] // PUMP
                     };
 // const uint16_t MAX_ERRORS_IN_ROW = 8;
+#elif defined( BUILD_S5_D3_60s_BASEMENT_FC )
+uint8_t data[100] = {0x00, 0x01, // Address
+                     0x00, 0x08, // Channel
+                     0x0F,       // Name.size()
+                     0x00, 0x05, // Sensors.size() //  0x00, 0x03, // Sensors.size()
+                     0x00, 0x03, // Devices.size()
+                     0xD0, 0x93, 0xD1, 0x80, 0xD1, 0x83, 0xD0, 0xBF, 0xD0, 0xBF, 0xD0, 0xB0, 0x20, 0x31, 0x00, // Name
+                     // Sensor[0]
+                     0x00, 0x00, 0xEA, 0x60,       // period (1 min)
+                     0x03,                         // component.size()
+                     0x03, 0x04, 0x0B,             // component.type[0-2]
+                     // Sensor[1]
+                     0x00, 0x00, 0xEA, 0x60,       // period (1 min)
+                     0x05,                         // component.size()
+                     0x03, 0x04, 0x05, 0x06, 0x0B, // component.type[0-4]
+                     // Sensor[2]
+                     0x00, 0x00, 0xEA, 0x60,       // period (1 min)
+                     0x03,                         // component.size()
+                     0x03, 0x04, 0x06,             // component.type[0-2]
+                     // Sensor[3]
+                     0x00, 0x00, 0xEA, 0x60,       // period (1 min)
+                     0x03,                         // component.size()
+                     0x03, 0x04, 0x06,             // component.type[0-2]
+                     // Sensor[4]
+                     0x00, 0x00, 0xEA, 0x60,       // period (1 min)
+                     0x02,                         // component.size()
+                     0x03, 0x04,                   // component.type[0-1]
+                     // Devices[0]
+                     0x00, 0x00, 0x27, 0x10,       // period (10 min)
+                     0x02,                         // component.size()
+                     0x04, 0x04,                   // component.type[0-1] // lamp (2x)
+                     // Devices[1]
+                     0x00, 0x00, 0x27, 0x10,       // period (10 sec)
+                     0x01,                         // component.size()
+                     0x03,                         // component.type[0] // PUMP
+                     // Devices[1]
+                     0x00, 0x00, 0x27, 0x10,       // period (10 sec)
+                     0x01,                         // component.size()
+                     0x03,                         // component.type[0] // PUMP
+                    };
+// const uint16_t MAX_ERRORS_IN_ROW = 9;
 #elif defined( BUILD_S0_D1_60s_BASEMENT_VENTILATION )
 uint8_t data[100] = {0x00, 0x04, // Address
                      0x00, 0x08, // Channel
@@ -412,7 +453,7 @@ uint8_t data[100] = {0x00, 0x05, // Address
                      0x00, 0x00, 0xEA, 0x60,       // period (inf min)
                     //  0xFF, 0x00, 0xEA, 0x60,       // period (inf min)
                      0x01,                         // component.size()
-                     0x04, 0x04,                   // component.type[0-2]
+                     0x03, 0x04,                   // component.type[0-2]
                     };
 // const uint16_t MAX_ERRORS_IN_ROW = 2;
 #elif defined( BUILD_S0_D2_60s_OBJECT1_PL1 )

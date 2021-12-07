@@ -70,13 +70,22 @@ namespace scs {
         if(4095 < val)
             return true;
         send_server_value = val;
+    #if defined( DUPLICATE_SET_PWM )
+        first_clear = true; // (-) ----- костыль в костыле
+    #endif
         return false;
     }
     uint16_t System_component::get_send_server_value() {
         return send_server_value;
     }
     void System_component::clear_send_server_value() {
+    #if defined( DUPLICATE_SET_PWM )
+        if(!first_clear)     // (-) ----- костыль в костыле
+            send_server_value = 0xFFFF;
+        first_clear = false; // (-) ----- костыль в костыле
+    #else
         send_server_value = 0xFFFF;
+    #endif
     }
     // (-) ----- (!) ----- /\ /\ /\ КОСТЫЛЬ
 }

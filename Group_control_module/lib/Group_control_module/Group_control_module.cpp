@@ -3,6 +3,8 @@
 #define NUM_SENSOR 0x01
 #define NUM_DEVICE 0x02
 
+#define PRINT_RESULT_TRANSFER
+
 uint32_t amt_error_connect_s = 0;
 uint32_t amt_error_connect_num_s[6] = {0, 0, 0, 0, 0, 0};
 uint32_t amt_error_connect_d = 0;
@@ -48,10 +50,12 @@ enum class Purpose_contact {
 Purpose_contact last_purpose_contact = Purpose_contact::noname;
 
 
+volatile DRAM_ATTR bool lora_interrupt_flag = false;
 // (!) ----- Переделать в нормальный вид (pin -> тот или иной GT)
 static Group_control_module* group_control_module_interrupt;
-void lora_interrupt() {
-    group_control_module_interrupt->LoRa_interrupt();
+void IRAM_ATTR lora_interrupt() {
+    lora_interrupt_flag = true;
+    // group_control_module_interrupt->LoRa_interrupt();
 }
 
 //   ----- ----- ----- ---- ----- ----- -----
@@ -284,8 +288,17 @@ void Group_control_module::LoRa_interrupt() {
             #endif
             // -----------------------------------------------------
 
-            Serial.print("Err: ");
-            Serial.println(error);
+#if defined( PRINT_RESULT_TRANSFER )
+                                                                                                                    LoRa_address print_adr = contact_data_.get_connect_adr();
+                                                                                                                    Serial.print("complete check = {");
+                                                                                                                    Serial.print(print_adr.group);
+                                                                                                                    Serial.print(",");
+                                                                                                                    Serial.print(print_adr.branch);
+                                                                                                                    Serial.println("}");
+                                                                                                                    Serial.print("Err: ");
+                                                                                                                    Serial.println(error);
+                                                                                                                    Serial.println();
+#endif
         }
         // (-) ----- обработка ошибок, сохранение их для дальнейшей выдачи
     }
@@ -426,56 +439,67 @@ void Group_control_module::LoRa_interrupt() {
                 number_errors_row = 0;
                 #endif
                 // -----------------------------------------------------
-                                                                                                                    Serial.print("check sensor complete (amt error = ");
-                                                                                                                    Serial.print(amt_error_connect_s);
-                                                                                                                    Serial.print(") [");
-                                                                                                                    for(int i = 0; i < sensors_.size(); ++i) {
-                                                                                                                        Serial.print("err№");
-                                                                                                                        Serial.print(i+1);
-                                                                                                                        Serial.print(" = ");
-                                                                                                                        Serial.print(amt_error_connect_num_s[i]);
-                                                                                                                        if(i < sensors_.size() - 1)
-                                                                                                                            Serial.print(";  ");
-                                                                                                                    }
+                                                                                                    {
+#if defined( PRINT_RESULT_TRANSFER )
+                                                                                                        LoRa_address print_adr = contact_data_.get_connect_adr();
+                                                                                                        Serial.print("complete check = {");
+                                                                                                        Serial.print(print_adr.group);
+                                                                                                        Serial.print(",");
+                                                                                                        Serial.print(print_adr.branch);
+                                                                                                        Serial.println("}");
+                                                                                                        Serial.print("check sensor complete (amt error = ");
+                                                                                                        Serial.print(amt_error_connect_s);
+                                                                                                        Serial.print(") [");
+                                                                                                        for(int i = 0; i < sensors_.size(); ++i) {
+                                                                                                            Serial.print("err№");
+                                                                                                            Serial.print(i+1);
+                                                                                                            Serial.print(" = ");
+                                                                                                            Serial.print(amt_error_connect_num_s[i]);
+                                                                                                            if(i < sensors_.size() - 1)
+                                                                                                                Serial.print(";  ");
+                                                                                                        }
 
-                                                                                                                    Serial.println("]");
-                                                                                                                    Serial.print("check device complete (amt error = ");
-                                                                                                                    Serial.print(amt_error_connect_d);
-                                                                                                                    Serial.print(") [");
-                                                                                                                    for(int i = 0; i < devices_.size(); ++i) {
-                                                                                                                        Serial.print("err№");
-                                                                                                                        Serial.print(i+1);
-                                                                                                                        Serial.print(" = ");
-                                                                                                                        Serial.print(amt_error_connect_num_d[i]);
-                                                                                                                        if(i < devices_.size() - 1)
-                                                                                                                            Serial.print(";  ");
-                                                                                                                    }
-                                                                                                                    Serial.println("]");
-                                                                                                                    // - 2021.06.11 - перезапуск при отсутствии соединения -
-                                                                                                                    #if defined (ERROR_REBOOT)
-                                                                                                                    Serial.print("check last sensor complete            [");
-                                                                                                                    for(int i = 0; i < sensors_.size(); ++i) {
-                                                                                                                        Serial.print("err№");
-                                                                                                                        Serial.print(i+1);
-                                                                                                                        Serial.print(" = ");
-                                                                                                                        Serial.print(amt_error_connect_last_num_s[i]);
-                                                                                                                        if(i < sensors_.size() - 1)
-                                                                                                                            Serial.print(";  ");
-                                                                                                                    }
+                                                                                                        Serial.println("]");
+                                                                                                        Serial.print("check device complete (amt error = ");
+                                                                                                        Serial.print(amt_error_connect_d);
+                                                                                                        Serial.print(") [");
+                                                                                                        for(int i = 0; i < devices_.size(); ++i) {
+                                                                                                            Serial.print("err№");
+                                                                                                            Serial.print(i+1);
+                                                                                                            Serial.print(" = ");
+                                                                                                            Serial.print(amt_error_connect_num_d[i]);
+                                                                                                            if(i < devices_.size() - 1)
+                                                                                                                Serial.print(";  ");
+                                                                                                        }
+                                                                                                        Serial.println("]");
+                                                                                                        Serial.println();
+#endif
+                                                                                                        // - 2021.06.11 - перезапуск при отсутствии соединения -
+                                                                                                        #if defined (ERROR_REBOOT)
+                                                                                                        Serial.print("check last sensor complete            [");
+                                                                                                        for(int i = 0; i < sensors_.size(); ++i) {
+                                                                                                            Serial.print("err№");
+                                                                                                            Serial.print(i+1);
+                                                                                                            Serial.print(" = ");
+                                                                                                            Serial.print(amt_error_connect_last_num_s[i]);
+                                                                                                            if(i < sensors_.size() - 1)
+                                                                                                                Serial.print(";  ");
+                                                                                                        }
 
-                                                                                                                    Serial.println("]");
-                                                                                                                    Serial.print("check last device complete            [");
-                                                                                                                    for(int i = 0; i < devices_.size(); ++i) {
-                                                                                                                        Serial.print("err№");
-                                                                                                                        Serial.print(i+1);
-                                                                                                                        Serial.print(" = ");
-                                                                                                                        Serial.print(amt_error_connect_last_num_d[i]);
-                                                                                                                        if(i < devices_.size() - 1)
-                                                                                                                            Serial.print(";  ");
-                                                                                                                    }
-                                                                                                                    Serial.println("]");
-                                                                                                                    #endif
-                                                                                                                    // -----------------------------------------------------
+                                                                                                        Serial.println("]");
+                                                                                                        Serial.print("check last device complete            [");
+                                                                                                        for(int i = 0; i < devices_.size(); ++i) {
+                                                                                                            Serial.print("err№");
+                                                                                                            Serial.print(i+1);
+                                                                                                            Serial.print(" = ");
+                                                                                                            Serial.print(amt_error_connect_last_num_d[i]);
+                                                                                                            if(i < devices_.size() - 1)
+                                                                                                                Serial.print(";  ");
+                                                                                                        }
+                                                                                                        Serial.println("]");
+                                                                                                        #endif
+                                                                                                    }
+                                                                                                    // -----------------------------------------------------
 #if defined (BUILD_TESTING_CODE_409)
                                                             // Если тестовый модуль, то включаем диод
                                                             led2_state = false;
@@ -558,7 +582,7 @@ void Group_control_module::LoRa_interrupt() {
                     }
                     else {
                         if(last_purpose_contact == Purpose_contact::get_data) {
-                            Serial.println("Read devices data:");
+                            // Serial.println("Read devices data:"); // (?) ----- WTF?
                         }
                         for(int i = 0; i < packets.size(); ++i) {
                             // packet_processing.set_packet(packets[i]);
@@ -666,6 +690,11 @@ void Group_control_module::LoRa_interrupt() {
                                 // packet not devices?
                             }
                         }
+#if defined( PRINT_RESULT_TRANSFER )
+                        if(last_purpose_contact == Purpose_contact::get_data) {
+                            Serial.println();
+                        }
+#endif
                     }
                 } 
                 else if(this_sensor) {
@@ -700,15 +729,18 @@ void Group_control_module::LoRa_interrupt() {
                                             if(param[j] == 0x00 || (param[j] == 0x01)) {
                                                 value = data[j];
                                                 sensors_[num_component].set_value(k, value);
+#if defined( PRINT_RESULT_TRANSFER )
                                                                                                                     Serial.print("Sensor data T[");
                                                                                                                     Serial.print(param[j]);
                                                                                                                     Serial.print("] id№");
                                                                                                                     Serial.print(id[j]);
                                                                                                                     Serial.print(" : ");
                                                                                                                     Serial.println(value);
+#endif
                                             }
                                             else {
                                                 sensors_[num_component].set_value(k, data[j]);
+#if defined( PRINT_RESULT_TRANSFER )
                                                                                                                     float g_value;
                                                                                                                     Serial.print("Sensor data T[");
                                                                                                                     Serial.print(param[j]);
@@ -717,6 +749,7 @@ void Group_control_module::LoRa_interrupt() {
                                                                                                                     Serial.print(" : ");
                                                                                                                     sensors_[num_component].get_value(k, g_value);
                                                                                                                     Serial.println(g_value);
+#endif
                                             }
                                             break;
                                         }
@@ -1855,7 +1888,7 @@ bool Group_control_module::handler_devices() {
 bool Group_control_module::handler_sensors() {
     if(!check_sensor_read())
         return true;
-                                                    Serial.println("check sensor = true");
+                                                    // Serial.println("check sensor = true");
     // Произвести чтение с датчиков
     for(int i = 0; i < sensors_.size(); ++i) {
                                                                                             // Serial.println("1");

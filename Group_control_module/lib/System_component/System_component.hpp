@@ -12,6 +12,8 @@
 
 #include <array>
 
+#define DUPLICATE_SET_PWM
+
 namespace scs {
 
     const uint8_t AMT_BYTES_ID = 12;
@@ -68,6 +70,9 @@ namespace scs {
         State get_state___() const;
 
         // (-) ----- (!) ----- \/ \/ \/ КОСТЫЛЬ
+    #if defined( DUPLICATE_SET_PWM )
+        bool first_clear{false}; // (-) ----- костыль в костыле
+    #endif
         uint16_t send_server_value{0xFFFF};
         bool set_send_server_value(uint16_t val);
         uint16_t get_send_server_value();

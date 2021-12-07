@@ -18,6 +18,10 @@
 #define WIFI_PASSWORD "11081975"    // пароль Wi-Fi сети
 // #define WIFI_SSID "TP-Link_3E3C" // имя Wi-Fi сети
 // #define WIFI_PASSWORD "56509953" // пароль Wi-Fi сети
+// #define WIFI_SSID "dd-wrt"       // имя Wi-Fi сети
+// #define WIFI_PASSWORD ""    // пароль Wi-Fi сети
+#define CREATE_WIFI_SSID "GCM_0005"       // имя Wi-Fi сети
+#define CREATE_WIFI_PASSWORD ""    // пароль Wi-Fi сети
 #define esp32_id "123" //Номер платы esp32
 
 // creating a local server

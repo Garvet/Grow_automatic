@@ -1,16 +1,20 @@
 #include "GCM_server.h"
 
 #define START_WIFI_CONNECT
+// #define START_WIFI_CREATE
+
 // #define TEST_CODE_15_10_2021
+
+// #define SERIAL_PRINT_WIFI
 
 // #define SERIAL_PRINT_1
 // #define SERIAL_PRINT_REG_MODULES
-#define SERIAL_PRINT_MODULES
+// #define SERIAL_PRINT_MODULES // (?) <<<
 // #define SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA
 // #define SERIAL_PRINT_TIME
-#define SERIAL_PRINT_MODULE_EDIT_SEND_DATA
+// #define SERIAL_PRINT_MODULE_EDIT_SEND_DATA // (?) <<<
 // #define SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_1
-#define SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2
+// #define SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2 // (?) <<<
 
 #define NOT_SEND_DEVICE_DATA // (-) ----- (!) ----- Отключение использования устройств на сервере
 
@@ -20,21 +24,30 @@ namespace lsc {
 
 #if defined( START_WIFI_CONNECT )
         void connectToWifi() {
-            Serial.println("Connecting to Wi-Fi...");
+#if defined( SERIAL_PRINT_WIFI)
             //  "Подключаемся к WiFi..."
+            Serial.println("Connecting to Wi-Fi...");
             Serial.println(WIFI_SSID);
+#endif
             WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
         }
         void WiFiEvent(WiFiEvent_t event) {
+#if defined( SERIAL_PRINT_WIFI)
             Serial.printf("[WiFi-event] event: %d\n", event);
+#endif
             switch (event) {
             case SYSTEM_EVENT_STA_GOT_IP:
+#if defined( SERIAL_PRINT_WIFI)
                 Serial.println("WiFi connected"); //  "Подключились к WiFi"
                 Serial.println("IP address: ");   //  "IP-адрес: "
                 Serial.println(WiFi.localIP());
+#endif
+                Serial.println(WiFi.localIP()); // (-) ----- print
                 break;
             case SYSTEM_EVENT_STA_DISCONNECTED:
+#if defined( SERIAL_PRINT_WIFI)
                 Serial.println("WiFi lost connection");
+#endif
                 //  "WiFi-связь потеряна"
                 // делаем так, чтобы ESP32
                 // не переподключалась к MQTT
@@ -42,7 +55,19 @@ namespace lsc {
                 break;
             }
         }
+#elif defined( START_WIFI_CREATE )
+        void create_WiFi() {
+            WiFi.softAP(CREATE_WIFI_SSID, CREATE_WIFI_PASSWORD);
+            // WiFi.config(
+#if defined( SERIAL_PRINT_WIFI)
+            Serial.println("Create Wi-Fi: ");
+            Serial.println(CREATE_WIFI_SSID);
+            Serial.println("IP address: ");
+            Serial.println(WiFi.softAPIP()); // 192.168.4.1
 #endif
+        }
+#endif
+
 
         bool hex_to_byte(const uint8_t* where, uint8_t* whence, size_t len) {
             bool error_id = false;
@@ -256,6 +281,8 @@ namespace lsc {
             WiFi.onEvent(WiFiEvent); // задает то. что при подключении к wi-fi будет
             connectToWifi();         // запущена функция обратного вызова WiFiEvent(),
                                      // которая напечатает данные о WiFi подключении
+#elif defined( START_WIFI_CREATE )
+            create_WiFi();
 #endif
 
 
@@ -266,7 +293,8 @@ namespace lsc {
                     return;
                 }
             }
-            server.on("/",      HTTP_GET,  login_page);
+            // server.on("/",      HTTP_GET, login_page);
+            server.on("/",      HTTP_GET, main_page);
             server.on("/login", HTTP_POST, [](AsyncWebServerRequest *request) {},
                       NULL, login_connection);
             server.on("/devices/unregistered/get", HTTP_GET, modules_unregistered);
@@ -595,7 +623,9 @@ namespace lsc {
             static uint16_t amt_components;
             static int value;
 
+#if defined(SERIAL_PRINT_MODULE_COMPONENT_SEND_DATA)
             Serial.println("/registered_device/get");
+#endif
             int paramsNr = request->params();
             module = nullptr;
             // Serial.println(paramsNr);
@@ -2470,8 +2500,8 @@ namespace lsc {
                             Serial.print(";");
                     }
                     Serial.println(); 
-#endif
                 }
+#endif
             }
             // somefunction(p->value) какая то функция, которая получает информацию
             // о модуле
@@ -2613,7 +2643,7 @@ namespace lsc {
                 request->beginResponse(200, "text/plain", "Ok");
             response->addHeader("Access-Control-Allow-Origin", "*");
             response->addHeader("Access-Control-Expose-Headers", "*");
-            response->addHeader("sensor_indications", "132");
+            // response->addHeader("sensor_indications", "132");
             request->send(response);
             // Serial.println("get_info_registered_device");
             // int paramsNr = request->params();
@@ -2714,12 +2744,20 @@ namespace lsc {
             // Установка времени
             add_number(datetime.Year(), buffer, buf_size); // Год
             buffer[buf_size++] = '-';
+            if(datetime.Month() < 10)
+                buffer[buf_size++] = '0';
             add_number(datetime.Month(), buffer, buf_size); // Месяц
             buffer[buf_size++] = '-';
+            if(datetime.Day() < 10)
+                buffer[buf_size++] = '0';
             add_number(datetime.Day(), buffer, buf_size); // День
             buffer[buf_size++] = 'T';
+            if(datetime.Hour() < 10)
+                buffer[buf_size++] = '0';
             add_number(datetime.Hour(), buffer, buf_size); // Часы
             buffer[buf_size++] = ':';
+            if(datetime.Minute() < 10)
+                buffer[buf_size++] = '0';
             add_number(datetime.Minute(), buffer, buf_size); // Минуты
             buffer[buf_size++] = '\0';
             // Отправка времени
@@ -2773,7 +2811,7 @@ namespace lsc {
                     Serial.print("system_datetime");
                     Serial.print(year);
                     Serial.print('-');
-                    Serial.print(mount);
+                    Serial.print(month);
                     Serial.print('-');
                     Serial.print(day);
                     Serial.print("   ");
