@@ -1524,13 +1524,20 @@ bool Group_control_module::handler_devices() {
     // Передача значения на устройство
     {
         // Поиск среди устройств
+        static bool last_val = false;
         int send_value_devices = -1;
         uint16_t value = 0xFFFF;
-        for(int i = 0; i < devices_.size(); ++i) {
-            if (devices_[i].get_send_server_value() != 0xFFFF) {
-                send_value_devices = i;
-                value = devices_[i].get_send_server_value();
-                break;
+        if(last_val) {
+            last_val = false;
+        }
+        else {
+            last_val = true;
+            for(int i = 0; i < devices_.size(); ++i) {
+                if (devices_[i].get_send_server_value() != 0xFFFF) {
+                    send_value_devices = i;
+                    value = devices_[i].get_send_server_value();
+                    break;
+                }
             }
         }
         // Если устройство найдено

@@ -9,16 +9,22 @@ namespace scs {
     std::array<uint8_t, AMT_BYTES_ID> System_component::get_system_id() const {
         return system_id;
     }
+    uint8_t System_component::get_system_id(uint8_t num) const {
+        return system_id[num];
+    }
 
     // имя платы
     bool System_component::set_name(std::array<uint8_t, AMT_BYTES_NAME> set_system_name, uint8_t len) {
         return set_name(&set_system_name[0], len);
     }
     bool System_component::set_name(const uint8_t *set_system_name, uint8_t len) {
-        if(AMT_BYTES_NAME <= len)
+        if(AMT_BYTES_NAME < len)
             return true;
         for(int i = 0; i < len; ++i) {
             system_name[i] = set_system_name[i];
+        }
+        if(AMT_BYTES_NAME == len) {
+            system_name[AMT_BYTES_NAME - 1] = '\0';
         }
         len_name = len;
         return false;

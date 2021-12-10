@@ -17,6 +17,21 @@ void UART_setup();
 void UART_loop();
 #endif
 
+#define SAVE_NAME_TO_FLASH
+#if defined( SAVE_NAME_TO_FLASH )
+#include <EEPROM.h>
+namespace MYNVS {
+    bool begin();
+    bool first_load();
+    bool check_load();
+    bool save();
+    void clear();
+}
+void set_name_sensor(scs::System_component* device, const uint8_t* mas, uint8_t len);
+void load_name_sensor();
+void clear_name_sensor();
+#endif
+
 #define TYPE_DEVICE_ONE
 
 #if defined( TYPE_DEVICE_ONE )
@@ -556,6 +571,7 @@ void loop() {
 #include <GCM_server.h>
 #endif
 
+#if !defined( SAVE_NAME_TO_FLASH )
 // (-) -----
 const uint8_t name_s[12] = "Sensor ";
 const uint8_t name_d[12] = "Device ";
@@ -720,6 +736,7 @@ void set_start_components() {
     lsc::server_GCM::init(__GCM__);
     #endif
 }
+#endif
 
 
 
@@ -943,6 +960,465 @@ uint16_t read_pwm() {
 
 
 #endif
+
+
+#if defined( SAVE_NAME_TO_FLASH )
+const uint8_t  AMOUNT_MODULES = 5;
+const uint8_t  MAX_LEN_NAME   = 30;
+const uint16_t EEPROM_SIZE    = AMOUNT_MODULES * MAX_LEN_NAME;
+
+uint8_t mas_static[AMOUNT_MODULES][MAX_LEN_NAME]{
+        "Sensor 00",
+        "Sensor 01",
+        "Sensor 02",
+        "Sensor 03",
+        "Sensor 04"
+        // "Invalid name 0", 
+        // "Invalid name 1", 
+        // "Invalid name 2", 
+        // "Invalid name 3", 
+        // "Invalid name 4"
+    };
+uint8_t mas_default[AMOUNT_MODULES][MAX_LEN_NAME]{
+        "Sensor 00", 
+        "Sensor 01", 
+        "Sensor 02", 
+        "Sensor 03", 
+        "Sensor 04"
+    };
+uint8_t mas_save[AMOUNT_MODULES][MAX_LEN_NAME]{};
+uint8_t mas_load[AMOUNT_MODULES][MAX_LEN_NAME];
+uint16_t mas_len[AMOUNT_MODULES];
+
+uint8_t my_mas[AMOUNT_MODULES][MAX_LEN_NAME]{};
+
+namespace MYNVS {
+    namespace Private {
+        bool flash_setup();
+        void flash_loop();
+        void flash_clear();
+        void flash_save(uint8_t num);
+        uint16_t flash_load(uint8_t num);
+        bool flasf_check(); // use after flash_loop
+    }
+}
+
+void save_sensors() {
+    for(int i = 0; i < AMOUNT_MODULES; ++i) {
+        for(int j = 0; j < MAX_LEN_NAME; ++j) {
+            mas_save[i][j] = my_mas[i][j];
+        }
+    }
+    if(MYNVS::save()) {
+        // Serial.println("Error save!");
+    }
+    else {
+        // Serial.println("Correct save!");
+    }
+}
+void set_name_sensor(scs::System_component* device, const uint8_t* mas, uint8_t len) {
+    uint8_t num = 0xFF;
+    for(int i = 0; i < AMOUNT_MODULES; ++i) {
+        if(device == &__GCM__.sensors_[i]) {
+            num = i;
+            break;
+        }
+    }
+    if(num == 0xFF)
+        return;
+
+                                                                // Serial.println("Save?");
+                                                                // Serial.print("Len_1 = ");
+                                                                // Serial.print(len);
+                                                                // Serial.print("     Len_2 = ");
+                                                                // Serial.println(device->get_len_name());
+                                                                // Serial.print("Name_1 = \"");
+                                                                // for(int i = 0; i < len; ++i) {
+                                                                //     Serial.print((char) mas[i]);
+                                                                // }
+                                                                // Serial.print("\"");
+                                                                // Serial.print(" {");
+                                                                // for(int i = 0; i < len; ++i) {
+                                                                //     Serial.print(mas[i]);
+                                                                // }
+                                                                // Serial.println("}");
+                                                                // Serial.print("Name_2 = \"");
+                                                                // for(int i = 0; i < device->get_len_name(); ++i) {
+                                                                //     Serial.print((char) device->get_name(i));
+                                                                // }
+                                                                // Serial.print("\"");
+                                                                // Serial.print(" {");
+                                                                // for(int i = 0; i < device->get_len_name(); ++i) {
+                                                                //     Serial.print(device->get_name(i));
+                                                                // }
+                                                                // Serial.println("}");
+
+
+    if(len == device->get_len_name()) {
+        static bool coincidence;
+        coincidence = true;
+        for(int i = 0; i < len; ++i) {
+            if(mas[i] != device->get_name(i)) {
+                coincidence = false;
+                break;
+            }
+        }
+        if(coincidence) {
+                                                                // Serial.println("Not save.");
+            return;
+        }
+    }
+                                                                // Serial.println("Save.");
+    device->set_name(mas, len);
+    for(int j = 0; j < len; ++j) {
+        my_mas[num][j] = mas[j];
+    }
+    save_sensors();
+}
+void load_name_sensor() {
+    MYNVS::first_load();
+    for(int i = 0; i < AMOUNT_MODULES; ++i) {
+        for(int j = 0; j < MAX_LEN_NAME; ++j) {
+            my_mas[i][j] = mas_load[i][j];
+        }
+    }
+}
+void clear_name_sensor() {
+    MYNVS::clear();
+    load_name_sensor();
+}
+
+
+namespace MYNVS {
+    bool begin() { 
+        return !Private::flash_setup();
+    }
+    bool first_load() {
+        for(int i = 0; i < AMOUNT_MODULES; ++i) {
+            mas_len[i] = Private::flash_load(i);
+        }
+        if(Private::flasf_check()) {
+            for(int i = 0; i < AMOUNT_MODULES; ++i) {
+                for(int j = 0; j < MAX_LEN_NAME; ++j) {
+                    mas_load[i][j] = mas_static[i][j];
+                    if(mas_load[i][j] == '\0') {
+                        mas_len[i] = j;
+                        break;
+                    }
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+    bool check_load() {
+        for(int i = 0; i < AMOUNT_MODULES; ++i) {
+            mas_len[i] = Private::flash_load(i);
+            for(int j = 0; j < MAX_LEN_NAME; ++j) {
+                if(mas_load[i][j] == '\0') {
+                    break;
+                }
+                if(mas_load[i][j] != mas_save[i][j]) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    bool save() {
+        for(int i = 0; i < AMOUNT_MODULES; ++i) {
+            Private::flash_save(i);
+        }
+        return check_load();
+    }
+    void clear() {
+        Private::flash_clear();
+    }
+
+    namespace Private {
+        bool flash_setup() {
+            // инициализировать EEPROM с предопределенным размером
+            if(!EEPROM.begin(EEPROM_SIZE)) {
+#if defined( MYNVS_PRIVATE_PRINT )
+                Serial.println("EEPROM begin error");
+#endif
+                return true;
+            }
+            return false;
+        }
+        void flash_loop() {
+        #if defined( CLEAR_EEPROM )
+            flash_clear();
+#if defined( MYNVS_PRIVATE_PRINT )
+            Serial.println("Clear complete.");
+#endif
+        #endif
+        #if defined( LOAD_MAS )
+            for(int i = 0; i < AMOUNT_MODULES; ++i) {
+                mas_len[i] = flash_load(i);
+            }
+            if(flasf_check()) {
+                for(int i = 0; i < AMOUNT_MODULES; ++i) {
+                    for(int j = 0; j < MAX_LEN_NAME; ++j) {
+                        mas_load[i][j] = mas_static[i][j];
+                        if(mas_load[i][j] == '\0') {
+                            mas_len[i] = j;
+                            break;
+                        }
+                    }
+                }
+            }
+#if defined( MYNVS_PRIVATE_PRINT )
+            for(int i = 0; i < AMOUNT_MODULES; ++i) {
+                Serial.print("mas[");
+                Serial.print(i);
+                Serial.print("]");
+                Serial.print("(");
+                Serial.print(mas_len[i]);
+                Serial.print(") = \"");
+                for(int j = 0; j < mas_len[i]; ++j)
+                    Serial.print((char)mas_load[i][j]);
+                Serial.print("\" {");
+                for(int j = 0; j < mas_len[i]; ++j) {
+                    Serial.print(mas_load[i][j]);
+                    if(j < mas_len[i] - 1)
+                        Serial.print(", ");
+                }
+                Serial.println("}");
+            }
+#endif
+        #endif
+        #if defined( SAVE_MAS )
+            for(int i = 0; i < AMOUNT_MODULES; ++i) {
+                flash_save(i);
+            }
+#if defined( MYNVS_PRIVATE_PRINT )
+            Serial.println("Save complete.");
+#endif
+        #endif
+        }
+
+        void flash_clear() {
+            for(int i = 0; i < EEPROM_SIZE; ++i) {
+                EEPROM.write(i, 255);
+            } 
+            EEPROM.commit();
+        }
+
+        void flash_save(uint8_t num) {
+            if(!(num < AMOUNT_MODULES))
+                return;
+            for(int i = 0; i < MAX_LEN_NAME; ++i) {
+                EEPROM.write(MAX_LEN_NAME * num + i, mas_save[num][i]);
+                if(mas_save[num][i] == '\0')
+                    break;
+            } 
+            EEPROM.commit();
+        }
+
+        uint16_t flash_load(uint8_t num) {
+            uint16_t size = 0;
+            if(!(num < AMOUNT_MODULES))
+                return size;
+            for(int i = 0; i < MAX_LEN_NAME; ++i) {
+                mas_load[num][i] = EEPROM.read(MAX_LEN_NAME * num + i);
+                ++size;
+                if(mas_load[num][i] == '\0')
+                    break;
+            }
+            if(size == MAX_LEN_NAME)
+                mas_load[num][MAX_LEN_NAME - 1] = '\0';
+            return size;
+        }
+
+        bool flasf_check() {
+            for(int i = 0; i < AMOUNT_MODULES; ++i) {
+                if(mas_load[i][0] == 255)
+                    return true;
+            }
+            return false;
+        }
+    }
+}
+
+
+
+// (-) -----
+const uint8_t name_s[12] = "Sensor ";
+const uint8_t name_d[12] = "Device ";
+uint8_t name[12];
+uint8_t len;
+
+
+void set_start_components() {
+    MYNVS::begin();
+    load_name_sensor();
+    
+    for(int i = 0; (i < __GCM__.sensors_.size()) && (i < AMT_SENSORS_ID); ++i) {
+        __GCM__.sensors_[i].set_active(2);
+        __GCM__.sensors_[i].set_system_id(sensors_id[i]);
+
+        if(i < AMOUNT_MODULES) {
+            __GCM__.sensors_[i].set_name(my_mas[i], mas_len[i]);
+        }
+        else {
+            // (-) -----
+            {
+                for(int j = 0; j < 8; ++j)
+                    name[j] = name_s[j];
+                name[7] = i / 10 + '0';
+                name[8] = i % 10 + '0';
+                len = 12;
+                __GCM__.sensors_[i].set_name(name, len);
+            }
+            // (-) -----
+        }
+    }
+    for(int i = 0; (i < __GCM__.devices_.size()) && (i < AMT_DEVICES_ID); ++i) {
+        __GCM__.devices_[i].set_active(2);
+        __GCM__.devices_[i].set_system_id(devices_id[i]);
+
+
+        // (-) -----
+        {
+            for(int j = 0; j < 8; ++j)
+                name[j] = name_d[j];
+            name[7] = i / 10 + '0';
+            name[8] = i % 10 + '0';
+            len = 12;
+            __GCM__.devices_[i].set_name(name, len);
+        }
+        // (-) -----
+
+
+        // (-) -----
+        {
+            // добавь стартовые периоды и каналы
+            static std::vector<dtc::Grow_timer> time_channel{};
+            dtc::Time_channel channel;
+            for(int j = 0; j < __GCM__.devices_[i].get_count_component(); ++j) {
+                time_channel.clear();
+                switch (__GCM__.devices_[i].get_component()[j].get_type()) {
+                case Signal_digital: {
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[0].set_start_time({1, 10, 30});
+                    time_channel[0].set_end_time({23, 50, 20});
+                    channel.set_duration_on(60);
+                    channel.set_duration_off(60*4);
+                    time_channel[0].bind_channel(channel);
+                    time_channel[0].set_send_value(25);
+                    break;
+                }
+                case Pumping_system: {
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[0].set_start_time({06, 00, 01});
+                    time_channel[0].set_end_time({22, 00, 00});
+                    channel.set_duration_on(60);
+                    channel.set_duration_off(60*4);
+                    time_channel[0].bind_channel(channel);
+                    time_channel[0].set_send_value(100);
+
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[1].set_start_time({22, 00, 01});
+                    time_channel[1].set_end_time({06, 00, 00});
+                    channel.set_duration_on(60);
+                    channel.set_duration_off(60*6);
+                    time_channel[1].bind_channel(channel);
+                    time_channel[1].set_send_value(100);
+                    break;
+                }
+                case Phytolamp_digital: {
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[0].set_start_time({07, 00, 00});
+                    time_channel[0].set_end_time({01, 00, 00});
+                    channel.set_duration_on(1);
+                    channel.set_duration_off(0);
+                    time_channel[0].bind_channel(channel);
+                    time_channel[0].set_send_value(100);
+                    break;
+                }
+                case Signal_PWM: {
+                    break;
+                }
+                case Fan_PWM: {
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[0].set_start_time({06, 00, 01});
+                    time_channel[0].set_end_time({16, 00, 00});
+                    channel.set_duration_on(50);
+                    channel.set_duration_off(10);
+                    time_channel[0].bind_channel(channel);
+                    time_channel[0].set_send_value(100);
+
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[1].set_start_time({16, 00, 01});
+                    time_channel[1].set_end_time({22, 00, 00});
+                    channel.set_duration_on(50);
+                    channel.set_duration_off(10);
+                    time_channel[1].bind_channel(channel);
+                    time_channel[1].set_send_value(75);
+
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[2].set_start_time({22, 00, 01});
+                    time_channel[2].set_end_time({06, 00, 00});
+                    channel.set_duration_on(50);
+                    channel.set_duration_off(10);
+                    time_channel[2].bind_channel(channel);
+                    time_channel[2].set_send_value(50);
+                    break;
+                }
+                case Phytolamp_PWM: {
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[0].set_start_time({07, 00, 00});
+                    time_channel[0].set_end_time({13, 00, 00});
+                    channel.set_duration_on(1);
+                    channel.set_duration_off(0);
+                    time_channel[0].bind_channel(channel);
+                    time_channel[0].set_send_value(50);
+
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[1].set_start_time({13, 00, 01});
+                    time_channel[1].set_end_time({18, 00, 00});
+                    channel.set_duration_on(1);
+                    channel.set_duration_off(0);
+                    time_channel[1].bind_channel(channel);
+                    time_channel[1].set_send_value(100);
+
+                    time_channel.push_back(dtc::Grow_timer{});
+                    time_channel[2].set_start_time({18, 00, 01});
+                    time_channel[2].set_end_time({01, 00, 00});
+                    channel.set_duration_on(1);
+                    channel.set_duration_off(0);
+                    time_channel[2].bind_channel(channel);
+                    time_channel[2].set_send_value(50);
+                    break;
+                }
+                default:
+                    break;
+                }
+                __GCM__.devices_[i].component_[j].set_timer(time_channel);
+            }
+        }
+        // (-) -----
+    }
+    __GCM__.contact_data_.end_contact();
+    __GCM__.set_mode(Group_control_module::GT_PROCESSING);
+    end_serial = true;
+    GT_print();
+
+
+    #if (SEND_SERVER == 1)
+    gcm_interface.init_server_connect(network_name, 10, network_pswd, 9, server_address, AMT_BYTES_NETWORK_ADDRESS, server_port);
+    delay(5000);
+    gcm_interface.report_to_server_regist_data();
+    #elif (CREATE_SERVER == 1)
+    lsc::server_GCM::init(__GCM__);
+    #endif
+}
+
+#endif
+
+
+
 
 
 

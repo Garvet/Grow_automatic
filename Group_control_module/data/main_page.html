@@ -220,6 +220,9 @@
           <p style="font-size: 18px">
             Зарегистрированные устройства
           </p>
+          <button style="border: none; background-color: white; margin-bottom: 15px">
+            <img src="refresh" style="width: 30px; height: 30px; " onclick="fetch_registered_devices()">
+          </button>
         </div>
       </caption>
       <thead>
@@ -470,7 +473,9 @@
   console.log("/registered_device/get?device_id=" + device_id)
   }
 
-  let id = "5FDCBDCB5F2597308617089B"
+  // let id = "123123"
+  // let id = "5FDCBDCB5F2597308617089B"
+  let id = "6086CCA2342B732B2D4A4274"
   document.getElementById('id').innerHTML = 'Модуль: ' + id;
   function addRowToUnregisteredDevices(table_body, device_id) { //добавление записи в таблицу
   // Get a reference to the table
@@ -1083,7 +1088,7 @@
   function send_edit_request_registered_device(evt) {
     let device_id  = evt.currentTarget.device_id
     let params = save_form(device_id)
-    params += '&control_device_name=' + evt.currentTarget.device_name
+    params += '&control_device_name=' + document.getElementById('device_name').value
     fetch("http://" + location.hostname + "/registered_device/edit?" + params.toString(), { method: 'GET'  })
     console.log("/registered_device/edit?" + params.toString())
   }

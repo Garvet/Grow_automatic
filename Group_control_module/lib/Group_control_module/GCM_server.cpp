@@ -18,6 +18,9 @@
 
 #define NOT_SEND_DEVICE_DATA // (-) ----- (!) ----- Отключение использования устройств на сервере
 
+
+extern void set_name_sensor(scs::System_component* device, const uint8_t* mas, uint8_t len); // (!) ----- {NAME}
+
 namespace lsc {
 
     namespace server_GCM {
@@ -1979,7 +1982,7 @@ namespace lsc {
         // Изменение модуля | "/registered_device/edit"
         void module_editing(AsyncWebServerRequest *request) { // (+?) -----
             static std::array<uint8_t, scs::AMT_BYTES_ID> id;
-            static const scs::System_component* module;
+            static scs::System_component* module; // (!) ----- {NAME} (const)
             static Grow_device* m_device;
             static Grow_sensor* m_sensor;
             static bool device = false;
@@ -1989,6 +1992,9 @@ namespace lsc {
             static int value;
             static bool error;
             static std::vector<dtc::Grow_timer> channel_data[25];
+
+            static uint8_t mas_name[30]{}; // (!) ----- {NAME}
+            static uint16_t len_name = 30; // (!) ----- {NAME}
 
             module = nullptr;
             amt_counter = 0;
@@ -2122,7 +2128,7 @@ namespace lsc {
                                     if(input_value[0] > input_value[i])
                                         input_value[0] = input_value[i];
                                 }
-                                Serial.print(input_value[0]);
+                                // Serial.print(input_value[0]);
                                 m_sensor->set_period(input_value[0] * 1000);
                             }
                             else {
@@ -2319,6 +2325,44 @@ namespace lsc {
                             }
                         }
                     }
+                    else if (param_name == "control_device_name") { // (!) ----- {NAME}
+                        // имя модуля
+                        String name = p->value();
+                        if(name.length() != 0) {
+                            for(int i = 0; i < name.length() && i < 29; ++i) {
+                                mas_name[i] = name[i];
+                                len_name = i + 1;
+                            }
+                            mas_name[29] = '\0';
+                            if(len_name < 30)
+                                mas_name[len_name++] = '\0';
+                        }
+                        else {
+                            if(module != nullptr) {
+                                len_name = 0;
+                                len_name = add_module_id(module, mas_name, len_name) * 2;
+                                mas_name[len_name++] = '\0';
+                                // for(int i = 0; i < scs::AMT_BYTES_ID; ++i) {
+                                //     mas_name[i] = module->get_system_id(i);
+                                // }
+                            }
+                        }
+                        // uint8_t iter = 0;
+                        // uint8_t index = 0;
+                        // dtc::Time_channel channel;
+                        // // TC.OFF // (--) -----
+                        // if(device && (amt_components != 0)) {
+                        //     while((index < turn_off.length()) && (iter < amt_components) ) {
+                        //         amt_counter = get_value((uint8_t*)&turn_off[0], input_value, index);
+                        //         for(int j = 0; j < amt_counter; ++j) {
+                        //             channel = channel_data[iter][j].get_channel();
+                        //             channel.set_duration_off(input_value[j]);
+                        //             channel_data[iter][j].bind_channel(channel);
+                        //         }
+                        //         ++iter;
+                        //     }
+                        // }
+                    }
                     else {
 #if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA_LEV_PRINT_2)
                         Serial.print(" -!-");
@@ -2345,6 +2389,9 @@ namespace lsc {
                     }
                     m_device->set_setting_change_period(true);
                 }
+                // (!) ----- {NAME}
+                if(module != nullptr)
+                    set_name_sensor(module, mas_name, len_name);
 
 #if defined(SERIAL_PRINT_MODULE_EDIT_SEND_DATA)
                 // Вывод ID

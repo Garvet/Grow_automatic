@@ -3,7 +3,7 @@
 #if defined ( ESP32 )
 // #define SERIAL_PRINT_ON // вывод стадий при каждом их прохождении (при каждой отправке/приёме)
 // #define SERIAL_PRINT_ON_1 // (dsdjlbn gfrtns) вывод только пакетов по мере отправки/приёма
-#define SERIAL_PRINT_ON_2 // вывод только результатов отправки/приёма
+#define SERIAL_PRINT_ON_2 0x07 // вывод только результатов отправки/приёма
 // #define ALL_SAVE_PACKET // сохраняет в массив all_packet все принятые и отправленные пакеты
 #if defined ( ALL_SAVE_PACKET )
 class pack {
@@ -452,7 +452,8 @@ uint32_t LoRa_contact_data::work_contact_system() {
                                                                 #elif defined( SERIAL_PRINT_ON_2 )
                                                                 LoRa_packet in;
                                                                 in = last_receive_packet_;
-                                                                if((in[1] == 0x80 && in[2] == 0x08) || (in[4] == 0x80 && in[5] == 0x08)) {
+                                                                // if((in[1] == 0x80 && in[2] == 0x08) || (in[4] == 0x80 && in[5] == 0x08)) {
+                                                                if((/*in[1] == 0x80 &&*/ in[2] == SERIAL_PRINT_ON_2) || (/*in[4] == 0x80 &&*/ in[5] == SERIAL_PRINT_ON_2)) {
                                                                     Serial.print("\t\t\t(+) [");
                                                                     for(int i = 0; i < in.get_len(); ++i) {
                                                                         if(in[i] < 16)
@@ -2323,7 +2324,8 @@ void LoRa_contact_data::set_LoRa_mode_send(bool first) {
                                                             LoRa_packet out;
                                                             out = last_send_packet_;
                                                             lora_.sender_packet(out.get_data(), out.get_len(), false);
-                                                            if((out[1] == 0x80 && out[2] == 0x08) || (out[4] == 0x80 && out[5] == 0x08)) {
+                                                            // if((out[1] == 0x80 && out[2] == 0x08) || (out[4] == 0x80 && out[5] == 0x08)) {
+                                                            if((/*out[1] == 0x80 &&*/ out[2] == SERIAL_PRINT_ON_2) || (/*out[4] == 0x80 &&*/ out[5] == SERIAL_PRINT_ON_2)) {
                                                                 Serial.print("\t\t\t--> [");
                                                                 for(int i = 0; i < out.get_len(); ++i) {
                                                                     if(out[i] < 16)

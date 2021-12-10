@@ -17,7 +17,7 @@
 namespace scs {
 
     const uint8_t AMT_BYTES_ID = 12;
-    const uint8_t AMT_BYTES_NAME = 40;
+    const uint8_t AMT_BYTES_NAME = 30;
 
     enum class State { // зарегистрирован, в процессе регистрации (setting - МУГ, ЗАРЕГ и В_ПР_РЕГ - S/D)
         work,           // Работает
@@ -50,6 +50,7 @@ namespace scs {
         // индивидуальный номер платы
         void set_system_id(std::array<uint8_t, AMT_BYTES_ID> system_id);
         std::array<uint8_t, AMT_BYTES_ID> get_system_id() const;
+        uint8_t get_system_id(uint8_t num) const;
 
         // имя платы
         bool set_name(std::array<uint8_t, AMT_BYTES_NAME> system_name, uint8_t len);
