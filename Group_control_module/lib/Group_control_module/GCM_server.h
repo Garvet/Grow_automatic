@@ -37,7 +37,7 @@ namespace lsc {
         uint8_t add_module_id(const scs::System_component* where, uint8_t* whence, uint16_t& bias, bool delimiter=false);
         uint8_t add_module_name(const scs::System_component* where, uint8_t* whence, uint16_t& bias, bool delimiter=false);
 
-        void init(Group_control_module &gcm, bool spiffs_init=true);
+        void init(Group_control_module &gcm, bool wifi_connect=true, bool spiffs_init=true);
 
         // Страница для входа
         void login_page(AsyncWebServerRequest *request);       // "/" ("login_page.html")

@@ -13,6 +13,7 @@
 #include <array>
 
 #define DUPLICATE_SET_PWM
+#define SERVER_SEND_SET_PWM
 
 namespace scs {
 
@@ -74,9 +75,16 @@ namespace scs {
     #if defined( DUPLICATE_SET_PWM )
         bool first_clear{false}; // (-) ----- костыль в костыле
     #endif
+    #if defined( SERVER_SEND_SET_PWM )
+        uint16_t last_value_pwm{0xFFFF};
+        bool send_last_value_pwm = true;
+        uint16_t get_last_value_pwm() const;
+        bool get_send_last_value_pwm() const;
+        void clear_send_last_value_pwm();
+    #endif
         uint16_t send_server_value{0xFFFF};
         bool set_send_server_value(uint16_t val);
-        uint16_t get_send_server_value();
+        uint16_t get_send_server_value() const;
         void clear_send_server_value();
         // (-) ----- (!) ----- /\ /\ /\ КОСТЫЛЬ
 

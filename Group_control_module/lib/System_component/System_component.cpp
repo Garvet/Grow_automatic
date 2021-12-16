@@ -76,12 +76,16 @@ namespace scs {
         if(4095 < val)
             return true;
         send_server_value = val;
+    #if defined(SERVER_SEND_SET_PWM)
+        last_value_pwm = send_server_value;
+        send_last_value_pwm = true;
+    #endif
     #if defined( DUPLICATE_SET_PWM )
         first_clear = true; // (-) ----- костыль в костыле
     #endif
         return false;
     }
-    uint16_t System_component::get_send_server_value() {
+    uint16_t System_component::get_send_server_value() const {
         return send_server_value;
     }
     void System_component::clear_send_server_value() {
@@ -93,5 +97,16 @@ namespace scs {
         send_server_value = 0xFFFF;
     #endif
     }
+    #if defined(SERVER_SEND_SET_PWM)
+    uint16_t System_component::get_last_value_pwm() const {
+        return last_value_pwm;
+    }
+    bool System_component::get_send_last_value_pwm() const {
+        return send_last_value_pwm;
+    }
+    void System_component::clear_send_last_value_pwm() {
+        send_last_value_pwm = false;
+    }
+    #endif
     // (-) ----- (!) ----- /\ /\ /\ КОСТЫЛЬ
 }

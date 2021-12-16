@@ -827,7 +827,8 @@ void UART_loop() {
                     //     Serial.print(j);
                     //     Serial.println("] == Pumping_system");
                     // }
-                    if(__GCM__.devices_[i].get_type()[j] == Pumping_system && i == 2) {
+                    // if(__GCM__.devices_[i].get_type()[j] == Pumping_system && i == 2) {
+                    if(__GCM__.devices_[i].get_type()[j] == Pumping_system) {
                         __GCM__.devices_[i].set_send_server_value(pwm);
                     }
                 }
@@ -1406,13 +1407,27 @@ void set_start_components() {
     GT_print();
 
 
+    // #if (SEND_SERVER == 1)
+    // gcm_interface.init_server_connect(network_name, 10, network_pswd, 9, server_address, AMT_BYTES_NETWORK_ADDRESS, server_port);
+    // delay(5000);
+    // gcm_interface.report_to_server_regist_data();
+    // #elif (CREATE_SERVER == 1)
+    // lsc::server_GCM::init(__GCM__);
+    // #endif
+
+
     #if (SEND_SERVER == 1)
     gcm_interface.init_server_connect(network_name, 10, network_pswd, 9, server_address, AMT_BYTES_NETWORK_ADDRESS, server_port);
     delay(5000);
     gcm_interface.report_to_server_regist_data();
+    
+    #if (CREATE_SERVER == 1)
+    lsc::server_GCM::init(__GCM__, false);
+    #endif // CREATE_SERVER & SEND_SERVER
+
     #elif (CREATE_SERVER == 1)
     lsc::server_GCM::init(__GCM__);
-    #endif
+    #endif // SEND_SERVER | CREATE_SERVER
 }
 
 #endif

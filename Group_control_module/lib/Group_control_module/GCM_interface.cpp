@@ -1,5 +1,7 @@
 #include "GCM_interface.h"
 
+#define SEND_SERVER_SET_PWM_PUMP
+
 GCM_interface gcm_interface;
 
 static char network_name_[AMT_BYTES_NETWORK_NAME];
@@ -900,9 +902,18 @@ uint16_t GCM_interface::report_to_server_read_data() {
 
 
     for(int k = 0; k < gcm_->devices_.size(); ++k) {
+#if defined( SEND_SERVER_SET_PWM_PUMP )     
+        uint8_t dev_type;
+#endif
         buf_len = 0;
+#if defined( SEND_SERVER_SET_PWM_PUMP )     
+        if(!gcm_->devices_[k].get_change_value() && !gcm_->devices_[k].get_send_last_value_pwm())
+            continue;
+        gcm_->devices_[k].clear_send_last_value_pwm();
+#elif
         if(!gcm_->devices_[k].get_change_value())
             continue;
+#endif
         gcm_->devices_[k].clear_change_value();
 
 
@@ -910,10 +921,23 @@ uint16_t GCM_interface::report_to_server_read_data() {
             buffer[buf_len++] = gcm_->devices_[k].get_system_id()[i];
         buffer[buf_len++] = 2; // type report (0 - registration, 1 - sensor, 2 - device)
 
+#if defined( SEND_SERVER_SET_PWM_PUMP )
+        buffer[buf_len] = gcm_->devices_[k].get_count_component();
+        for(int i = 0; i < gcm_->devices_[k].get_count_component(); ++i) {
+            gcm_->devices_[k].get_type(i, dev_type);
+            if(dev_type == Pumping_system) {
+                ++buffer[buf_len];
+            }
+        }
+        ++buf_len;
+#else
         buffer[buf_len++] = gcm_->devices_[k].get_count_component();
+#endif
 
-        uint8_t data_b;        
+        uint8_t data_b;  
+#if !defined( SEND_SERVER_SET_PWM_PUMP )     
         uint8_t dev_type;
+#endif
         // uint32_t data;
         uint16_t pwmv;
         int i = 0;
@@ -938,6 +962,17 @@ uint16_t GCM_interface::report_to_server_read_data() {
                 Serial.println("Error send type devices");
                 break;
             }
+#if defined( SEND_SERVER_SET_PWM_PUMP )
+            if(dev_type == Pumping_system) {
+                gcm_->devices_[k].get_type(i, dev_type);
+                buffer[buf_len++] = Signal_PWM;
+                gcm_->devices_[k].get_id(i, data_b);
+                buffer[buf_len++] = data_b;
+                pwmv = gcm_->devices_[k].get_last_value_pwm();
+                buffer[buf_len++] = (pwmv >>  8) & 0xFF;
+                buffer[buf_len++] =  pwmv & 0xFF;
+            }
+#endif
             // buffer[buf_len++] = (data >> 24) & 0xFF;
             // buffer[buf_len++] = (data >> 16) & 0xFF;
             // buffer[buf_len++] = (data >>  8) & 0xFF;

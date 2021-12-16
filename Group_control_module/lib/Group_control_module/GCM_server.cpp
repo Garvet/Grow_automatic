@@ -1,7 +1,7 @@
 #include "GCM_server.h"
 
-// #define START_WIFI_CONNECT
-#define START_WIFI_CREATE
+#define START_WIFI_CONNECT
+// #define START_WIFI_CREATE
 
 // #define TEST_CODE_15_10_2021
 
@@ -276,18 +276,18 @@ namespace lsc {
 
         // std::array<uint8_t, scs::AMT_BYTES_ID> get_system_id() const;
 
-        void init(Group_control_module &set_gcm, bool spiffs_init) {
+        void init(Group_control_module &set_gcm, bool wifi_connect, bool spiffs_init) {
             gcm = &set_gcm;
 
-
+            if(wifi_connect) {
 #if defined( START_WIFI_CONNECT )
-            WiFi.onEvent(WiFiEvent); // задает то. что при подключении к wi-fi будет
-            connectToWifi();         // запущена функция обратного вызова WiFiEvent(),
-                                     // которая напечатает данные о WiFi подключении
+                WiFi.onEvent(WiFiEvent); // задает то. что при подключении к wi-fi будет
+                connectToWifi();         // запущена функция обратного вызова WiFiEvent(),
+                                        // которая напечатает данные о WiFi подключении
 #elif defined( START_WIFI_CREATE )
-            create_WiFi();
+                create_WiFi();
 #endif
-
+            }
 
             if(spiffs_init) {
                 if (!SPIFFS.begin(true)) {
