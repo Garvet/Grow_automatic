@@ -526,7 +526,7 @@ uint8_t data[100] = {0x00, 0x06, // Address
                      0x01,                         // component.size()
                      0x04,                         // component.type[0] // PL
                      // Devices[2]
-                     0x00, 0x00, 0x27, 0x10,       // period (10 sec)
+                     0x00, 0x00, 0xEA, 0x60,       // period (1 min)
                      0x01,                         // component.size()
                      0x03,                         // component.type[0] // PUMP
                     };
