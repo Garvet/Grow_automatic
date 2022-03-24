@@ -38,6 +38,39 @@ bool GCM_interface::set_group_control_module(Group_control_module * gcm) {
     gcm_ = gcm;
     return false;
 }
+#if defined (SEND_MQTT)
+#include <AsyncMqttClient.h>
+AsyncMqttClient mqttClient;
+TimerHandle_t mqttReconnectTimer;
+TimerHandle_t wifiReconnectTimer;
+void MQ_connectToMqtt();
+void MQ_WiFiEvent(WiFiEvent_t event);
+void MQ_onMqttConnect(bool sessionPresent);
+void MQ_onMqttDisconnect(AsyncMqttClientDisconnectReason reason);
+void MQ_onMqttSubscribe(uint16_t packetId, uint8_t qos);
+void MQ_onMqttUnsubscribe(uint16_t packetId);
+void MQ_onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total);
+void MQ_onMqttPublish(uint16_t packetId);
+    // mqttClient.onConnect(onMqttConnect);
+    // mqttClient.onDisconnect(onMqttDisconnect);
+    // mqttClient.onSubscribe(onMqttSubscribe);
+    // mqttClient.onUnsubscribe(onMqttUnsubscribe);
+    // mqttClient.onMessage(onMqttMessage);
+    // mqttClient.onPublish(onMqttPublish);
+    // mqttClient.setServer(MQTT_HOST, MQTT_PORT);
+
+#define USE_GLOBAL_SERVER
+#if defined(USE_GLOBAL_SERVER)
+#define MQTT_HOST IPAddress(95, 183, 11, 207)
+#define MQTT_PORT 1883
+const char* MQTT_ssid = "user";
+const char* MQTT_password = "123";
+#else
+#define MQTT_HOST IPAddress(192, 168, 1, 38)
+#define MQTT_PORT 1883
+#endif
+
+#endif
 bool GCM_interface::init_server_connect(
             std::array<char, AMT_BYTES_NETWORK_NAME> network_name, uint8_t  len_network_name,
             std::array<char, AMT_BYTES_NETWORK_PASSWORD> network_pswd, uint8_t  len_network_pswd,
@@ -59,9 +92,114 @@ bool GCM_interface::init_server_connect(
         network_adr_[i] = network_adr[i];
     network_port_ = network_port;
     init_connected = true;
+#if defined (SEND_MQTT)
+    mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(MQ_connectToMqtt));
+    wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWiFi));
+    WiFi.onEvent(MQ_WiFiEvent);
+    mqttClient.onConnect(MQ_onMqttConnect);
+    mqttClient.onDisconnect(MQ_onMqttDisconnect);
+    mqttClient.onSubscribe(MQ_onMqttSubscribe);
+    mqttClient.onUnsubscribe(MQ_onMqttUnsubscribe);
+    mqttClient.onMessage(MQ_onMqttMessage);
+    mqttClient.onPublish(MQ_onMqttPublish);
+#if defined(USE_GLOBAL_SERVER)
+    mqttClient.setCredentials(MQTT_ssid, MQTT_password);
+#endif
+    mqttClient.setServer(MQTT_HOST, MQTT_PORT);
+#endif
     connectToWiFi();
     return false;
 }
+
+#if defined (SEND_MQTT)
+
+void MQ_connectToMqtt() {
+    Serial.println("Connecting to MQTT...");
+    mqttClient.connect();
+}
+
+void MQ_WiFiEvent(WiFiEvent_t event) {
+    Serial.printf("[WiFi-event] event: %d\n", event);
+    switch(event) {
+    case SYSTEM_EVENT_STA_GOT_IP:
+        Serial.println("WiFi connected");
+        Serial.println("IP address: ");
+        Serial.println(WiFi.localIP());
+        MQ_connectToMqtt();
+        break;
+    case SYSTEM_EVENT_STA_DISCONNECTED:
+        Serial.println("WiFi lost connection");
+        xTimerStop(mqttReconnectTimer, 0); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
+        xTimerStart(wifiReconnectTimer, 0);
+        break;
+    default:;
+    }
+}
+
+void MQ_onMqttConnect(bool sessionPresent) {
+    Serial.println("Connected to MQTT.");
+    Serial.print("Session present: ");
+    Serial.println(sessionPresent);
+    // uint16_t packetIdSub = mqttClient.subscribe("test/lol", 2);
+    // Serial.print("Subscribing at QoS 2, packetId: ");
+    // Serial.println(packetIdSub);
+    // mqttClient.publish("test/lol", 0, true, "test 1");
+    // Serial.println("Publishing at QoS 0");
+    // uint16_t packetIdPub1 = mqttClient.publish("test/lol", 1, true, "test 2");
+    // Serial.print("Publishing at QoS 1, packetId: ");
+    // Serial.println(packetIdPub1);
+    // uint16_t packetIdPub2 = mqttClient.publish("test/lol", 2, true, "test 3");
+    // Serial.print("Publishing at QoS 2, packetId: ");
+    // Serial.println(packetIdPub2);
+}
+
+void MQ_onMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
+    Serial.println("Disconnected from MQTT.");
+
+    if (WiFi.isConnected()) {
+        xTimerStart(mqttReconnectTimer, 0);
+    }
+}
+
+void MQ_onMqttSubscribe(uint16_t packetId, uint8_t qos) {
+    Serial.println("Subscribe acknowledged.");
+    Serial.print("  packetId: ");
+    Serial.println(packetId);
+    Serial.print("  qos: ");
+    Serial.println(qos);
+}
+
+void MQ_onMqttUnsubscribe(uint16_t packetId) {
+    Serial.println("Unsubscribe acknowledged.");
+    Serial.print("  packetId: ");
+    Serial.println(packetId);
+}
+
+void MQ_onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
+    Serial.println("Publish received.");
+    Serial.print("  topic: ");
+    Serial.println(topic);
+    Serial.print("  qos: ");
+    Serial.println(properties.qos);
+    Serial.print("  dup: ");
+    Serial.println(properties.dup);
+    Serial.print("  retain: ");
+    Serial.println(properties.retain);
+    Serial.print("  len: ");
+    Serial.println(len);
+    Serial.print("  index: ");
+    Serial.println(index);
+    Serial.print("  total: ");
+    Serial.println(total);
+}
+
+void MQ_onMqttPublish(uint16_t packetId) {
+    Serial.println("Publish acknowledged.");
+    Serial.print("  packetId: ");
+    Serial.println(packetId);
+}
+
+#endif
 
 
 
@@ -226,9 +364,16 @@ size_t GCM_interface::set_data(uint8_t *data, size_t available_size) {
 // }
 
 // --- Отчётность ---
-
 void connectToWiFi() {
 #if defined( SEND_SERVER )
+
+#if defined (SEND_MQTT)
+
+
+    Serial.println("Connecting to Wi-Fi...");
+    WiFi.begin(network_name_, network_pswd_);
+    
+#else
                                                                                                         // Serial.println("Connecting to WiFi network: " + String(ssid));
 
 //   // delete old config
@@ -293,6 +438,7 @@ void connectToWiFi() {
     #endif
     // -----------------------------------------------------
 
+#endif
 
 
 
@@ -333,11 +479,12 @@ void WiFiEvent(WiFiEvent_t event) {
 RtcDateTime rdt;
 bool send_request_state(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id, bool state) { // (-) ----- костыль
 #if defined( SEND_SERVER )
+#if defined (SEND_MQTT)
+#else
     static uint32_t send_wait_error = millis() - SEND_WAIT_ERROR;
     uint8_t wait_connect = 10;
     bool client_connect = true;
     bool err_send_data = true;
-    
     client.stop(); 
     while (!client.connect(network_adr_, network_port_)) { // adr!!!
         if(wait_connect == 0) {
@@ -347,7 +494,9 @@ bool send_request_state(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id,
         --wait_connect;
         delay(1000);
     }
-    if(client_connect) {
+    if(client_connect)
+#endif
+    {
         buf_len = 0;
 
         for(int i = 0; i < scs::AMT_BYTES_ID; ++i)
@@ -367,6 +516,9 @@ bool send_request_state(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id,
         buffer[buf_len++] = rdt.Minute();
         buffer[buf_len++] = rdt.Second();
 
+#if defined (SEND_MQTT)
+        mqttClient.publish("/up/5FDCBDCB5F2597308617089B", 0, true, (char*)buffer, buf_len);
+#else
         client.write(buffer, buf_len);
 
         uint maxloops = 0;
@@ -383,16 +535,18 @@ bool send_request_state(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id,
         else {
             Serial.println("client.available() timed out ");
         }
+#endif
     }
 #endif
 }
 bool send_request_value(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id, uint16_t value) { // (-) ----- костыль
 #if defined( SEND_SERVER )
+#if defined (SEND_MQTT)
+#else
     static uint32_t send_wait_error = millis() - SEND_WAIT_ERROR;
     uint8_t wait_connect = 10;
     bool client_connect = true;
     bool err_send_data = true;
-    
     client.stop(); 
     while (!client.connect(network_adr_, network_port_)) { // adr!!!
         if(wait_connect == 0) {
@@ -402,7 +556,9 @@ bool send_request_value(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id,
         --wait_connect;
         delay(1000);
     }
-    if(client_connect) {
+    if(client_connect)
+#endif
+    {
         buf_len = 0;
 
         for(int i = 0; i < scs::AMT_BYTES_ID; ++i)
@@ -423,6 +579,9 @@ bool send_request_value(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id,
         buffer[buf_len++] = rdt.Minute();
         buffer[buf_len++] = rdt.Second();
 
+#if defined (SEND_MQTT)
+        mqttClient.publish("/up/5FDCBDCB5F2597308617089B", 0, true, (char*)buffer, buf_len);
+#else
         client.write(buffer, buf_len);
 
         uint maxloops = 0;
@@ -439,11 +598,14 @@ bool send_request_value(const std::array<uint8_t, scs::AMT_BYTES_ID>& system_id,
         else {
             Serial.println("client.available() timed out ");
         }
+#endif
     }
 #endif
 }
 bool WiFisend() {
-#if defined( SEND_SERVER )
+#if defined (SEND_MQTT)
+    mqttClient.publish("/up/5FDCBDCB5F2597308617089B", 0, true, (char*)buffer, buf_len);
+#elif defined( SEND_SERVER )
     static uint32_t send_wait_error = millis() - SEND_WAIT_ERROR;
     uint8_t wait_connect = 3;
     bool client_connect = true;
@@ -1031,6 +1193,8 @@ uint16_t GCM_interface::report_to_server_read_data() {
     }
 
     // send an empty packet every second (?) -----
+#if defined (SEND_MQTT)
+#else
     static unsigned long empty_time = millis();
     if(millis() - empty_time > 5000U) {
         buf_len = 0;
@@ -1049,6 +1213,7 @@ uint16_t GCM_interface::report_to_server_read_data() {
         WiFisend();
         empty_time = millis();
     }
+#endif
 }
 // Отправка данных об ошибках
 uint16_t GCM_interface::report_to_server_error() {

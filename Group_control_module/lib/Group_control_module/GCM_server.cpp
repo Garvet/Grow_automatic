@@ -1,11 +1,11 @@
 #include "GCM_server.h"
 
-#define START_WIFI_CONNECT
-// #define START_WIFI_CREATE
+// #define START_WIFI_CONNECT
+#define START_WIFI_CREATE
 
 // #define TEST_CODE_15_10_2021
 
-// #define SERIAL_PRINT_WIFI
+#define SERIAL_PRINT_WIFI
 
 // #define SERIAL_PRINT_1
 // #define SERIAL_PRINT_REG_MODULES
